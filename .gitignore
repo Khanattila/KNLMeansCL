@@ -3,6 +3,8 @@
 
 # Microsoft Visual Studio Solution
 *.sln
+*.vcxproj
+*.filters
 
 # User-specific files
 *.suo
