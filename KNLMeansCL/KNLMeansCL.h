@@ -16,7 +16,7 @@
 *	along with KNLMeansCL. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#define VERSION "0.5.6"
+#define VERSION "0.5.7"
 
 #ifdef _MSC_VER
 #define strcasecmp _stricmp
@@ -37,8 +37,8 @@
 #include "avisynth.h"
 #endif
 
-#include <vapoursynth/VapourSynth.h>
-#include <vapoursynth/VSHelper.h>
+#include <VapourSynth.h>
+#include <VSHelper.h>
 
 #ifdef __AVISYNTH_6_H__
 class KNLMeansClass : public GenericVideoFilter {
