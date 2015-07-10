@@ -3,3 +3,11 @@ language: cpp
 compiler:
   - gcc
 
+script: ./configure
+
+branches:
+  only:
+    - master
+
+os:
+  - linux
