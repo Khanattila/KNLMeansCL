@@ -2,6 +2,7 @@
 
 **KNLMeansCL** is an optimized pixelwise OpenCL implementation of the Non-local means denoising algorithm. 
 Every pixel is restored by the weighted average of all pixels in its search window. The level of averaging is determined by the filtering parameter h. 
+
 Don't process chroma channels, copy it from the source clip if present.
 
 ### Supported color space ###
@@ -19,6 +20,11 @@ knlm.KNLMeansCL (clip clip, int d (0), int a (2), int s (4), int wmode (1),
                  float h (1.2), string device_type ("default"), int info (0)) 
 ```
 
+### Requirements ###
+- SSE2 / SSE3 instruction set.
+- OpenCL driver. AMD: [link](http://support.amd.com), NVIDIA: [link](http://www.nvidia.com/download/find.aspx), Intel: [link](https://software.intel.com/en-us/articles/opencl-drivers).
+- [Visual C++ Redistributable Package for Visual Studio 2013](http://www.microsoft.com/en-US/download/details.aspx?id=40784), windows build.
+
 ### Parameters ###
 - **clip (clip)**
 ``` 
@@ -26,9 +32,10 @@ Video source.
 ```	
 - **int D (d)**
 ```
-Set the number of past and future frame that the filter uses for denoising the current frame. 
-D=0 uses 1 frame, while D=1 uses 3 frames and so on. Usually, larger it the better the result
-of the denoising. 
+Set the number of past and future frame that the filter uses for denoising 
+the current frame. 
+D=0 uses 1 frame, while D=1 uses 3 frames and so on. Usually, larger it the better 
+the result of the denoising. 
 temporal size = (2 * D + 1).
 search window size = temporal size * spatial size.
 	
@@ -37,7 +44,8 @@ Default: 0.
 
 - **int A (a)**
 ```	
-Set the radius of the search window. Usually, larger it the better the result of the denoising.
+Set the radius of the search window. Usually, larger it the better the result of 
+the denoising.
 spatial size = (2 * A + 1)^2.
 search window size = temporal size * spatial size.
 	
@@ -45,20 +53,21 @@ Default: 2.
 ```
 - **int S (s)**
 ```	
-Set the radius of the similarity neighborhood window. The impact on performance is low, therefore 
-it depends on the nature of the noise.
+Set the radius of the similarity neighborhood window. The impact on performance is low,
+therefore it depends on the nature of the noise.
 similarity neighborhood size = (2 * S + 1)^2.
 	
 Default: 4.
 ```
 - **int wmode (wmode)**
 ```	
-0 := Cauchy weighting function has a very slow decay. It assign larger weights to dissimilar
-     blocks than the Leclerc robust function, which will eventually lead to oversmoothing.
-1 := Leclerc weighting function has a faster decay,	but still assigns positive weights to 
-     dissimilar blocks. Original NLMeans weighting function.
-2 := Bisquare weighting function use a soft threshold to compare neighbourhoods (the weight
-     is 0 as soon as a giventhreshold is exceeded)
+0 := Cauchy weighting function has a very slow decay. It assign larger weights to
+     dissimilar blocks than the Leclerc robust function, which will eventually lead
+     to oversmoothing.
+1 := Leclerc weighting function has a faster decay, but still assigns positive weights
+     to dissimilar blocks. Original NLMeans weighting function.
+2 := Bisquare weighting function use a soft threshold to compare neighbourhoods (the 
+     weight is 0 as soon as a giventhreshold is exceeded)
 	
 Default: 1.
 ```	
