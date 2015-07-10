@@ -12,5 +12,8 @@ branches:
   only:
     - master
 
+notifications:
+  email: false
+
 os:
   - linux
