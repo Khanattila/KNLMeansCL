@@ -5,7 +5,9 @@ compiler:
 
 before_install:
   - sudo apt-get update
-  - sudo apt-get install -y build-essential yasm git libavcodec-dev libswscale-dev libass-dev python3-pip python3-dev
+  - sudo apt-get install -y build-essential yasm git libavcodec-dev libswscale-dev libass-dev python3-setuptools 
+  python3-dev
+  - sudo easy_install3 pip
   - pip3 install cython
   - git clone https://github.com/vapoursynth/vapoursynth.git
 
