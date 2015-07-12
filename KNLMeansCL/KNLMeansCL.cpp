@@ -103,9 +103,9 @@ inline void KNLMeansClass::writeBuffer(const uint8_t *msbp, int pitch, cl_uint* 
 //////////////////////////////////////////
 // AviSynthInit
 #ifdef __AVISYNTH_6_H__
-KNLMeansClass::KNLMeansClass(PClip _child, PClip _baby, const int _D, const int _A, const int _S, const int _wmode, 
-	const double _h, const char* _ocl_device, const bool _lsb, const bool _info, IScriptEnvironment* env) : 
-	GenericVideoFilter(_child), baby(_baby), D(_D), A(_A), S(_S), wmode(_wmode), h(_h), ocl_device(_ocl_device), 
+KNLMeansClass::KNLMeansClass(PClip _child, const int _D, const int _A, const int _S, const int _wmode, const double _h,
+	PClip _baby, const char* _ocl_device, const bool _lsb, const bool _info, IScriptEnvironment* env) :
+	GenericVideoFilter(_child), D(_D), A(_A), S(_S), wmode(_wmode), h(_h), baby(_baby), ocl_device(_ocl_device),
 	lsb(_lsb), info(_info) {
 
 	// Checks AviSynth Version.
@@ -280,8 +280,10 @@ PVideoFrame __stdcall KNLMeansClass::GetFrame(int n, IScriptEnvironment* env) {
 	};
 	const size_t local_horiz[2] = { H_BLOCK_X, H_BLOCK_Y };
 	const size_t local_vert[2] = { V_BLOCK_X, V_BLOCK_Y };
+
+	//Copy chroma.
 	PVideoFrame dst = env->NewVideoFrame(vi);
-	if (!vi.IsY8()) {
+	if (!vi.IsY8() && !vi.IsRGB32()) {
 		env->BitBlt(dst->GetWritePtr(PLANAR_U), dst->GetPitch(PLANAR_U), src->GetReadPtr(PLANAR_U),
 			src->GetPitch(PLANAR_U), src->GetRowSize(PLANAR_U), src->GetHeight(PLANAR_U));
 		env->BitBlt(dst->GetWritePtr(PLANAR_V), dst->GetPitch(PLANAR_V), src->GetReadPtr(PLANAR_V),
@@ -292,19 +294,17 @@ PVideoFrame __stdcall KNLMeansClass::GetFrame(int n, IScriptEnvironment* env) {
 	// Processing.
 	cl_int ret = CL_SUCCESS;
 	if (lsb) {
-		// 16-bits - src.
+		// 16-bits
 		writeBuffer(src->GetReadPtr(PLANAR_Y), src->GetPitch(PLANAR_Y), image_dimensions, buffer);
 		ret |= clEnqueueWriteImage(command_queue, mem_in[0], CL_TRUE, origin, region,
 			image_dimensions[0] * sizeof(uint16_t), 0, buffer, 0, NULL, NULL);
-		// 16-bits - ref.
 		writeBuffer(ref->GetReadPtr(PLANAR_Y), ref->GetPitch(PLANAR_Y), image_dimensions, buffer);
 		ret |= clEnqueueWriteImage(command_queue, mem_in[2], CL_TRUE, origin, region,
 			image_dimensions[0] * sizeof(uint16_t), 0, buffer, 0, NULL, NULL);
 	} else {
-		// 8-bits - src.
+		// 8-bits.
 		ret |= clEnqueueWriteImage(command_queue, mem_in[0], CL_TRUE, origin, region,
 			src->GetPitch(PLANAR_Y), 0, src->GetReadPtr(PLANAR_Y), 0, NULL, NULL);
-		// 8-bits - ref.
 		ret |= clEnqueueWriteImage(command_queue, mem_in[2], CL_TRUE, origin, region,
 			ref->GetPitch(PLANAR_Y), 0, ref->GetReadPtr(PLANAR_Y), 0, NULL, NULL);
 	}
@@ -313,20 +313,19 @@ PVideoFrame __stdcall KNLMeansClass::GetFrame(int n, IScriptEnvironment* env) {
 		// Temporal.
 		for (int k = -D; k <= D; k++) {
 			src = child->GetFrame(n + k, env);
+			ref = baby->GetFrame(n + k, env);
 			if (lsb) {
-				// 16-bits - src.
+				// 16-bits.
 				writeBuffer(src->GetReadPtr(PLANAR_Y), src->GetPitch(PLANAR_Y), image_dimensions, buffer);
 				ret |= clEnqueueWriteImage(command_queue, mem_in[1], CL_TRUE, origin, region,
 					image_dimensions[0] * sizeof(uint16_t), 0, buffer, 0, NULL, NULL);
-				// 16-bits - ref.
 				writeBuffer(ref->GetReadPtr(PLANAR_Y), ref->GetPitch(PLANAR_Y), image_dimensions, buffer);
 				ret |= clEnqueueWriteImage(command_queue, mem_in[3], CL_TRUE, origin, region,
 					image_dimensions[0] * sizeof(uint16_t), 0, buffer, 0, NULL, NULL);
 			} else {
-				// 8-bits - src.
+				// 8-bits.
 				ret |= clEnqueueWriteImage(command_queue, mem_in[1], CL_TRUE, origin, region,
 					src->GetPitch(PLANAR_Y), 0, src->GetReadPtr(PLANAR_Y), 0, NULL, NULL);
-				// 8-bits - ref.
 				ret |= clEnqueueWriteImage(command_queue, mem_in[3], CL_TRUE, origin, region,
 					ref->GetPitch(PLANAR_Y), 0, ref->GetReadPtr(PLANAR_Y), 0, NULL, NULL);
 			}
@@ -384,18 +383,19 @@ PVideoFrame __stdcall KNLMeansClass::GetFrame(int n, IScriptEnvironment* env) {
 	if (ret != CL_SUCCESS) env->ThrowError("KNLMeansCL: AviSynthGetFrame error!");
 
 	// Info.
-	if (info) {
+	if (info && !vi.IsRGB32()) {
 		uint8_t y = 0, *frm = dst->GetWritePtr(PLANAR_Y);
 		int pitch = dst->GetPitch(PLANAR_Y);
 		char buffer[2048], str[2048], str1[2048];
 		DrawString(frm, pitch, 0, y++, "KNLMeansCL");
-		DrawString(frm, pitch, 0, y++, " Version "VERSION);
+		DrawString(frm, pitch, 0, y++, " Version " VERSION);
 		DrawString(frm, pitch, 0, y++, " Copyright(C) Khanattila");
 		snprintf(buffer, 2048, " D:%li  A:%lix%li  S:%lix%li", 2 * D + 1, 2 * A + 1, 2 * A + 1, 2 * S + 1, 2 * S + 1);
 		DrawString(frm, pitch, 0, y++, buffer);
 		snprintf(buffer, 2048, " Iterations: %li", ((2 * D + 1)*(2 * A + 1)*(2 * A + 1) - 1) / (D ? 1 : 2));
 		DrawString(frm, pitch, 0, y++, buffer);
-		snprintf(buffer, 2048, " Global work size: %zux%zu", global_work[0], global_work[1]);
+		snprintf(buffer, 2048, " Global work size: %lux%lu",
+			(unsigned long) global_work[0], (unsigned long) global_work[1]);
 		DrawString(frm, pitch, 0, y++, buffer);
 		DrawString(frm, pitch, 0, y++, "Platform info");
 		ret |= clGetPlatformInfo(platformID, CL_PLATFORM_NAME, sizeof(char) * 2048, str, NULL);
@@ -440,6 +440,7 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
 	} else if (activationReason == arAllFramesReady) {
 		// Variables.
 		const VSFrameRef *src = vsapi->getFrameFilter(n, d->node, frameCtx);
+		const VSFrameRef *ref = vsapi->getFrameFilter(n, d->knot, frameCtx);
 		const VSFormat *fi = d->vi->format;
 		const size_t origin[3] = { 0, 0, 0 };
 		const size_t region[3] = { d->image_dimensions[0], d->image_dimensions[1], 1 };
@@ -449,6 +450,8 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
 		};
 		const size_t local_horiz[2] = { H_BLOCK_X, H_BLOCK_Y };
 		const size_t local_vert[2] = { V_BLOCK_X, V_BLOCK_Y };
+
+		//Copy chroma.
 		VSFrameRef *dst = vsapi->newVideoFrame(fi, d->image_dimensions[0], d->image_dimensions[1], NULL, core);
 		if (fi->colorFamily == cmYUV || fi->colorFamily == cmYCoCg) {
 			vs_bitblt(vsapi->getWritePtr(dst, 1), vsapi->getStride(dst, 1), vsapi->getReadPtr(src, 1), 
@@ -461,17 +464,25 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
 		cl_command_queue command_queue = clCreateCommandQueue(d->context, d->deviceID, 0, NULL);
 
 		// Processing.
-		cl_int ret = clEnqueueWriteImage(command_queue, d->mem_in[0], CL_TRUE, origin, region,
+		cl_int ret = CL_SUCCESS;
+		ret |= clEnqueueWriteImage(command_queue, d->mem_in[0], CL_TRUE, origin, region,
 			vsapi->getStride(src, 0), 0, vsapi->getReadPtr(src, 0), 0, NULL, NULL);
+		ret |= clEnqueueWriteImage(command_queue, d->mem_in[2], CL_TRUE, origin, region,
+			vsapi->getStride(ref, 0), 0, vsapi->getReadPtr(ref, 0), 0, NULL, NULL);
 		vsapi->freeFrame(src);
+		vsapi->freeFrame(ref);
 		ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[0], 2, NULL, global_work, NULL, 0, NULL, NULL);
 		if (d->d) {
 			// Temporal.
 			for (int k = int64ToIntS(-d->d); k <= d->d; k++) {
 				src = vsapi->getFrameFilter(clamp(n + k, 0, maxframe), d->node, frameCtx);
+				ref = vsapi->getFrameFilter(clamp(n + k, 0, maxframe), d->knot, frameCtx);
 				ret |= clEnqueueWriteImage(command_queue, d->mem_in[1], CL_TRUE, origin, region, 
 					vsapi->getStride(src, 0), 0, vsapi->getReadPtr(src, 0), 0, NULL, NULL);
+				ret |= clEnqueueWriteImage(command_queue, d->mem_in[3], CL_TRUE, origin, region,
+					vsapi->getStride(ref, 0), 0, vsapi->getReadPtr(ref, 0), 0, NULL, NULL);
 				vsapi->freeFrame(src);
+				vsapi->freeFrame(ref);
 				for (int j = int64ToIntS(-d->a); j <= d->a; j++) {
 					for (int i = int64ToIntS(-d->a); i <= d->a; i++) {
 						if (k || j || i) {
@@ -518,6 +529,7 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
 		if (ret != CL_SUCCESS) {
 			vsapi->setFilterError("knlm.KNLMeansCL: knlmeansGetFrame error!", frameCtx);
 			vsapi->freeNode(d->node);
+			vsapi->freeNode(d->knot);
 			return 0;
 		}
 
@@ -535,7 +547,8 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
 			snprintf(buffer, 2048, " Iterations: %li",
 				((2 * d->d + 1)*(2 * d->a + 1)*(2 * d->a + 1) - 1) / (d->d ? 1 : 2));
 			DrawString(frm, pitch, 0, y++, buffer);
-			snprintf(buffer, 2048, " Global work size: %zux%zu", global_work[0], global_work[1]);
+			snprintf(buffer, 2048, " Global work size: %lux%lu",
+				(unsigned long) global_work[0], (unsigned long) global_work[1]);
 			DrawString(frm, pitch, 0, y++, buffer);
 			DrawString(frm, pitch, 0, y++, "Platform info");
 			ret |= clGetPlatformInfo(d->platformID, CL_PLATFORM_NAME, sizeof(char) * 2048, str, NULL);
@@ -561,6 +574,7 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
 			if (ret != CL_SUCCESS) {
 				vsapi->setFilterError("knlm.KNLMeansCL: VapourSynthInfo error!", frameCtx);
 				vsapi->freeNode(d->node);
+				vsapi->freeNode(d->knot);
 				return 0;
 			}
 		}
@@ -631,9 +645,9 @@ static void VS_CC VapourSynthPluginFree(void *instanceData, VSCore *core, const 
 // AviSynthCreate
 #ifdef __AVISYNTH_6_H__
 AVSValue __cdecl AviSynthPluginCreate(AVSValue args, void* user_data, IScriptEnvironment* env) {
-	return new KNLMeansClass(args[0].AsClip(), args[1].Defined() ? args[1].AsClip() : args[0].AsClip(), 
-		args[2].AsInt(DFT_D), args[3].AsInt(DFT_A), args[4].AsInt(DFT_S), args[5].AsInt(DFT_wmode), 
-		args[6].AsFloat(DFT_h), args[7].AsString(DFT_ocl_device), args[8].AsBool(DFT_lsb), args[9].AsBool(DFT_info), 
+	return new KNLMeansClass(args[0].AsClip(), args[1].AsInt(DFT_D), args[2].AsInt(DFT_A), args[3].AsInt(DFT_S), 
+		args[4].AsInt(DFT_wmode), args[5].AsFloat(DFT_h), args[6].Defined() ? args[6].AsClip() : args[0].AsClip(),
+		args[7].AsString(DFT_ocl_device), args[8].AsBool(DFT_lsb), args[9].AsBool(DFT_info),
 		env);
 }
 #endif //__AVISYNTH_6_H__
@@ -793,11 +807,17 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out,
 	const cl_image_format image_format = { CL_LUMINANCE, channel };
 	d.image_dimensions[0] = d.vi->width;
 	d.image_dimensions[1] = d.vi->height;
-	const size_t size = sizeof(float) * d.vi->width * d.vi->height;
+	const size_t size = sizeof(float) * d.image_dimensions[0] * d.image_dimensions[1];
 	d.mem_in[0] = clCreateImage2D(d.context, CL_MEM_READ_ONLY, &image_format, 
 		d.image_dimensions[0], d.image_dimensions[1], 0, NULL, NULL);
-	if (d.d) d.mem_in[1] = clCreateImage2D(d.context, CL_MEM_READ_ONLY, &image_format, 
+	d.mem_in[2] = clCreateImage2D(d.context, CL_MEM_READ_ONLY, &image_format,
 		d.image_dimensions[0], d.image_dimensions[1], 0, NULL, NULL);
+	if (d.d) {
+		d.mem_in[1] = clCreateImage2D(d.context, CL_MEM_READ_ONLY, &image_format,
+			d.image_dimensions[0], d.image_dimensions[1], 0, NULL, NULL);
+		d.mem_in[3] = clCreateImage2D(d.context, CL_MEM_READ_ONLY, &image_format,
+			d.image_dimensions[0], d.image_dimensions[1], 0, NULL, NULL);
+	}
 	d.mem_out = clCreateImage2D(d.context, CL_MEM_WRITE_ONLY, &image_format, 
 		d.image_dimensions[0], d.image_dimensions[1], 0, NULL, NULL);
 	d.mem_U[0] = clCreateBuffer(d.context, CL_MEM_READ_WRITE, 2 * size, NULL, NULL);
@@ -903,8 +923,7 @@ VS_EXTERNAL_API(void) VapourSynthPluginInit(VSConfigPlugin configFunc,
 	VSRegisterFunction registerFunc, VSPlugin *plugin) {
 
 	configFunc("com.Khanattila.KNLMeansCL", "knlm", "KNLMeansCL for VapourSynth", VAPOURSYNTH_API_VERSION, 1, plugin);
-	registerFunc("KNLMeansCL", "clip:clip;d:int:opt;a:int:opt;s:int:opt;wmode:int:opt;\
-							   	h:float:opt;rclip:clip:opt;device_type:data:opt;info:int:opt",
-		VapourSynthPluginCreate, nullptr, plugin);
+	registerFunc("KNLMeansCL", "clip:clip;d:int:opt;a:int:opt;s:int:opt;wmode:int:opt;h:float:opt;\
+rclip:clip:opt;device_type:data:opt;info:int:opt", VapourSynthPluginCreate, nullptr, plugin);
 }
 #endif //__VAPOURSYNTH_H__

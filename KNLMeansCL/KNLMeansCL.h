@@ -28,6 +28,7 @@
 #include <cstdlib>
 #include <cmath>
 #include <cstring>
+#include <string>
 #include <fstream>
 #include <CL/cl.h>
 #include "kernel.h"
@@ -43,9 +44,9 @@
 #ifdef __AVISYNTH_6_H__
 class KNLMeansClass : public GenericVideoFilter {
 private:
-	PClip baby;
 	const int D, A, S, wmode;
 	const double h;
+	PClip baby;
 	const char* ocl_device;
 	const bool lsb, info;
 	uint16_t* buffer;
@@ -60,8 +61,8 @@ private:
 	void readBuffer(uint8_t *msbp, int pitch, cl_uint* image_dimensions, uint16_t* buffer);
 	void writeBuffer(const uint8_t *msbp, int pitch, cl_uint* image_dimensions, uint16_t* buffer);
 public:
-	KNLMeansClass(PClip _child, PClip _baby, const int _D, const int _A, const int _S, const int _wmode, 
-		const double _h, const char* _ocl_device, const bool _lsb, const bool _info, IScriptEnvironment* env);
+	KNLMeansClass(PClip _child, const int _D, const int _A, const int _S, const int _wmode, const double _h, 
+		PClip _baby, const char* _ocl_device, const bool _lsb, const bool _info, IScriptEnvironment* env);
 	~KNLMeansClass();
 	PVideoFrame __stdcall GetFrame(int n, IScriptEnvironment* env);
 };
