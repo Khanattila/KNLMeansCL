@@ -1,4 +1,8 @@
 ## Change Log ##
+**- v0.5.7 (2015-07-13)**
+  - Extra reference clip.
+  - Weighted RGB distance.
+
 **- v0.5.6 (2015-06-26)**
   - VapourSynth: fix temporal support (regression v0.5.2).
   - VapourSynth: fix arg device_type ignored.
