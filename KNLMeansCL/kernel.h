@@ -58,8 +58,8 @@ static const char* source_code =
 "		const float4 u1 = read_imagef(U1, smp, (int2) (x, y));													  \n" \
 "		const float4 u1_pq = read_imagef(U1_pq, smp, (int2) (x, y) + q);										  \n" \
 "		const float r = native_divide(u1.x + u1_pq.x, 6.0f);													  \n" \
-"		const float4 weight	= (float4) (2.0f/3.0f + r, 4.0f/3.0f, 1.0f - r, 0.0f);								  \n" \
-"		const float4 tmp = weight * ((u1 - u1_pq) * (u1 - u1_pq));												  \n" \
+"		const float4 wgh = (float4) (2.0f/3.0f + r, 4.0f/3.0f, 1.0f - r, 0.0f);									  \n" \
+"		const float4 tmp = wgh * ((u1 - u1_pq) * (u1 - u1_pq));												      \n" \
 "		U4[gidx] = tmp.x + tmp.y + tmp.z + tmp.w;																  \n" \
 "	} else {																									  \n" \
 "		const float u1 = read_imagef(U1, smp, (int2) (x, y)).x;													  \n" \
