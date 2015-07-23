@@ -28,9 +28,14 @@
 #include <cstdlib>
 #include <cmath>
 #include <cstring>
-#include <string>
 #include <fstream>
+
+#ifdef __APPLE__
+#include <OpenCL/opencl.h>
+#else
 #include <CL/cl.h>
+#endif
+
 #include "kernel.h"
 #include "startchar.h"
 
