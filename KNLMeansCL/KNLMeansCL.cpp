@@ -154,6 +154,10 @@ KNLMeansClass::KNLMeansClass(PClip _child, const int _D, const int _A, const int
 		ret |= clGetDeviceIDs(temp_platforms[i], device, 0, 0, &num_devices);
 		cl_device_id *temp_devices = (cl_device_id*) malloc(sizeof(cl_device_id) * num_devices);
 		ret |= clGetDeviceIDs(temp_platforms[i], device, num_devices, temp_devices, NULL);
+		if (ret != CL_SUCCESS) {
+			ret = CL_SUCCESS;
+			continue;
+		}
 		for (cl_uint j = 0; j < num_devices; j++) {
 			ret |= clGetDeviceInfo(temp_devices[j], CL_DEVICE_IMAGE_SUPPORT, sizeof(cl_bool), &img_support, NULL);
 			if (device_aviable == CL_FALSE && img_support == CL_TRUE) {
@@ -781,6 +785,10 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out,
 		ret |= clGetDeviceIDs(temp_platforms[i], device, 0, 0, &num_devices);
 		cl_device_id *temp_devices = (cl_device_id*) malloc(sizeof(cl_device_id) * num_devices);
 		ret |= clGetDeviceIDs(temp_platforms[i], device, num_devices, temp_devices, NULL);
+		if (ret != CL_SUCCESS) {
+			ret = CL_SUCCESS;
+			continue;
+		}
 		for (cl_uint j = 0; j < num_devices; j++) {
 			ret |= clGetDeviceInfo(temp_devices[j], CL_DEVICE_IMAGE_SUPPORT, sizeof(cl_bool), &img_support, NULL);
 			if (device_aviable == CL_FALSE && img_support == CL_TRUE) {
