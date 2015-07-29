@@ -145,11 +145,17 @@ KNLMeansClass::KNLMeansClass(PClip _child, const int _D, const int _A, const int
 	}
 
 	// Gets PlatformID and DeviceID.
-	cl_uint num_platforms, num_devices;
+	cl_uint num_platforms = 0, num_devices = 0;
 	cl_bool img_support = CL_FALSE, device_aviable = CL_FALSE;
 	cl_int ret = clGetPlatformIDs(0, NULL, &num_platforms);
+	if (num_platforms == 0) { 
+		env->ThrowError("KNLMeansCL: no opencl platforms available!"); 
+	}
 	cl_platform_id *temp_platforms = (cl_platform_id*) malloc(sizeof(cl_platform_id) * num_platforms);
 	ret |= clGetPlatformIDs(num_platforms, temp_platforms, NULL);
+	if (ret != CL_SUCCESS) {
+		env->ThrowError("KNLMeansCL: AviSynthCreate error(0)!");
+	}
 	for (cl_uint i = 0; i < num_platforms; i++) {
 		ret |= clGetDeviceIDs(temp_platforms[i], device, 0, 0, &num_devices);
 		cl_device_id *temp_devices = (cl_device_id*) malloc(sizeof(cl_device_id) * num_devices);
@@ -166,7 +172,7 @@ KNLMeansClass::KNLMeansClass(PClip _child, const int _D, const int _A, const int
 	}
 	free(temp_platforms);
 	if (ret != CL_SUCCESS && ret != CL_DEVICE_NOT_FOUND) {
-		env->ThrowError("KNLMeansCL: AviSynthCreate error(0)!");
+		env->ThrowError("KNLMeansCL: AviSynthCreate error(1)!");
 	} else if (device_aviable == CL_FALSE) {
 		env->ThrowError("KNLMeansCL: opencl device not available!");
 	}
@@ -215,7 +221,7 @@ KNLMeansClass::KNLMeansClass(PClip _child, const int _D, const int _A, const int
 		outfile.write(log, log_size);
 		outfile.close();
 		free(log);
-		env->ThrowError("KNLMeansCL: AviSynthCreate error (1)!");
+		env->ThrowError("KNLMeansCL: AviSynthCreate error (2)!");
 	}
 
 	// Creates kernel objects.
@@ -250,7 +256,7 @@ KNLMeansClass::KNLMeansClass(PClip _child, const int _D, const int _A, const int
 	ret |= clSetKernelArg(kernel[5], 2, sizeof(cl_mem), &mem_U[0]);
 	ret |= clSetKernelArg(kernel[5], 3, sizeof(cl_mem), &mem_U[3]);
 	ret |= clSetKernelArg(kernel[5], 4, 2 * sizeof(cl_uint), &image_dimensions);
-	if (ret != CL_SUCCESS) 	env->ThrowError("KNLMeansCL: AviSynthCreate error (2)!");
+	if (ret != CL_SUCCESS) 	env->ThrowError("KNLMeansCL: AviSynthCreate error (3)!");
 }
 #endif //__AVISYNTH_6_H__
 
@@ -772,11 +778,21 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out,
 	}
 
 	// Gets PlatformID and DeviceID.
-	cl_uint num_platforms, num_devices;
+	cl_uint num_platforms = 0, num_devices = 0;
 	cl_bool img_support = CL_FALSE, device_aviable = CL_FALSE;
-	cl_int ret = clGetPlatformIDs(0, NULL, &num_platforms); 
+	cl_int ret = clGetPlatformIDs(0, NULL, &num_platforms);
+	if (num_platforms == 0) {
+		vsapi->setError(out, "knlm.KNLMeansCL: no opencl platforms available!");
+		vsapi->freeNode(d.node);
+		return;
+	}
 	cl_platform_id *temp_platforms = (cl_platform_id*) malloc(sizeof(cl_platform_id) * num_platforms);
 	ret |= clGetPlatformIDs(num_platforms, temp_platforms, NULL);
+	if (ret != CL_SUCCESS) {
+		vsapi->setError(out, "knlm.KNLMeansCL: VapourSynthCreate error (0)!");
+		vsapi->freeNode(d.node);
+		return;
+	}
 	for (cl_uint i = 0; i < num_platforms; i++) {
 		ret |= clGetDeviceIDs(temp_platforms[i], device, 0, 0, &num_devices);
 		cl_device_id *temp_devices = (cl_device_id*) malloc(sizeof(cl_device_id) * num_devices);
@@ -793,7 +809,7 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out,
 	}
 	free(temp_platforms);
 	if (ret != CL_SUCCESS && ret != CL_DEVICE_NOT_FOUND) {
-		vsapi->setError(out, "knlm.KNLMeansCL: VapourSynthCreate error (0)!");
+		vsapi->setError(out, "knlm.KNLMeansCL: VapourSynthCreate error (1)!");
 		vsapi->freeNode(d.node);
 		return;
 	} else if (device_aviable == CL_FALSE) {
@@ -851,7 +867,7 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out,
 		outfile.write(log, log_size);
 		outfile.close();
 		free(log);
-		vsapi->setError(out, "knlm.KNLMeansCL: VapourSynthCreate error (1)!");
+		vsapi->setError(out, "knlm.KNLMeansCL: VapourSynthCreate error (2)!");
 		vsapi->freeNode(d.node);
 		return;
 	}
@@ -889,7 +905,7 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out,
 	ret |= clSetKernelArg(d.kernel[5], 3, sizeof(cl_mem), &d.mem_U[3]);
 	ret |= clSetKernelArg(d.kernel[5], 4, 2 * sizeof(cl_uint), &d.image_dimensions);
 	if (ret != CL_SUCCESS) {
-		vsapi->setError(out, "knlm.KNLMeansCL: VapourSynthCreate error (2)!");
+		vsapi->setError(out, "knlm.KNLMeansCL: VapourSynthCreate error (3)!");
 		vsapi->freeNode(d.node);
 		return;
 	}
