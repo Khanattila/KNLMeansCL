@@ -164,7 +164,7 @@ static const char* source_code =
 "	if (NLMK_RGB) {																								  \n" \
 "		__global float4* U2c = (__global float4*) U2;															  \n" \
 "		const float4 u1 = read_imagef(U1_in, smp, (int2) (x, y));												  \n" \
-"		const float4 num = mad(M[gidx], u1, U2c[gidx]);															  \n" \
+"		const float4 num = mad((float4) M[gidx], u1, U2c[gidx]);												  \n" \
 "		const float den = U2c[gidx].w + M[gidx];																  \n" \
 "		float4 val = native_divide(num, den); val.w = u1.w;														  \n" \
 "		write_imagef(U1_out, (int2) (x, y), val);																  \n" \
