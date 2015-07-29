@@ -64,8 +64,8 @@ inline void KNLMeansClass::readBuffer(uint8_t *msbp, int pitch, cl_uint* image_d
 			__m128i layer3_msb = _mm_unpackhi_epi8(layer2_lsb, layer2_msb);
 			__m128i layer4_lsb = _mm_unpacklo_epi8(layer3_lsb, layer3_msb);
 			__m128i layer4_msb = _mm_unpackhi_epi8(layer3_lsb, layer3_msb);
-			_mm_store_si128((__m128i*)(lsbp + x), layer4_lsb);
-			_mm_store_si128((__m128i*)(msbp + x), layer4_msb);
+			_mm_storeu_si128((__m128i*)(lsbp + x), layer4_lsb);
+			_mm_storeu_si128((__m128i*)(msbp + x), layer4_msb);
 		}
 		for (; x < image_dimensions[0]; x++) {
 			lsbp[x] = (uint8_t) (bufferp[x] & 0x00FF);
@@ -81,8 +81,8 @@ inline void KNLMeansClass::writeBuffer(const uint8_t *msbp, int pitch, cl_uint* 
 	for (cl_uint y = 0; y < image_dimensions[1]; y++) {
 		cl_uint x = 0;
 		for (; x < (image_dimensions[0] - (image_dimensions[0] % 16)); x += 16) {
-			__m128i xmm0 = _mm_load_si128((__m128i const*)(lsbp + x));
-			__m128i xmm1 = _mm_load_si128((__m128i const*)(msbp + x));
+			__m128i xmm0 = _mm_lddqu_si128((__m128i const*)(lsbp + x));
+			__m128i xmm1 = _mm_lddqu_si128((__m128i const*)(msbp + x));
 			__m128i xmm2 = _mm_unpacklo_epi8(xmm0, xmm1);
 			__m128i xmm3 = _mm_unpackhi_epi8(xmm0, xmm1);
 			_mm_storeu_si128((__m128i*)(bufferp + x), xmm2);
