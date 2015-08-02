@@ -1,4 +1,16 @@
 ## Change Log ##
+**- v0.5.9 (2015-08-02)**
+  - Fixed rare issues with OpenCL compiler, again. 
+
+**- v0.5.8 (2015-07-29)**
+  - Fixed rare issues with OpenCL compiler.
+  - Fixed rare issues with clGetPlatformIDs.
+  - AviSynth: mem does not need to be aligned.
+
+**- v0.5.7 (2015-07-13)**
+  - Extra reference clip.
+  - Weighted RGB distance.
+
 **- v0.5.6 (2015-06-26)**
   - VapourSynth: fix temporal support (regression v0.5.2).
   - VapourSynth: fix arg device_type ignored.

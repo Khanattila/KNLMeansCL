@@ -16,7 +16,7 @@
 *	along with KNLMeansCL. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#define VERSION "0.5.7"
+#define VERSION "0.5.9"
 
 #ifdef _MSC_VER
 #define strcasecmp _stricmp
@@ -29,7 +29,13 @@
 #include <cmath>
 #include <cstring>
 #include <fstream>
+
+#ifdef __APPLE__
+#include <OpenCL/opencl.h>
+#else
 #include <CL/cl.h>
+#endif
+
 #include "kernel.h"
 #include "startchar.h"
 
@@ -45,6 +51,7 @@ class KNLMeansClass : public GenericVideoFilter {
 private:
 	const int D, A, S, wmode;
 	const double h;
+	PClip baby;
 	const char* ocl_device;
 	const bool lsb, info;
 	uint16_t* buffer;
@@ -54,10 +61,13 @@ private:
 	cl_context context;
 	cl_program program;
 	cl_kernel kernel[6];
-	cl_mem mem_in[2], mem_out, mem_U[4];
+	cl_mem mem_in[4], mem_out, mem_U[4];
+	bool avs_equals(VideoInfo *v, VideoInfo *w);
+	void readBuffer(uint8_t *msbp, int pitch, cl_uint* image_dimensions, uint16_t* buffer);
+	void writeBuffer(const uint8_t *msbp, int pitch, cl_uint* image_dimensions, uint16_t* buffer);
 public:
-	KNLMeansClass(PClip _child, const int _D, const int _A, const int _S, const int _wmode, const double _h,
-		const char* _ocl_device, const bool _lsb, const bool _info, IScriptEnvironment* env);
+	KNLMeansClass(PClip _child, const int _D, const int _A, const int _S, const int _wmode, const double _h, 
+		PClip _baby, const char* _ocl_device, const bool _lsb, const bool _info, IScriptEnvironment* env);
 	~KNLMeansClass();
 	PVideoFrame __stdcall GetFrame(int n, IScriptEnvironment* env);
 };
@@ -65,7 +75,7 @@ public:
 
 #ifdef VAPOURSYNTH_H
 typedef struct {
-	VSNodeRef *node;
+	VSNodeRef *node, *knot;
 	const VSVideoInfo *vi;
 	int64_t d, a, s, wmode, info;
 	double h;
@@ -76,7 +86,7 @@ typedef struct {
 	cl_context context;
 	cl_program program;
 	cl_kernel kernel[6];
-	cl_mem mem_in[2], mem_out, mem_U[4];
+	cl_mem mem_in[4], mem_out, mem_U[4];
 } KNLMeansData;
 #endif //__VAPOURSYNTH_H__
 

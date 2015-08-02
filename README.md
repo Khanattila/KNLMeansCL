@@ -77,6 +77,12 @@ Controls the strength of the filtering. Larger values will remove more noise.
 	
 Default: 1.2.
 ```
+- **clip rclip (rclip)**
+```	
+Extra reference clip option to do weighting calculation.
+	
+Default: source clip.
+```
 - **string device_type (device_type)**
 ```	
 CPU := An OpenCL device that is the host processor.
