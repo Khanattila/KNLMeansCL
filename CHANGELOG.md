@@ -1,4 +1,7 @@
 ## Change Log ##
+**- v0.5.9 (2015-08-02)**
+  - Fixed rare issues with OpenCL compiler, again. 
+
 **- v0.5.8 (2015-07-29)**
   - Fixed rare issues with OpenCL compiler.
   - Fixed rare issues with clGetPlatformIDs.
