@@ -1,4 +1,9 @@
 ## Change Log ##
+**- v0.5.8 (2015-07-29)**
+  - Fixed rare issues with OpenCL compiler.
+  - Fixed rare issues with clGetPlatformIDs.
+  - AviSynth: mem does not need to be aligned.
+
 **- v0.5.7 (2015-07-13)**
   - Extra reference clip.
   - Weighted RGB distance.
