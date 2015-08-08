@@ -46,6 +46,8 @@
 #include <VapourSynth.h>
 #include <VSHelper.h>
 
+enum color_t {Gray, YUV, RGB};
+
 #ifdef __AVISYNTH_6_H__
 class KNLMeansClass : public GenericVideoFilter {
 private:
@@ -54,7 +56,8 @@ private:
 	PClip baby;
 	const char* ocl_device;
 	const bool lsb, info;
-	uint16_t* buffer;
+	color_t color;
+	void* hostBuffer;
 	cl_uint image_dimensions[2];
 	cl_platform_id platformID;
 	cl_device_id deviceID;
@@ -63,8 +66,9 @@ private:
 	cl_kernel kernel[6];
 	cl_mem mem_in[4], mem_out, mem_U[4];
 	bool avs_equals(VideoInfo *v, VideoInfo *w);
-	void readBuffer(uint8_t *msbp, int pitch, cl_uint* image_dimensions, uint16_t* buffer);
-	void writeBuffer(const uint8_t *msbp, int pitch, cl_uint* image_dimensions, uint16_t* buffer);
+	void readBufferGray(uint8_t *msbp, int pitch);
+	void writeBufferGray(const uint8_t *msbp, int pitch);
+	void writeBuffer(PVideoFrame &frm);
 public:
 	KNLMeansClass(PClip _child, const int _D, const int _A, const int _S, const int _wmode, const double _h, 
 		PClip _baby, const char* _ocl_device, const bool _lsb, const bool _info, IScriptEnvironment* env);
@@ -80,6 +84,7 @@ typedef struct {
 	int64_t d, a, s, wmode, info;
 	double h;
 	const char* ocl_device;
+	color_t color;
 	cl_uint image_dimensions[2];
 	cl_platform_id platformID;
 	cl_device_id deviceID;
