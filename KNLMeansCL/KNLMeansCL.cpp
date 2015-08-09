@@ -112,16 +112,18 @@ inline bool KNLMeansClass::readBuffer(PVideoFrame &frm) {
 			int pitch = frm->GetPitch(PLANAR_Y);
 			uint8_t *msbp = frm->GetWritePtr(PLANAR_Y);
 			uint8_t *lsbp = msbp + idmn[1] * pitch;
-			#pragma omp parallel for
+			int bidx, fidx;
+			#pragma omp parallel for private(bidx, fidx)
 			for (int y = 0; y < (int) idmn[1]; y++) {
+				bidx = y * idmn[0];	fidx = y * pitch;
 				for (int x = 0; x < (int) idmn[0]; x++) {
-					lsbp[y * pitch + x] = (uint8_t) (bufferp[y * idmn[0] + x] & 0x00FF);
-					msbp[y * pitch + x] = (uint8_t) (bufferp[y * idmn[0] + x] & 0xFF00 >> 8);
+					lsbp[fidx + x] = (uint8_t) (bufferp[bidx + x] & 0x00FF);
+					msbp[fidx + x] = (uint8_t) (bufferp[bidx + x] & 0xFF00 >> 8);
 				}
 			}
 			return true;
 		} else {
-			return false;
+			return false; //CL_LUMINANCE
 		}
 	case YUV:
 		if (lsb) {
@@ -135,15 +137,17 @@ inline bool KNLMeansClass::readBuffer(PVideoFrame &frm) {
 			uint8_t *lsbpY = msbpY + idmn[1] * pitchY;
 			uint8_t *lsbpU = msbpU + idmn[1] * pitchU;
 			uint8_t *lsbpV = msbpV + idmn[1] * pitchV;
-			#pragma omp parallel for
+			int bidx, fidxY, fidxU, fidxV;
+			#pragma omp parallel for private(bidx, fidxY, fidxU, fidxV)
 			for (int y = 0; y < (int) idmn[1]; y++) {
+				bidx = y * idmn[0] * 8;	fidxY = y * pitchY;	fidxU = y * pitchU;	fidxV = y * pitchV;
 				for (int x = 0; x < (int) idmn[0]; x++) {
-					lsbpY[y * pitchY + x] = (uint8_t) (bufferp[y * idmn[0] * 8 + x * 4] & 0x00FF);
-					msbpY[y * pitchY + x] = (uint8_t) (bufferp[y * idmn[0] * 8 + x * 4] & 0xFF00 >> 8);
-					lsbpU[y * pitchU + x] = (uint8_t) (bufferp[y * idmn[0] * 8 + x * 4 + 1] & 0x00FF);
-					msbpU[y * pitchU + x] = (uint8_t) (bufferp[y * idmn[0] * 8 + x * 4 + 1] & 0xFF00 >> 8);
-					lsbpV[y * pitchV + x] = (uint8_t) (bufferp[y * idmn[0] * 8 + x * 4 + 2] & 0x00FF);
-					msbpV[y * pitchV + x] = (uint8_t) (bufferp[y * idmn[0] * 8 + x * 4 + 2] & 0xFF00 >> 8);
+					lsbpY[fidxY + x] = (uint8_t) (bufferp[bidx + x * 4] & 0x00FF);
+					msbpY[fidxY + x] = (uint8_t) (bufferp[bidx + x * 4] & 0xFF00 >> 8);
+					lsbpU[fidxU + x] = (uint8_t) (bufferp[bidx + x * 4 + 1] & 0x00FF);
+					msbpU[fidxU + x] = (uint8_t) (bufferp[bidx + x * 4 + 1] & 0xFF00 >> 8);
+					lsbpV[fidxV + x] = (uint8_t) (bufferp[bidx + x * 4 + 2] & 0x00FF);
+					msbpV[fidxV + x] = (uint8_t) (bufferp[bidx + x * 4 + 2] & 0xFF00 >> 8);
 				}
 			}
 			return true;
@@ -155,31 +159,36 @@ inline bool KNLMeansClass::readBuffer(PVideoFrame &frm) {
 			uint8_t *frmpY = frm->GetWritePtr(PLANAR_Y);
 			uint8_t *frmpU = frm->GetWritePtr(PLANAR_U);
 			uint8_t *frmpV = frm->GetWritePtr(PLANAR_V);
-			#pragma omp parallel for
+			int bidx, fidxY, fidxU, fidxV;
+			#pragma omp parallel for private(bidx, fidxY, fidxU, fidxV)
 			for (int y = 0; y < (int) idmn[1]; y++) {
+				bidx = y * idmn[0] * 4; fidxY = y * pitchY;	fidxU = y * pitchU;	fidxV = y * pitchV;
 				for (int x = 0; x < (int) idmn[0]; x++) {
-					frmpY[y * pitchY + x] = bufferp[y * idmn[0] * 4 + x * 4];
-					frmpU[y * pitchU + x] = bufferp[y * idmn[0] * 4 + x * 4 + 1];
-					frmpV[y * pitchV + x] = bufferp[y * idmn[0] * 4 + x * 4 + 2];
+					frmpY[fidxY + x] = bufferp[bidx + x * 4];
+					frmpU[fidxU + x] = bufferp[bidx + x * 4 + 1];
+					frmpV[fidxV + x] = bufferp[bidx + x * 4 + 2];
 				}
 			}
 			return true;
 		}
-	case RGB24:
+	case RGB24: {
 		uint8_t *bufferp = (uint8_t*) hostBuffer;
 		int pitch = frm->GetPitch();
 		uint8_t *frmp = frm->GetWritePtr();
-		#pragma omp parallel for
+		int bidx, fidx;
+		#pragma omp parallel for private(bidx, fidx)
 		for (int y = 0; y < (int) idmn[1]; y++) {
+			bidx = y * idmn[0] * 4; fidx = y * pitch;
 			for (int x = 0; x < (int) idmn[0]; x++) {
-				frmp[y * pitch + x * 3]		= bufferp[y * idmn[0] * 4 + x * 4];
-				frmp[y * pitch + x * 3 + 1] = bufferp[y * idmn[0] * 4 + x * 4 + 1];
-				frmp[y * pitch + x * 3 + 2] = bufferp[y * idmn[0] * 4 + x * 4 + 2];
+				frmp[fidx + x * 3]	   = bufferp[bidx + x * 4];
+				frmp[fidx + x * 3 + 1] = bufferp[bidx + x * 4 + 1];
+				frmp[fidx + x * 3 + 2] = bufferp[bidx + x * 4 + 2];
 			}
 		}
 		return true;
+	}
 	case RGB32:
-		return false;
+		return false; //CL_BGRA
 	}
 }
 
@@ -191,15 +200,17 @@ inline bool KNLMeansClass::writeBuffer(PVideoFrame &frm) {
 			int pitch = frm->GetPitch(PLANAR_Y);
 			const uint8_t *msbp = frm->GetReadPtr(PLANAR_Y);
 			const uint8_t *lsbp = msbp + idmn[1] * pitch;
-			#pragma omp parallel for
+			int bidx, fidx;
+			#pragma omp parallel for private(bidx, fidx)
 			for (int y = 0; y < (int) idmn[1]; y++) {
+				bidx = y * idmn[0]; fidx = y * pitch;
 				for (int x = 0; x < (int) idmn[0]; x++) {
-					bufferp[y * idmn[0] + x] = msbp[y * pitch + x] << 8 | lsbp[y * pitch + x];
+					bufferp[bidx + x] = msbp[fidx + x] << 8 | lsbp[fidx + x];
 				}
 			}
 			return true;
 		} else {
-			return false;
+			return false; //CL_LUMINANCE
 		}
 	case YUV:
 		if (lsb) {
@@ -213,13 +224,15 @@ inline bool KNLMeansClass::writeBuffer(PVideoFrame &frm) {
 			const uint8_t *lsbpY = msbpY + idmn[1] * pitchY;
 			const uint8_t *lsbpU = msbpU + idmn[1] * pitchU;
 			const uint8_t *lsbpV = msbpV + idmn[1] * pitchV;
-			#pragma omp parallel for
+			int bidx, fidxY, fidxU, fidxV;
+			#pragma omp parallel for private(bidx, fidxY, fidxU, fidxV)
 			for (int y = 0; y < (int) idmn[1]; y++) {
+				bidx = y * idmn[0] * 8; fidxY = y * pitchY;	fidxU = y * pitchU;	fidxV = y * pitchV;
 				for (int x = 0; x < (int) idmn[0]; x++) {
-					bufferp[y * idmn[0] * 8 + x * 4]     = msbpY[y * pitchY + x] << 8 | lsbpY[y * pitchY + x];
-					bufferp[y * idmn[0] * 8 + x * 4 + 1] = msbpU[y * pitchU + x] << 8 | lsbpU[y * pitchU + x];
-					bufferp[y * idmn[0] * 8 + x * 4 + 2] = msbpV[y * pitchV + x] << 8 | lsbpV[y * pitchV + x];
-					bufferp[y * idmn[0] * 8 + x * 4 + 3] = 0;
+					bufferp[bidx + x * 4]	  = msbpY[fidxY + x] << 8 | lsbpY[fidxY + x];
+					bufferp[bidx + x * 4 + 1] = msbpU[fidxU + x] << 8 | lsbpU[fidxU + x];
+					bufferp[bidx + x * 4 + 2] = msbpV[fidxV + x] << 8 | lsbpV[fidxV + x];
+					bufferp[bidx + x * 4 + 3] = 0;
 				}
 			}
 			return true;
@@ -231,13 +244,15 @@ inline bool KNLMeansClass::writeBuffer(PVideoFrame &frm) {
 			const uint8_t *frmpY = frm->GetReadPtr(PLANAR_Y);
 			const uint8_t *frmpU = frm->GetReadPtr(PLANAR_U);
 			const uint8_t *frmpV = frm->GetReadPtr(PLANAR_V);
-			#pragma omp parallel for
+			int bidx, fidxY, fidxU, fidxV;
+			#pragma omp parallel for private(bidx, fidxY, fidxU, fidxV)
 			for (int y = 0; y < (int) idmn[1]; y++) {
+				bidx = y * idmn[0] * 4; fidxY = y * pitchY;	fidxU = y * pitchU;	fidxV = y * pitchV;
 				for (int x = 0; x < (int) idmn[0]; x++) {
-					bufferp[y * idmn[0] * 4 + x * 4]     = frmpY[y * pitchY + x];
-					bufferp[y * idmn[0] * 4 + x * 4 + 1] = frmpU[y * pitchU + x];
-					bufferp[y * idmn[0] * 4 + x * 4 + 2] = frmpV[y * pitchV + x];
-					bufferp[y * idmn[0] * 4 + x * 4 + 3] = 0;
+					bufferp[bidx + x * 4]	  = frmpY[fidxY + x];
+					bufferp[bidx + x * 4 + 1] = frmpU[fidxU + x];
+					bufferp[bidx + x * 4 + 2] = frmpV[fidxV + x];
+					bufferp[bidx + x * 4 + 3] = 0;
 				}
 			}
 			return true;
@@ -246,19 +261,21 @@ inline bool KNLMeansClass::writeBuffer(PVideoFrame &frm) {
 		uint8_t *bufferp = (uint8_t*) hostBuffer;
 		int pitch = frm->GetPitch();
 		const uint8_t *frmp = frm->GetReadPtr();
-		#pragma omp parallel for
+		int bidx, fidx;
+		#pragma omp parallel for private(bidx, fidx)
 		for (int y = 0; y < (int) idmn[1]; y++) {
+			bidx = y * idmn[0] * 4; fidx = y * pitch;
 			for (int x = 0; x < (int) idmn[0]; x++) {
-				bufferp[y * idmn[0] * 4 + x * 4]     = frmp[y * pitch + x * 3];
-				bufferp[y * idmn[0] * 4 + x * 4 + 1] = frmp[y * pitch + x * 3 + 1];
-				bufferp[y * idmn[0] * 4 + x * 4 + 2] = frmp[y * pitch + x * 3 + 2];
-				bufferp[y * idmn[0] * 4 + x * 4 + 3] = 0;
+				bufferp[bidx + x * 4]	  = frmp[fidx + x * 3];
+				bufferp[bidx + x * 4 + 1] = frmp[fidx + x * 3 + 1];
+				bufferp[bidx + x * 4 + 2] = frmp[fidx + x * 3 + 2];
+				bufferp[bidx + x * 4 + 3] = 0;
 			}
 		}
 		return true;
 	}
 	case RGB32:
-		return false;
+		return false; //CL_BGRA
 	}
 }
 #endif //__AVISYNTH_6_H__
