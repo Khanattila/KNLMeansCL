@@ -46,7 +46,7 @@
 #include <VapourSynth.h>
 #include <VSHelper.h>
 
-enum color_t {Gray, YUV, RGB};
+enum color_t {Gray, YUV, RGB24, RGB32};
 
 #ifdef __AVISYNTH_6_H__
 class KNLMeansClass : public GenericVideoFilter {
@@ -58,7 +58,7 @@ private:
 	const bool lsb, info;
 	color_t color;
 	void* hostBuffer;
-	cl_uint image_dimensions[2];
+	cl_uint idmn[2];
 	cl_platform_id platformID;
 	cl_device_id deviceID;
 	cl_context context;
@@ -68,7 +68,7 @@ private:
 	bool avs_equals(VideoInfo *v, VideoInfo *w);
 	void readBufferGray(uint8_t *msbp, int pitch);
 	void writeBufferGray(const uint8_t *msbp, int pitch);
-	void writeBuffer(PVideoFrame &frm);
+	bool writeBuffer(PVideoFrame &frm);
 public:
 	KNLMeansClass(PClip _child, const int _D, const int _A, const int _S, const int _wmode, const double _h, 
 		PClip _baby, const char* _ocl_device, const bool _lsb, const bool _info, IScriptEnvironment* env);

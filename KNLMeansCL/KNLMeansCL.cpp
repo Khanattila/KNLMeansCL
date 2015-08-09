@@ -49,11 +49,11 @@ inline bool vs_equals(const VSVideoInfo *v, const VSVideoInfo *w) {
 // AviSynth SIMD
 #ifdef __AVISYNTH_6_H__
 inline void KNLMeansClass::readBufferGray(uint8_t *msbp, int pitch) {
-	uint8_t *lsbp = msbp + image_dimensions[1] * pitch;
+	uint8_t *lsbp = msbp + idmn[1] * pitch;
 	uint16_t *bufferp = (uint16_t*) hostBuffer;
-	for (cl_uint y = 0; y < image_dimensions[1]; y++) {
+	for (cl_uint y = 0; y < idmn[1]; y++) {
 		cl_uint x = 0;
-		for (; x < (image_dimensions[0] - (image_dimensions[0] % 16)); x += 16) {
+		for (; x < (idmn[0] - (idmn[0] % 16)); x += 16) {
 			__m128i layer0_lsb = _mm_lddqu_si128((__m128i const*)(bufferp + x));
 			__m128i layer0_msb = _mm_lddqu_si128((__m128i const*)(bufferp + 8 + x));
 			__m128i layer1_lsb = _mm_unpacklo_epi8(layer0_lsb, layer0_msb);
@@ -67,20 +67,20 @@ inline void KNLMeansClass::readBufferGray(uint8_t *msbp, int pitch) {
 			_mm_storeu_si128((__m128i*)(lsbp + x), layer4_lsb);
 			_mm_storeu_si128((__m128i*)(msbp + x), layer4_msb);
 		}
-		for (; x < image_dimensions[0]; x++) {
+		for (; x < idmn[0]; x++) {
 			lsbp[x] = (uint8_t) (bufferp[x] & 0x00FF);
 			msbp[x] = (uint8_t) (bufferp[x] & 0xFF00 >> 8);
 		}
-		bufferp += image_dimensions[0]; lsbp += pitch; msbp += pitch;
+		bufferp += idmn[0]; lsbp += pitch; msbp += pitch;
 	}
 }
 
 inline void KNLMeansClass::writeBufferGray(const uint8_t *msbp, int pitch) {
 	uint16_t *bufferp = (uint16_t*) hostBuffer;
-	const uint8_t *lsbp = msbp + image_dimensions[1] * pitch;
-	for (cl_uint y = 0; y < image_dimensions[1]; y++) {
+	const uint8_t *lsbp = msbp + idmn[1] * pitch;
+	for (cl_uint y = 0; y < idmn[1]; y++) {
 		cl_uint x = 0;
-		for (; x < (image_dimensions[0] - (image_dimensions[0] % 16)); x += 16) {
+		for (; x < (idmn[0] - (idmn[0] % 16)); x += 16) {
 			__m128i xmm0 = _mm_lddqu_si128((__m128i const*)(lsbp + x));
 			__m128i xmm1 = _mm_lddqu_si128((__m128i const*)(msbp + x));
 			__m128i xmm2 = _mm_unpacklo_epi8(xmm0, xmm1);
@@ -88,38 +88,29 @@ inline void KNLMeansClass::writeBufferGray(const uint8_t *msbp, int pitch) {
 			_mm_storeu_si128((__m128i*)(bufferp + x), xmm2);
 			_mm_storeu_si128((__m128i*)(bufferp + 8 + x), xmm3);
 		}
-		for (; x < image_dimensions[0]; x++) { bufferp[x] = msbp[x] << 8 | lsbp[x]; }
-		bufferp += image_dimensions[0]; msbp += pitch; lsbp += pitch;
+		for (; x < idmn[0]; x++) { bufferp[x] = msbp[x] << 8 | lsbp[x]; }
+		bufferp += idmn[0]; msbp += pitch; lsbp += pitch;
 	}
 
 }
 
-inline void KNLMeansClass::writeBuffer(PVideoFrame &frm) {
+inline bool KNLMeansClass::writeBuffer(PVideoFrame &frm) {
 	switch (color) {
 	case Gray:
 		if (lsb) {
 			uint16_t *bufferp = (uint16_t*) hostBuffer;
-			int pitchY = frm->GetPitch(PLANAR_Y);
-			const uint8_t *msbpY = frm->GetReadPtr(PLANAR_Y);
-			const uint8_t *lsbpY = msbpY + image_dimensions[1] * pitchY;
-			for (cl_uint y = 0; y < image_dimensions[1]; y++) {
-				cl_uint x = 0;
-				for (; x < (image_dimensions[0] - (image_dimensions[0] % 16)); x += 16) {
-					__m128i xmm0 = _mm_lddqu_si128((__m128i const*)(lsbpY + x));
-					__m128i xmm1 = _mm_lddqu_si128((__m128i const*)(msbpY + x));
-					__m128i xmm2 = _mm_unpacklo_epi8(xmm0, xmm1);
-					__m128i xmm3 = _mm_unpackhi_epi8(xmm0, xmm1);
-					_mm_storeu_si128((__m128i*)(bufferp + x), xmm2);
-					_mm_storeu_si128((__m128i*)(bufferp + 8 + x), xmm3);
+			int pitch = frm->GetPitch(PLANAR_Y);
+			const uint8_t *msbp = frm->GetReadPtr(PLANAR_Y);
+			const uint8_t *lsbp = msbp + idmn[1] * pitch;
+			for (cl_uint y = 0; y < idmn[1]; y++) {
+				for (cl_uint x = 0; x < idmn[0]; x++) {
+					bufferp[y * idmn[0] + x] = msbp[y * pitch + x] << 8 | lsbp[y * pitch + x];
 				}
-				for (; x < image_dimensions[0]; x++) { bufferp[x] = msbpY[x] << 8 | lsbpY[x]; }
-				bufferp += image_dimensions[0]; msbpY += pitchY; lsbpY += pitchY;
 			}
+			return true;
 		} else {
-			uint8_t *bufferp = (uint8_t*) hostBuffer;
-			// memcpy
+			return false;
 		}
-		break;
 	case YUV:
 		if (lsb) {
 			uint16_t *bufferp = (uint16_t*) hostBuffer;
@@ -129,49 +120,52 @@ inline void KNLMeansClass::writeBuffer(PVideoFrame &frm) {
 			const uint8_t *msbpY = frm->GetReadPtr(PLANAR_Y);
 			const uint8_t *msbpU = frm->GetReadPtr(PLANAR_U);
 			const uint8_t *msbpV = frm->GetReadPtr(PLANAR_V);
-			const uint8_t *lsbpY = msbpY + image_dimensions[1] * pitchY;
-			const uint8_t *lsbpU = msbpU + image_dimensions[1] * pitchU;
-			const uint8_t *lsbpV = msbpV + image_dimensions[1] * pitchV;
-			for (cl_uint y = 0; y < image_dimensions[1]; y++) {
-				for (cl_uint x = 0; x < image_dimensions[0]; x++) {
-					bufferp[x * 64]      = msbpY[x] << 8 | lsbpY[x];
-					bufferp[x * 64 + 16] = msbpU[x] << 8 | lsbpU[x];
-					bufferp[x * 64 + 32] = msbpV[x] << 8 | lsbpV[x];
-					bufferp[x * 64 + 48] = 0;
+			const uint8_t *lsbpY = msbpY + idmn[1] * pitchY;
+			const uint8_t *lsbpU = msbpU + idmn[1] * pitchU;
+			const uint8_t *lsbpV = msbpV + idmn[1] * pitchV;
+			for (cl_uint y = 0; y < idmn[1]; y++) {
+				for (cl_uint x = 0; x < idmn[0]; x++) {
+					bufferp[y * idmn[0] * 4 + x * 4]     = msbpY[y * pitchY + x] << 8 | lsbpY[y * pitchY + x];
+					bufferp[y * idmn[0] * 4 + x * 4 + 1] = msbpU[y * pitchU + x] << 8 | lsbpU[y * pitchU + x];
+					bufferp[y * idmn[0] * 4 + x * 4 + 2] = msbpV[y * pitchV + x] << 8 | lsbpV[y * pitchV + x];
+					bufferp[y * idmn[0] * 4 + x * 4 + 3] = 0;
 				}
-				bufferp += image_dimensions[0]; 
-				msbpY += pitchY; lsbpY += pitchY;
-				msbpU += pitchU; lsbpU += pitchU;
-				msbpV += pitchV; lsbpV += pitchV;
 			}
+			return true;
 		} else {
 			uint8_t *bufferp = (uint8_t*) hostBuffer;
 			int pitchY = frm->GetPitch(PLANAR_Y);
 			int pitchU = frm->GetPitch(PLANAR_U);
 			int pitchV = frm->GetPitch(PLANAR_V);
-			const uint8_t *bpY = frm->GetReadPtr(PLANAR_Y);
-			const uint8_t *bpU = frm->GetReadPtr(PLANAR_U);
-			const uint8_t *bpV = frm->GetReadPtr(PLANAR_V);
-			for (cl_uint y = 0; y < image_dimensions[1]; y++) {
-				for (cl_uint x = 0; x < image_dimensions[0]; x++) {
-					bufferp[x * 32]		 = bpY[x];
-					bufferp[x * 32 + 16] = bpU[x];
-					bufferp[x * 32 + 32] = bpV[x];
-					bufferp[x * 32 + 48] = 0;
+			const uint8_t *frmpY = frm->GetReadPtr(PLANAR_Y);
+			const uint8_t *frmpU = frm->GetReadPtr(PLANAR_U);
+			const uint8_t *frmpV = frm->GetReadPtr(PLANAR_V);
+			for (cl_uint y = 0; y < idmn[1]; y++) {
+				for (cl_uint x = 0; x < idmn[0]; x++) {
+					bufferp[y * idmn[0] * 4 + x * 4]     = frmpY[y * pitchY + x];
+					bufferp[y * idmn[0] * 4 + x * 4 + 1] = frmpU[y * pitchU + x];
+					bufferp[y * idmn[0] * 4 + x * 4 + 2] = frmpV[y * pitchV + x];
+					bufferp[y * idmn[0] * 4 + x * 4 + 3] = 0;
 				}
-				bufferp += image_dimensions[0];	bpY += pitchY; bpU += pitchU; bpV += pitchV; 
+			}
+			return true;
+		}
+	case RGB24: {
+		uint8_t *bufferp = (uint8_t*) hostBuffer;
+		int pitch = frm->GetPitch();
+		const uint8_t *frmp = frm->GetReadPtr();
+		for (cl_uint y = 0; y < idmn[1]; y++) {
+			for (cl_uint x = 0; x < idmn[0]; x++) {
+				bufferp[y * idmn[0] * 4 + x * 4]     = frmp[y * pitch + x * 3];
+				bufferp[y * idmn[0] * 4 + x * 4 + 1] = frmp[y * pitch + x * 3 + 1];
+				bufferp[y * idmn[0] * 4 + x * 4 + 2] = frmp[y * pitch + x * 3 + 2];
+				bufferp[y * idmn[0] * 4 + x * 4 + 3] = 0;
 			}
 		}
-		break;
-	case RGB:
-		if (lsb) {
-
-		} else {
-
-		}
-		break;
-	default:
-		break;
+		return true;
+	}
+	case RGB32:
+		return false;
 	}
 }
 #endif //__AVISYNTH_6_H__
@@ -264,26 +258,21 @@ KNLMeansClass::KNLMeansClass(PClip _child, const int _D, const int _A, const int
 	const cl_image_format image_format = { 
 		vi.IsRGB32() ? CL_BGRA : CL_LUMINANCE, lsb ? CL_UNORM_INT16 : CL_UNORM_INT8 
 	};
-	image_dimensions[0] = vi.width;
-	image_dimensions[1] = lsb ? (vi.height / 2) : (vi.height);
-	const size_t size = sizeof(float) * image_dimensions[0] * image_dimensions[1];
-	mem_in[0] = clCreateImage2D(context, CL_MEM_READ_ONLY, &image_format, 
-		image_dimensions[0], image_dimensions[1], 0, NULL, NULL);
-	mem_in[2] = clCreateImage2D(context, CL_MEM_READ_ONLY, &image_format,
-		image_dimensions[0], image_dimensions[1], 0, NULL, NULL);
+	idmn[0] = vi.width;
+	idmn[1] = lsb ? (vi.height / 2) : (vi.height);
+	const size_t size = sizeof(float) * idmn[0] * idmn[1];
+	mem_in[0] = clCreateImage2D(context, CL_MEM_READ_ONLY, &image_format, idmn[0], idmn[1], 0, NULL, NULL);
+	mem_in[2] = clCreateImage2D(context, CL_MEM_READ_ONLY, &image_format, idmn[0], idmn[1], 0, NULL, NULL);
 	if (D) {
-		mem_in[1] = clCreateImage2D(context, CL_MEM_READ_ONLY, &image_format,
-			image_dimensions[0], image_dimensions[1], 0, NULL, NULL);
-		mem_in[3] = clCreateImage2D(context, CL_MEM_READ_ONLY, &image_format,
-			image_dimensions[0], image_dimensions[1], 0, NULL, NULL);
+		mem_in[1] = clCreateImage2D(context, CL_MEM_READ_ONLY, &image_format, idmn[0], idmn[1], 0, NULL, NULL);
+		mem_in[3] = clCreateImage2D(context, CL_MEM_READ_ONLY, &image_format, idmn[0], idmn[1], 0, NULL, NULL);
 	}
-	mem_out = clCreateImage2D(context, CL_MEM_WRITE_ONLY, &image_format,
-		image_dimensions[0], image_dimensions[1], 0, NULL, NULL);
+	mem_out = clCreateImage2D(context, CL_MEM_WRITE_ONLY, &image_format, idmn[0], idmn[1], 0, NULL, NULL);
 	mem_U[0] = clCreateBuffer(context, CL_MEM_READ_WRITE, vi.IsRGB32()? 4 * size : 2 * size, NULL, NULL);
 	mem_U[1] = clCreateBuffer(context, CL_MEM_READ_WRITE, size, NULL, NULL);
 	mem_U[2] = clCreateBuffer(context, CL_MEM_READ_WRITE, size, NULL, NULL);
 	mem_U[3] = clCreateBuffer(context, CL_MEM_READ_WRITE, size, NULL, NULL);
-	if (lsb) hostBuffer = malloc(image_dimensions[0] * image_dimensions[1] * sizeof(uint16_t));
+	if (lsb) hostBuffer = malloc(idmn[0] * idmn[1] * sizeof(uint16_t));
 
 	// Creates and Build a program executable from the program source.
 	program = clCreateProgramWithSource(context, 1, &source_code, NULL, NULL);
@@ -317,27 +306,27 @@ KNLMeansClass::KNLMeansClass(PClip _child, const int _D, const int _A, const int
 	// Sets kernel arguments.
 	ret = clSetKernelArg(kernel[0], 0, sizeof(cl_mem), &mem_U[0]);
 	ret |= clSetKernelArg(kernel[0], 1, sizeof(cl_mem), &mem_U[3]);
-	ret |= clSetKernelArg(kernel[0], 2, 2 * sizeof(cl_uint), &image_dimensions);
+	ret |= clSetKernelArg(kernel[0], 2, 2 * sizeof(cl_uint), &idmn);
 	ret |= clSetKernelArg(kernel[1], 0, sizeof(cl_mem), &mem_in[2]);
 	ret |= clSetKernelArg(kernel[1], 1, sizeof(cl_mem), &mem_in[D ? 3 : 2]);
 	ret |= clSetKernelArg(kernel[1], 2, sizeof(cl_mem), &mem_U[1]);
-	ret |= clSetKernelArg(kernel[1], 3, 2 * sizeof(cl_uint), &image_dimensions);
+	ret |= clSetKernelArg(kernel[1], 3, 2 * sizeof(cl_uint), &idmn);
 	ret |= clSetKernelArg(kernel[2], 0, sizeof(cl_mem), &mem_U[1]);
 	ret |= clSetKernelArg(kernel[2], 1, sizeof(cl_mem), &mem_U[2]);
-	ret |= clSetKernelArg(kernel[2], 2, 2 * sizeof(cl_uint), &image_dimensions);
+	ret |= clSetKernelArg(kernel[2], 2, 2 * sizeof(cl_uint), &idmn);
 	ret |= clSetKernelArg(kernel[3], 0, sizeof(cl_mem), &mem_U[2]);
 	ret |= clSetKernelArg(kernel[3], 1, sizeof(cl_mem), &mem_U[1]);
-	ret |= clSetKernelArg(kernel[3], 2, 2 * sizeof(cl_uint), &image_dimensions);
+	ret |= clSetKernelArg(kernel[3], 2, 2 * sizeof(cl_uint), &idmn);
 	ret |= clSetKernelArg(kernel[4], 0, sizeof(cl_mem), &mem_in[D ? 1 : 0]);
 	ret |= clSetKernelArg(kernel[4], 1, sizeof(cl_mem), &mem_U[0]);
 	ret |= clSetKernelArg(kernel[4], 2, sizeof(cl_mem), &mem_U[1]);
 	ret |= clSetKernelArg(kernel[4], 3, sizeof(cl_mem), &mem_U[3]);
-	ret |= clSetKernelArg(kernel[4], 4, 2 * sizeof(cl_uint), &image_dimensions);
+	ret |= clSetKernelArg(kernel[4], 4, 2 * sizeof(cl_uint), &idmn);
 	ret |= clSetKernelArg(kernel[5], 0, sizeof(cl_mem), &mem_in[0]);
 	ret |= clSetKernelArg(kernel[5], 1, sizeof(cl_mem), &mem_out);
 	ret |= clSetKernelArg(kernel[5], 2, sizeof(cl_mem), &mem_U[0]);
 	ret |= clSetKernelArg(kernel[5], 3, sizeof(cl_mem), &mem_U[3]);
-	ret |= clSetKernelArg(kernel[5], 4, 2 * sizeof(cl_uint), &image_dimensions);
+	ret |= clSetKernelArg(kernel[5], 4, 2 * sizeof(cl_uint), &idmn);
 	if (ret != CL_SUCCESS) 	env->ThrowError("KNLMeansCL: AviSynthCreate error (3)!");
 }
 #endif //__AVISYNTH_6_H__
@@ -361,10 +350,10 @@ PVideoFrame __stdcall KNLMeansClass::GetFrame(int n, IScriptEnvironment* env) {
 	PVideoFrame src = child->GetFrame(n, env);
 	PVideoFrame ref = baby->GetFrame(n, env);
 	const size_t origin[3] = { 0, 0, 0 };
-	const size_t region[3] = { image_dimensions[0], image_dimensions[1], 1 };
+	const size_t region[3] = { idmn[0], idmn[1], 1 };
 	const size_t global_work[2] = {
-		mrounds(image_dimensions[0], fastmax(H_BLOCK_X, V_BLOCK_X)),
-		mrounds(image_dimensions[1], fastmax(H_BLOCK_Y, V_BLOCK_Y))
+		mrounds(idmn[0], fastmax(H_BLOCK_X, V_BLOCK_X)),
+		mrounds(idmn[1], fastmax(H_BLOCK_Y, V_BLOCK_Y))
 	};
 	const size_t local_horiz[2] = { H_BLOCK_X, H_BLOCK_Y };
 	const size_t local_vert[2] = { V_BLOCK_X, V_BLOCK_Y };
@@ -385,10 +374,10 @@ PVideoFrame __stdcall KNLMeansClass::GetFrame(int n, IScriptEnvironment* env) {
 		// 16-bits
 		writeBufferGray(src->GetReadPtr(PLANAR_Y), src->GetPitch(PLANAR_Y));
 		ret |= clEnqueueWriteImage(command_queue, mem_in[0], CL_TRUE, origin, region,
-			image_dimensions[0] * sizeof(uint16_t), 0, hostBuffer, 0, NULL, NULL);
+			idmn[0] * sizeof(uint16_t), 0, hostBuffer, 0, NULL, NULL);
 		writeBufferGray(ref->GetReadPtr(PLANAR_Y), ref->GetPitch(PLANAR_Y));
 		ret |= clEnqueueWriteImage(command_queue, mem_in[2], CL_TRUE, origin, region,
-			image_dimensions[0] * sizeof(uint16_t), 0, hostBuffer, 0, NULL, NULL);
+			idmn[0] * sizeof(uint16_t), 0, hostBuffer, 0, NULL, NULL);
 	} else {
 		// 8-bits.
 		ret |= clEnqueueWriteImage(command_queue, mem_in[0], CL_TRUE, origin, region,
@@ -406,10 +395,10 @@ PVideoFrame __stdcall KNLMeansClass::GetFrame(int n, IScriptEnvironment* env) {
 				// 16-bits.
 				writeBufferGray(src->GetReadPtr(PLANAR_Y), src->GetPitch(PLANAR_Y));
 				ret |= clEnqueueWriteImage(command_queue, mem_in[1], CL_TRUE, origin, region,
-					image_dimensions[0] * sizeof(uint16_t), 0, hostBuffer, 0, NULL, NULL);
+					idmn[0] * sizeof(uint16_t), 0, hostBuffer, 0, NULL, NULL);
 				writeBufferGray(ref->GetReadPtr(PLANAR_Y), ref->GetPitch(PLANAR_Y));
 				ret |= clEnqueueWriteImage(command_queue, mem_in[3], CL_TRUE, origin, region,
-					image_dimensions[0] * sizeof(uint16_t), 0, hostBuffer, 0, NULL, NULL);
+					idmn[0] * sizeof(uint16_t), 0, hostBuffer, 0, NULL, NULL);
 			} else {
 				// 8-bits.
 				ret |= clEnqueueWriteImage(command_queue, mem_in[1], CL_TRUE, origin, region,
