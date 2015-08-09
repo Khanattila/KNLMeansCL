@@ -68,6 +68,7 @@ private:
 	bool avs_equals(VideoInfo *v, VideoInfo *w);
 	void readBufferGray(uint8_t *msbp, int pitch);
 	void writeBufferGray(const uint8_t *msbp, int pitch);
+	bool readBuffer(PVideoFrame &frm);
 	bool writeBuffer(PVideoFrame &frm);
 public:
 	KNLMeansClass(PClip _child, const int _D, const int _A, const int _S, const int _wmode, const double _h, 
