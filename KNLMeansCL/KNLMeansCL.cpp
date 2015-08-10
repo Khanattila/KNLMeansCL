@@ -102,12 +102,17 @@ inline void KNLMeansClass::writeBufferGray(const uint8_t *msbp, int pitch) {
 #endif //__VAPOURSYNTH_H__
 
 //////////////////////////////////////////
-// AviSynth OpenMP
+// AviSynthMemoryManagement 
 #ifdef __AVISYNTH_6_H__
-inline bool KNLMeansClass::readBuffer(PVideoFrame &frm) {
+inline cl_uint KNLMeansClass::readBufferImage(PVideoFrame &frm, cl_command_queue command_queue,
+	cl_mem image, const size_t origin[3], const size_t region[3]) {
+
+	cl_uint ret = CL_SUCCESS;
 	switch (color) {
 	case Gray:
 		if (lsb) {
+			ret = clEnqueueReadImage(command_queue, image, CL_TRUE, origin, region,
+				idmn[0] * sizeof(uint16_t), 0, hostBuffer, 0, NULL, NULL);
 			uint16_t *bufferp = (uint16_t*) hostBuffer;
 			int pitch = frm->GetPitch(PLANAR_Y);
 			uint8_t *msbp = frm->GetWritePtr(PLANAR_Y);
@@ -115,84 +120,119 @@ inline bool KNLMeansClass::readBuffer(PVideoFrame &frm) {
 			int bidx, fidx;
 			#pragma omp parallel for private(bidx, fidx)
 			for (int y = 0; y < (int) idmn[1]; y++) {
-				bidx = y * idmn[0];	fidx = y * pitch;
+				bidx = y * idmn[0];	
+				fidx = y * pitch;
 				for (int x = 0; x < (int) idmn[0]; x++) {
 					lsbp[fidx + x] = (uint8_t) (bufferp[bidx + x] & 0x00FF);
 					msbp[fidx + x] = (uint8_t) (bufferp[bidx + x] & 0xFF00 >> 8);
 				}
 			}
-			return true;
+			break;
 		} else {
-			return false; //CL_LUMINANCE
+			ret = clEnqueueReadImage(command_queue, image, CL_TRUE, origin, region,
+				frm->GetPitch(PLANAR_Y), 0, frm->GetWritePtr(PLANAR_Y), 0, NULL, NULL);
+			break;
 		}
 	case YUV:
 		if (lsb) {
+			ret = clEnqueueReadImage(command_queue, image, CL_TRUE, origin, region,
+				idmn[0] * 4 * sizeof(uint16_t), 0, hostBuffer, 0, NULL, NULL);
 			uint16_t *bufferp = (uint16_t*) hostBuffer;
-			int pitchY = frm->GetPitch(PLANAR_Y);
-			int pitchU = frm->GetPitch(PLANAR_U);
-			int pitchV = frm->GetPitch(PLANAR_V);
-			uint8_t *msbpY = frm->GetWritePtr(PLANAR_Y);
-			uint8_t *msbpU = frm->GetWritePtr(PLANAR_U);
-			uint8_t *msbpV = frm->GetWritePtr(PLANAR_V);
-			uint8_t *lsbpY = msbpY + idmn[1] * pitchY;
-			uint8_t *lsbpU = msbpU + idmn[1] * pitchU;
-			uint8_t *lsbpV = msbpV + idmn[1] * pitchV;
-			int bidx, fidxY, fidxU, fidxV;
-			#pragma omp parallel for private(bidx, fidxY, fidxU, fidxV)
+			int pitch[3] = { 
+				frm->GetPitch(PLANAR_Y), 
+				frm->GetPitch(PLANAR_U), 
+				frm->GetPitch(PLANAR_V) 
+			};
+			uint8_t *msbp[3] = { 
+				frm->GetWritePtr(PLANAR_Y),
+				frm->GetWritePtr(PLANAR_U), 
+				frm->GetWritePtr(PLANAR_V) 
+			};
+			uint8_t *lsbp[3] = { 
+				msbp[0] + idmn[1] * pitch[0], 
+				msbp[1] + idmn[1] * pitch[1], 
+				msbp[2] + idmn[1] * pitch[2] 
+			};
+			int bidx, fidx[3];
+			#pragma omp parallel for private(bidx, fidx)
 			for (int y = 0; y < (int) idmn[1]; y++) {
-				bidx = y * idmn[0] * 8;	fidxY = y * pitchY;	fidxU = y * pitchU;	fidxV = y * pitchV;
+				bidx = y * idmn[0] * 4;	
+				fidx[0] = y * pitch[0];	
+				fidx[1] = y * pitch[1];	
+				fidx[2] = y * pitch[2];
 				for (int x = 0; x < (int) idmn[0]; x++) {
-					lsbpY[fidxY + x] = (uint8_t) (bufferp[bidx + x * 4] & 0x00FF);
-					msbpY[fidxY + x] = (uint8_t) (bufferp[bidx + x * 4] & 0xFF00 >> 8);
-					lsbpU[fidxU + x] = (uint8_t) (bufferp[bidx + x * 4 + 1] & 0x00FF);
-					msbpU[fidxU + x] = (uint8_t) (bufferp[bidx + x * 4 + 1] & 0xFF00 >> 8);
-					lsbpV[fidxV + x] = (uint8_t) (bufferp[bidx + x * 4 + 2] & 0x00FF);
-					msbpV[fidxV + x] = (uint8_t) (bufferp[bidx + x * 4 + 2] & 0xFF00 >> 8);
+					lsbp[0][fidx[0] + x] = (uint8_t) (bufferp[bidx + x * 4]		& 0x00FF);
+					msbp[0][fidx[0] + x] = (uint8_t) (bufferp[bidx + x * 4]		& 0xFF00 >> 8);
+					lsbp[1][fidx[1] + x] = (uint8_t) (bufferp[bidx + x * 4 + 1] & 0x00FF);
+					msbp[1][fidx[1] + x] = (uint8_t) (bufferp[bidx + x * 4 + 1] & 0xFF00 >> 8);
+					lsbp[2][fidx[2] + x] = (uint8_t) (bufferp[bidx + x * 4 + 2] & 0x00FF);
+					msbp[2][fidx[2] + x] = (uint8_t) (bufferp[bidx + x * 4 + 2] & 0xFF00 >> 8);
 				}
 			}
-			return true;
+			break;
 		} else {
+			ret = clEnqueueReadImage(command_queue, image, CL_TRUE, origin, region,
+				idmn[0] * 4 * sizeof(uint8_t), 0, hostBuffer, 0, NULL, NULL);
 			uint8_t *bufferp = (uint8_t*) hostBuffer;
-			int pitchY = frm->GetPitch(PLANAR_Y);
-			int pitchU = frm->GetPitch(PLANAR_U);
-			int pitchV = frm->GetPitch(PLANAR_V);
-			uint8_t *frmpY = frm->GetWritePtr(PLANAR_Y);
-			uint8_t *frmpU = frm->GetWritePtr(PLANAR_U);
-			uint8_t *frmpV = frm->GetWritePtr(PLANAR_V);
-			int bidx, fidxY, fidxU, fidxV;
-			#pragma omp parallel for private(bidx, fidxY, fidxU, fidxV)
+			int pitch[3] = {
+				frm->GetPitch(PLANAR_Y),
+				frm->GetPitch(PLANAR_U),
+				frm->GetPitch(PLANAR_V)
+			};
+			uint8_t *frmp[3] = {
+				frm->GetWritePtr(PLANAR_Y),
+				frm->GetWritePtr(PLANAR_U),
+				frm->GetWritePtr(PLANAR_V)
+			};
+			int bidx, fidx[3];
+			#pragma omp parallel for private(bidx, fidx)
 			for (int y = 0; y < (int) idmn[1]; y++) {
-				bidx = y * idmn[0] * 4; fidxY = y * pitchY;	fidxU = y * pitchU;	fidxV = y * pitchV;
+				bidx = y * idmn[0] * 4; 
+				fidx[0] = y * pitch[0];
+				fidx[1] = y * pitch[1];
+				fidx[2] = y * pitch[2];
 				for (int x = 0; x < (int) idmn[0]; x++) {
-					frmpY[fidxY + x] = bufferp[bidx + x * 4];
-					frmpU[fidxU + x] = bufferp[bidx + x * 4 + 1];
-					frmpV[fidxV + x] = bufferp[bidx + x * 4 + 2];
+					frmp[0][fidx[0] + x] = bufferp[bidx + x * 4];
+					frmp[1][fidx[1] + x] = bufferp[bidx + x * 4 + 1];
+					frmp[2][fidx[2] + x] = bufferp[bidx + x * 4 + 2];
 				}
 			}
-			return true;
+			break;
 		}
 	case RGB24: {
+		ret = clEnqueueReadImage(command_queue, image, CL_TRUE, origin, region,
+			idmn[0] * 4 * sizeof(uint8_t), 0, hostBuffer, 0, NULL, NULL);
 		uint8_t *bufferp = (uint8_t*) hostBuffer;
 		int pitch = frm->GetPitch();
 		uint8_t *frmp = frm->GetWritePtr();
 		int bidx, fidx;
 		#pragma omp parallel for private(bidx, fidx)
 		for (int y = 0; y < (int) idmn[1]; y++) {
-			bidx = y * idmn[0] * 4; fidx = y * pitch;
+			bidx = y * idmn[0] * 4; 
+			fidx = y * pitch;
 			for (int x = 0; x < (int) idmn[0]; x++) {
 				frmp[fidx + x * 3]	   = bufferp[bidx + x * 4];
 				frmp[fidx + x * 3 + 1] = bufferp[bidx + x * 4 + 1];
 				frmp[fidx + x * 3 + 2] = bufferp[bidx + x * 4 + 2];
 			}
 		}
-		return true;
+		break;
 	}
-	case RGB32:
-		return false; //CL_BGRA
+	case RGB32: 
+		ret = clEnqueueReadImage(command_queue, image, CL_TRUE, origin, region,
+			idmn[0] * 4 * sizeof(uint8_t), 0, hostBuffer, 0, NULL, NULL);
+		break;
+	default:
+		ret = INVALID_COLOR_T;
+		break;
 	}
+	return ret;
 }
 
-inline bool KNLMeansClass::writeBuffer(PVideoFrame &frm) {
+inline cl_uint KNLMeansClass::writeBufferImage(PVideoFrame &frm, cl_command_queue command_queue, 
+	cl_mem image, const size_t origin[3], const size_t region[3]) {
+	
+	cl_uint ret = CL_SUCCESS;
 	switch (color) {
 	case Gray:
 		if (lsb) {
@@ -203,59 +243,84 @@ inline bool KNLMeansClass::writeBuffer(PVideoFrame &frm) {
 			int bidx, fidx;
 			#pragma omp parallel for private(bidx, fidx)
 			for (int y = 0; y < (int) idmn[1]; y++) {
-				bidx = y * idmn[0]; fidx = y * pitch;
+				bidx = y * idmn[0]; 
+				fidx = y * pitch;
 				for (int x = 0; x < (int) idmn[0]; x++) {
 					bufferp[bidx + x] = msbp[fidx + x] << 8 | lsbp[fidx + x];
 				}
 			}
-			return true;
+			ret = clEnqueueWriteImage(command_queue, image, CL_TRUE, origin, region,
+				idmn[0] * sizeof(uint16_t), 0, hostBuffer, 0, NULL, NULL);
+			break;
 		} else {
-			return false; //CL_LUMINANCE
+			ret = clEnqueueWriteImage(command_queue, image, CL_TRUE, origin, region,
+				frm->GetPitch(PLANAR_Y), 0, frm->GetReadPtr(PLANAR_Y), 0, NULL, NULL);
+			break; 
 		}
 	case YUV:
 		if (lsb) {
 			uint16_t *bufferp = (uint16_t*) hostBuffer;
-			int pitchY = frm->GetPitch(PLANAR_Y);
-			int pitchU = frm->GetPitch(PLANAR_U);
-			int pitchV = frm->GetPitch(PLANAR_V);
-			const uint8_t *msbpY = frm->GetReadPtr(PLANAR_Y);
-			const uint8_t *msbpU = frm->GetReadPtr(PLANAR_U);
-			const uint8_t *msbpV = frm->GetReadPtr(PLANAR_V);
-			const uint8_t *lsbpY = msbpY + idmn[1] * pitchY;
-			const uint8_t *lsbpU = msbpU + idmn[1] * pitchU;
-			const uint8_t *lsbpV = msbpV + idmn[1] * pitchV;
-			int bidx, fidxY, fidxU, fidxV;
-			#pragma omp parallel for private(bidx, fidxY, fidxU, fidxV)
+			int pitch[3] = { 
+				frm->GetPitch(PLANAR_Y), 
+				frm->GetPitch(PLANAR_U), 
+				frm->GetPitch(PLANAR_V) 
+			};
+			const uint8_t *msbp[3] = { 
+				frm->GetReadPtr(PLANAR_Y), 
+				frm->GetReadPtr(PLANAR_U), 
+				frm->GetReadPtr(PLANAR_V) 
+			};
+			const uint8_t *lsbp[3] = { 
+				msbp[0] + idmn[1] * pitch[0], 
+				msbp[1] + idmn[1] * pitch[1], 
+				msbp[2] + idmn[1] * pitch[2] 
+			};
+			int bidx, fidx[3];
+			#pragma omp parallel for private(bidx, fidx)
 			for (int y = 0; y < (int) idmn[1]; y++) {
-				bidx = y * idmn[0] * 8; fidxY = y * pitchY;	fidxU = y * pitchU;	fidxV = y * pitchV;
+				bidx = y * idmn[0] * 4; 
+				fidx[0] = y * pitch[0];	
+				fidx[1] = y * pitch[1];	
+				fidx[2] = y * pitch[2];
 				for (int x = 0; x < (int) idmn[0]; x++) {
-					bufferp[bidx + x * 4]	  = msbpY[fidxY + x] << 8 | lsbpY[fidxY + x];
-					bufferp[bidx + x * 4 + 1] = msbpU[fidxU + x] << 8 | lsbpU[fidxU + x];
-					bufferp[bidx + x * 4 + 2] = msbpV[fidxV + x] << 8 | lsbpV[fidxV + x];
+					bufferp[bidx + x * 4]	  = msbp[0][fidx[0] + x] << 8 | lsbp[0][fidx[0] + x];
+					bufferp[bidx + x * 4 + 1] = msbp[1][fidx[1] + x] << 8 | lsbp[1][fidx[1] + x];
+					bufferp[bidx + x * 4 + 2] = msbp[2][fidx[2] + x] << 8 | lsbp[2][fidx[2] + x];
 					bufferp[bidx + x * 4 + 3] = 0;
 				}
 			}
-			return true;
+			ret = clEnqueueWriteImage(command_queue, image, CL_TRUE, origin, region,
+				idmn[0] * 4 * sizeof(uint16_t), 0, hostBuffer, 0, NULL, NULL);
+			break;
 		} else {
 			uint8_t *bufferp = (uint8_t*) hostBuffer;
-			int pitchY = frm->GetPitch(PLANAR_Y);
-			int pitchU = frm->GetPitch(PLANAR_U);
-			int pitchV = frm->GetPitch(PLANAR_V);
-			const uint8_t *frmpY = frm->GetReadPtr(PLANAR_Y);
-			const uint8_t *frmpU = frm->GetReadPtr(PLANAR_U);
-			const uint8_t *frmpV = frm->GetReadPtr(PLANAR_V);
-			int bidx, fidxY, fidxU, fidxV;
-			#pragma omp parallel for private(bidx, fidxY, fidxU, fidxV)
+			int pitch[3] = { 
+				frm->GetPitch(PLANAR_Y), 
+				frm->GetPitch(PLANAR_U), 
+				frm->GetPitch(PLANAR_V) 
+			};
+			const uint8_t *frmp[3] = { 
+				frm->GetReadPtr(PLANAR_Y), 
+				frm->GetReadPtr(PLANAR_U), 
+				frm->GetReadPtr(PLANAR_V) 
+			};
+			int bidx, fidx[3];
+			#pragma omp parallel for private(bidx, fidx)
 			for (int y = 0; y < (int) idmn[1]; y++) {
-				bidx = y * idmn[0] * 4; fidxY = y * pitchY;	fidxU = y * pitchU;	fidxV = y * pitchV;
+				bidx = y * idmn[0] * 4; 
+				fidx[0] = y * pitch[0];	
+				fidx[1] = y * pitch[1];	
+				fidx[2] = y * pitch[2];
 				for (int x = 0; x < (int) idmn[0]; x++) {
-					bufferp[bidx + x * 4]	  = frmpY[fidxY + x];
-					bufferp[bidx + x * 4 + 1] = frmpU[fidxU + x];
-					bufferp[bidx + x * 4 + 2] = frmpV[fidxV + x];
+					bufferp[bidx + x * 4]	  = frmp[0][fidx[0] + x];
+					bufferp[bidx + x * 4 + 1] = frmp[1][fidx[1] + x];
+					bufferp[bidx + x * 4 + 2] = frmp[2][fidx[2] + x];
 					bufferp[bidx + x * 4 + 3] = 0;
 				}
 			}
-			return true;
+			ret = clEnqueueWriteImage(command_queue, image, CL_TRUE, origin, region,
+				idmn[0] * 4 * sizeof(uint8_t), 0, hostBuffer, 0, NULL, NULL);
+			break;
 		}
 	case RGB24: {
 		uint8_t *bufferp = (uint8_t*) hostBuffer;
@@ -264,7 +329,8 @@ inline bool KNLMeansClass::writeBuffer(PVideoFrame &frm) {
 		int bidx, fidx;
 		#pragma omp parallel for private(bidx, fidx)
 		for (int y = 0; y < (int) idmn[1]; y++) {
-			bidx = y * idmn[0] * 4; fidx = y * pitch;
+			bidx = y * idmn[0] * 4; 
+			fidx = y * pitch;
 			for (int x = 0; x < (int) idmn[0]; x++) {
 				bufferp[bidx + x * 4]	  = frmp[fidx + x * 3];
 				bufferp[bidx + x * 4 + 1] = frmp[fidx + x * 3 + 1];
@@ -272,13 +338,118 @@ inline bool KNLMeansClass::writeBuffer(PVideoFrame &frm) {
 				bufferp[bidx + x * 4 + 3] = 0;
 			}
 		}
-		return true;
+		ret = clEnqueueWriteImage(command_queue, image, CL_TRUE, origin, region,
+			idmn[0] * 4 * sizeof(uint8_t), 0, hostBuffer, 0, NULL, NULL);
+		break;
 	}
 	case RGB32:
-		return false; //CL_BGRA
+		ret = clEnqueueWriteImage(command_queue, image, CL_TRUE, origin, region,
+			frm->GetPitch(), 0, frm->GetReadPtr(), 0, NULL, NULL);
+		break;
+	default:
+		ret = INVALID_COLOR_T;
+		break;
 	}
+	return ret;
 }
 #endif //__AVISYNTH_6_H__
+
+//////////////////////////////////////////
+// VapourSynthMemoryManagement
+#ifdef VAPOURSYNTH_H
+inline cl_uint readBufferImage(KNLMeansData *data, const VSAPI *vsapi, VSFrameRef *frm,
+	cl_command_queue command_queue, cl_mem image, const size_t origin[3], const size_t region[3]) {
+
+	cl_uint ret = CL_SUCCESS;
+	switch (data->color) {
+	case Gray:
+		ret = clEnqueueReadImage(command_queue, image, CL_TRUE, origin, region,
+			vsapi->getStride(frm, 0), 0, vsapi->getWritePtr(frm, 0), 0, NULL, NULL);
+		break;
+	case YUV:
+	case RGB: {
+		ret = clEnqueueReadImage(command_queue, image, CL_TRUE, origin, region,
+			data->idmn[0] * 4 * data->bsample, 0, data->hostBuffer, 0, NULL, NULL);
+		uint8_t *bufferp = (uint8_t*) data->hostBuffer;
+		int pitch[3] = {
+			vsapi->getStride(frm, 0),
+			vsapi->getStride(frm, 1),
+			vsapi->getStride(frm, 2)
+		};
+		uint8_t *frmp[3] = {
+			vsapi->getWritePtr(frm, 0),
+			vsapi->getWritePtr(frm, 1),
+			vsapi->getWritePtr(frm, 2)
+		};
+		int bidx, fidx[3];
+		#pragma omp parallel for private(bidx, fidx)
+		for (int y = 0; y < (int) data->idmn[1]; y++) {
+			bidx = y * data->idmn[0] * 4;
+			fidx[0] = y * pitch[0];
+			fidx[1] = y * pitch[1];
+			fidx[2] = y * pitch[2];
+			for (int x = 0; x < (int) data->idmn[0] * data->bsample; x++) {
+				frmp[0][fidx[0] + x] = bufferp[bidx + x * 4];
+				frmp[1][fidx[0] + x] = bufferp[bidx + x * 4 + 1];
+				frmp[2][fidx[0] + x] = bufferp[bidx + x * 4 + 2];
+			}
+		}
+		break;
+	}
+	default:
+		ret = INVALID_COLOR_T;
+		break;
+		return ret;
+	}
+}
+
+inline cl_uint writeBufferImage(KNLMeansData *data, const VSAPI *vsapi, const VSFrameRef *frm,
+	cl_command_queue command_queue, cl_mem image, const size_t origin[3], const size_t region[3]) {
+
+	cl_uint ret = CL_SUCCESS;
+	switch (data->color) {
+	case Gray:
+		ret = clEnqueueWriteImage(command_queue, image, CL_TRUE, origin, region,
+			vsapi->getStride(frm, 0), 0, vsapi->getReadPtr(frm, 0), 0, NULL, NULL);
+		break;
+	case YUV:
+	case RGB: {
+		uint8_t *bufferp = (uint8_t*) data->hostBuffer;
+		int pitch[3] = { 
+			vsapi->getStride(frm, 0), 
+			vsapi->getStride(frm, 1), 
+			vsapi->getStride(frm, 2) 
+		};
+		const uint8_t *frmp[3] = { 
+			vsapi->getReadPtr(frm, 0), 
+			vsapi->getReadPtr(frm, 1), 
+			vsapi->getReadPtr(frm, 2) 
+		};
+		int bidx, fidx[3];
+		#pragma omp parallel for private(bidx, fidx)
+		for (int y = 0; y < (int) data->idmn[1]; y++) {
+			bidx = y * data->idmn[0] * 4;
+			fidx[0] = y * pitch[0];
+			fidx[1] = y * pitch[1];
+			fidx[2] = y * pitch[2];
+			for (int x = 0; x < (int) data->idmn[0] * data->bsample; x++) {
+				bufferp[bidx + x * 4]	  = frmp[0][fidx[0] + x * 3];
+				bufferp[bidx + x * 4 + 1] = frmp[1][fidx[1] + x * 3];
+				bufferp[bidx + x * 4 + 2] = frmp[2][fidx[2] + x * 3];
+				bufferp[bidx + x * 4 + 3] = 0;
+			}
+		}
+		ret = clEnqueueWriteImage(command_queue, image, CL_TRUE, origin, region,
+			data->idmn[0] * 4 * data->bsample, 0, data->hostBuffer, 0, NULL, NULL);
+		break;
+	}
+	default:
+		ret = INVALID_COLOR_T;
+		break;
+	return ret;
+	}
+}
+#endif //__VAPOURSYNTH_H__
 
 //////////////////////////////////////////
 // AviSynthInit
@@ -624,16 +795,16 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
 		const VSFrameRef *ref = vsapi->getFrameFilter(n, d->knot, frameCtx);
 		const VSFormat *fi = d->vi->format;
 		const size_t origin[3] = { 0, 0, 0 };
-		const size_t region[3] = { d->image_dimensions[0], d->image_dimensions[1], 1 };
+		const size_t region[3] = { d->idmn[0], d->idmn[1], 1 };
 		const size_t global_work[2] = {
-			mrounds(d->image_dimensions[0], fastmax(H_BLOCK_X, V_BLOCK_X)),
-			mrounds(d->image_dimensions[1], fastmax(H_BLOCK_Y, V_BLOCK_Y))
+			mrounds(d->idmn[0], fastmax(H_BLOCK_X, V_BLOCK_X)),
+			mrounds(d->idmn[1], fastmax(H_BLOCK_Y, V_BLOCK_Y))
 		};
 		const size_t local_horiz[2] = { H_BLOCK_X, H_BLOCK_Y };
 		const size_t local_vert[2] = { V_BLOCK_X, V_BLOCK_Y };
 
 		//Copy chroma.
-		VSFrameRef *dst = vsapi->newVideoFrame(fi, d->image_dimensions[0], d->image_dimensions[1], NULL, core);
+		VSFrameRef *dst = vsapi->newVideoFrame(fi, d->idmn[0], d->idmn[1], NULL, core);
 		if (fi->colorFamily == cmYUV || fi->colorFamily == cmYCoCg) {
 			vs_bitblt(vsapi->getWritePtr(dst, 1), vsapi->getStride(dst, 1), vsapi->getReadPtr(src, 1), 
 				vsapi->getStride(src, 1), vsapi->getFrameWidth(src, 1) * fi->bytesPerSample, 
@@ -996,21 +1167,21 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out,
 	// Creates an OpenCL context, 2D images and buffers object.
 	d.context = clCreateContext(NULL, 1, &d.deviceID, NULL, NULL, NULL);
 	const cl_image_format image_format = { CL_LUMINANCE, channel };
-	d.image_dimensions[0] = d.vi->width;
-	d.image_dimensions[1] = d.vi->height;
-	const size_t size = sizeof(float) * d.image_dimensions[0] * d.image_dimensions[1];
+	d.idmn[0] = d.vi->width;
+	d.idmn[1] = d.vi->height;
+	const size_t size = sizeof(float) * d.idmn[0] * d.idmn[1];
 	d.mem_in[0] = clCreateImage2D(d.context, CL_MEM_READ_ONLY, &image_format, 
-		d.image_dimensions[0], d.image_dimensions[1], 0, NULL, NULL);
+		d.idmn[0], d.idmn[1], 0, NULL, NULL);
 	d.mem_in[2] = clCreateImage2D(d.context, CL_MEM_READ_ONLY, &image_format,
-		d.image_dimensions[0], d.image_dimensions[1], 0, NULL, NULL);
+		d.idmn[0], d.idmn[1], 0, NULL, NULL);
 	if (d.d) {
 		d.mem_in[1] = clCreateImage2D(d.context, CL_MEM_READ_ONLY, &image_format,
-			d.image_dimensions[0], d.image_dimensions[1], 0, NULL, NULL);
+			d.idmn[0], d.idmn[1], 0, NULL, NULL);
 		d.mem_in[3] = clCreateImage2D(d.context, CL_MEM_READ_ONLY, &image_format,
-			d.image_dimensions[0], d.image_dimensions[1], 0, NULL, NULL);
+			d.idmn[0], d.idmn[1], 0, NULL, NULL);
 	}
 	d.mem_out = clCreateImage2D(d.context, CL_MEM_WRITE_ONLY, &image_format, 
-		d.image_dimensions[0], d.image_dimensions[1], 0, NULL, NULL);
+		d.idmn[0], d.idmn[1], 0, NULL, NULL);
 	d.mem_U[0] = clCreateBuffer(d.context, CL_MEM_READ_WRITE, 2 * size, NULL, NULL);
 	d.mem_U[1] = clCreateBuffer(d.context, CL_MEM_READ_WRITE, size, NULL, NULL);
 	d.mem_U[2] = clCreateBuffer(d.context, CL_MEM_READ_WRITE, size, NULL, NULL);
@@ -1058,27 +1229,27 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out,
 	// Sets kernel arguments.
 	ret = clSetKernelArg(d.kernel[0], 0, sizeof(cl_mem), &d.mem_U[0]);
 	ret |= clSetKernelArg(d.kernel[0], 1, sizeof(cl_mem), &d.mem_U[3]);
-	ret |= clSetKernelArg(d.kernel[0], 2, 2 * sizeof(cl_uint), &d.image_dimensions);
+	ret |= clSetKernelArg(d.kernel[0], 2, 2 * sizeof(cl_uint), &d.idmn);
 	ret |= clSetKernelArg(d.kernel[1], 0, sizeof(cl_mem), &d.mem_in[2]);
 	ret |= clSetKernelArg(d.kernel[1], 1, sizeof(cl_mem), &d.mem_in[d.d ? 3 : 2]);
 	ret |= clSetKernelArg(d.kernel[1], 2, sizeof(cl_mem), &d.mem_U[1]);
-	ret |= clSetKernelArg(d.kernel[1], 3, 2 * sizeof(cl_uint), &d.image_dimensions);
+	ret |= clSetKernelArg(d.kernel[1], 3, 2 * sizeof(cl_uint), &d.idmn);
 	ret |= clSetKernelArg(d.kernel[2], 0, sizeof(cl_mem), &d.mem_U[1]);
 	ret |= clSetKernelArg(d.kernel[2], 1, sizeof(cl_mem), &d.mem_U[2]);
-	ret |= clSetKernelArg(d.kernel[2], 2, 2 * sizeof(cl_uint), &d.image_dimensions);
+	ret |= clSetKernelArg(d.kernel[2], 2, 2 * sizeof(cl_uint), &d.idmn);
 	ret |= clSetKernelArg(d.kernel[3], 0, sizeof(cl_mem), &d.mem_U[2]);
 	ret |= clSetKernelArg(d.kernel[3], 1, sizeof(cl_mem), &d.mem_U[1]);
-	ret |= clSetKernelArg(d.kernel[3], 2, 2 * sizeof(cl_uint), &d.image_dimensions);
+	ret |= clSetKernelArg(d.kernel[3], 2, 2 * sizeof(cl_uint), &d.idmn);
 	ret |= clSetKernelArg(d.kernel[4], 0, sizeof(cl_mem), &d.mem_in[d.d ? 1 : 0]);
 	ret |= clSetKernelArg(d.kernel[4], 1, sizeof(cl_mem), &d.mem_U[0]);
 	ret |= clSetKernelArg(d.kernel[4], 2, sizeof(cl_mem), &d.mem_U[1]);
 	ret |= clSetKernelArg(d.kernel[4], 3, sizeof(cl_mem), &d.mem_U[3]);
-	ret |= clSetKernelArg(d.kernel[4], 4, 2 * sizeof(cl_uint), &d.image_dimensions);
+	ret |= clSetKernelArg(d.kernel[4], 4, 2 * sizeof(cl_uint), &d.idmn);
 	ret |= clSetKernelArg(d.kernel[5], 0, sizeof(cl_mem), &d.mem_in[0]);
 	ret |= clSetKernelArg(d.kernel[5], 1, sizeof(cl_mem), &d.mem_out);
 	ret |= clSetKernelArg(d.kernel[5], 2, sizeof(cl_mem), &d.mem_U[0]);
 	ret |= clSetKernelArg(d.kernel[5], 3, sizeof(cl_mem), &d.mem_U[3]);
-	ret |= clSetKernelArg(d.kernel[5], 4, 2 * sizeof(cl_uint), &d.image_dimensions);
+	ret |= clSetKernelArg(d.kernel[5], 4, 2 * sizeof(cl_uint), &d.idmn);
 	if (ret != CL_SUCCESS) {
 		vsapi->setError(out, "knlm.KNLMeansCL: VapourSynthCreate error (3)!");
 		vsapi->freeNode(d.node);
