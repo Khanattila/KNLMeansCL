@@ -18,6 +18,7 @@
 
 #define VERSION "0.5.9"
 #define INVALID_COLOR_T 1
+#define INVALID_BSAMPLE 2
 
 #ifdef _MSC_VER
 #define strcasecmp _stricmp
@@ -47,68 +48,67 @@
 #include <VapourSynth.h>
 #include <VSHelper.h>
 
-enum color_t {Gray, YUV, RGB, RGB24, RGB32};
+enum color_t { Gray, YUV, RGB, RGB24, RGB32 };
 
 #ifdef __AVISYNTH_6_H__
 class KNLMeansClass : public GenericVideoFilter {
 private:
-	const int D, A, S, wmode;
-	const double h;
-	PClip baby;
-	const char* ocl_device;
-	const bool lsb, info;
-	color_t color;
-	void* hostBuffer;
-	cl_uint idmn[2];
-	cl_platform_id platformID;
-	cl_device_id deviceID;
-	cl_context context;
-	cl_program program;
-	cl_kernel kernel[6];
-	cl_mem mem_in[4], mem_out, mem_U[4];
-	bool avs_equals(VideoInfo *v, VideoInfo *w);
-	void readBufferGray(uint8_t *msbp, int pitch);
-	void writeBufferGray(const uint8_t *msbp, int pitch);
-	cl_uint readBufferImage(PVideoFrame &frm, cl_command_queue command_queue,
-		cl_mem image, const size_t origin[3], const size_t region[3]);
-	cl_uint writeBufferImage(PVideoFrame &frm, cl_command_queue command_queue, 
-		cl_mem image, const size_t origin[3], const size_t region[3]);
+    const int D, A, S, wmode;
+    const double h;
+    PClip baby;
+    const char* ocl_device;
+    const bool lsb, info;
+    color_t color;
+    void* hostBuffer;
+    cl_uint idmn[2];
+    cl_platform_id platformID;
+    cl_device_id deviceID;
+    cl_context context;
+    cl_program program;
+    cl_kernel kernel[6];
+    cl_mem mem_in[4], mem_out, mem_U[4];
+    bool avs_equals(VideoInfo *v, VideoInfo *w);
+    void readBufferGray(uint8_t *msbp, int pitch);
+    void writeBufferGray(const uint8_t *msbp, int pitch);
+    cl_uint readBufferImage(PVideoFrame &frm, cl_command_queue command_queue,
+        cl_mem image, const size_t origin[3], const size_t region[3]);
+    cl_uint writeBufferImage(PVideoFrame &frm, cl_command_queue command_queue,
+        cl_mem image, const size_t origin[3], const size_t region[3]);
 public:
-	KNLMeansClass(PClip _child, const int _D, const int _A, const int _S, const int _wmode, const double _h, 
-		PClip _baby, const char* _ocl_device, const bool _lsb, const bool _info, IScriptEnvironment* env);
-	~KNLMeansClass();
-	PVideoFrame __stdcall GetFrame(int n, IScriptEnvironment* env);
+    KNLMeansClass(PClip _child, const int _D, const int _A, const int _S, const int _wmode, const double _h,
+        PClip _baby, const char* _ocl_device, const bool _lsb, const bool _info, IScriptEnvironment* env);
+    ~KNLMeansClass();
+    PVideoFrame __stdcall GetFrame(int n, IScriptEnvironment* env);
 };
 #endif //__AVISYNTH_6_H__
 
 #ifdef VAPOURSYNTH_H
 typedef struct {
-	VSNodeRef *node, *knot;
-	const VSVideoInfo *vi;
-	int64_t d, a, s, wmode, info;
-	double h;
-	const char* ocl_device;
-	int bsample;
-	color_t color;
-	cl_uint idmn[2];
-	void* hostBuffer;
-	cl_platform_id platformID;
-	cl_device_id deviceID;
-	cl_context context;
-	cl_program program;
-	cl_kernel kernel[6];
-	cl_mem mem_in[4], mem_out, mem_U[4];
+    VSNodeRef *node, *knot;
+    const VSVideoInfo *vi;
+    int64_t d, a, s, wmode, info;
+    double h;
+    const char* ocl_device;
+    color_t color;
+    cl_uint idmn[2];
+    void* hostBuffer;
+    cl_platform_id platformID;
+    cl_device_id deviceID;
+    cl_context context;
+    cl_program program;
+    cl_kernel kernel[6];
+    cl_mem mem_in[4], mem_out, mem_U[4];
 } KNLMeansData;
 #endif //__VAPOURSYNTH_H__
 
 inline size_t mrounds(const size_t num, const size_t mul) {
-	return (size_t) ceil((double) num / (double) mul) * mul;
+    return (size_t) ceil((double) num / (double) mul) * mul;
 }
 
 template <typename T>T fastmax(const T& left, const T& right) {
-	return left > right ? left : right;
+    return left > right ? left : right;
 }
 
 template <typename T>T clamp(const T& value, const T& low, const T& high) {
-	return value < low ? low : (value > high ? high : value);
+    return value < low ? low : (value > high ? high : value);
 }
