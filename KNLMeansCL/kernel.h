@@ -33,7 +33,7 @@ static const char* source_code =
 "																												  \n" \
 "	const int gidx = mad24(y, dim.x, x);																		  \n" \
 "																												  \n" \
-"	if(NLMK_RGB) {																								  \n" \
+"	if(NLMK_TCOLOR) {																							  \n" \
 "		__global float4* U2c = (__global float4*) U2;															  \n" \
 "		U2c[gidx] = (float4) 0.0f;																				  \n" \
 "	} else {																									  \n" \
@@ -54,17 +54,22 @@ static const char* source_code =
 "	const sampler_t smp = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP_TO_EDGE | CLK_FILTER_NEAREST;			  \n" \
 "	const int gidx = mad24(y, dim.x, x);																		  \n" \
 "																												  \n" \
-"	if (NLMK_RGB) {																								  \n" \
+"	if (NLMK_TCOLOR == 0) {																						  \n" \
+"		const float u1 = read_imagef(U1, smp, (int2) (x, y)).x;													  \n" \
+"		const float u1_pq = read_imagef(U1_pq, smp, (int2) (x, y) + q).x;										  \n" \
+"		U4[gidx] = (u1 - u1_pq) * (u1 - u1_pq);																	  \n" \
+"	} else if (NLMK_TCOLOR == 1) {																				  \n" \
+"		const float4 u1 = read_imagef(U1, smp, (int2) (x, y));													  \n" \
+"		const float4 u1_pq = read_imagef(U1_pq, smp, (int2) (x, y) + q);										  \n" \
+"		const float4 tmp = (u1 - u1_pq) * (u1 - u1_pq);	        											      \n" \
+"		U4[gidx] = tmp.x + tmp.y + tmp.z + tmp.w;																  \n" \
+"	} else {																									  \n" \
 "		const float4 u1 = read_imagef(U1, smp, (int2) (x, y));													  \n" \
 "		const float4 u1_pq = read_imagef(U1_pq, smp, (int2) (x, y) + q);										  \n" \
 "		const float r = native_divide(u1.x + u1_pq.x, 6.0f);													  \n" \
 "		const float4 wgh = (float4) (2.0f/3.0f + r, 4.0f/3.0f, 1.0f - r, 0.0f);									  \n" \
 "		const float4 tmp = wgh * ((u1 - u1_pq) * (u1 - u1_pq));												      \n" \
 "		U4[gidx] = tmp.x + tmp.y + tmp.z + tmp.w;																  \n" \
-"	} else {																									  \n" \
-"		const float u1 = read_imagef(U1, smp, (int2) (x, y)).x;													  \n" \
-"		const float u1_pq = read_imagef(U1_pq, smp, (int2) (x, y) + q).x;										  \n" \
-"		U4[gidx] = (u1 - u1_pq) * (u1 - u1_pq);																	  \n" \
 "	}																											  \n" \
 "}																												  \n" \
 "																												  \n" \
@@ -134,7 +139,7 @@ static const char* source_code =
 "	const float u4_mq = U4[qidx];																				  \n" \
 "	M[gidx] = fmax(M[gidx], fmax(u4, u4_mq));																	  \n" \
 "																												  \n" \
-"	if (NLMK_RGB) {																								  \n" \
+"	if (NLMK_TCOLOR) {	    																					  \n" \
 "		__global float4* U2c = (__global float4*) U2;															  \n" \
 "		const float4 u1_pq = read_imagef(U1, smp, (int2) (x, y) + q);											  \n" \
 "		const float4 u1_mq = read_imagef(U1, smp, (int2) (x, y) - q);											  \n" \
@@ -161,7 +166,7 @@ static const char* source_code =
 "	const sampler_t smp = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP_TO_EDGE | CLK_FILTER_NEAREST;			  \n" \
 "	const int gidx = mad24(y, dim.x, x);																		  \n" \
 "																												  \n" \
-"	if (NLMK_RGB) {																								  \n" \
+"	if (NLMK_TCOLOR) {																							  \n" \
 "		__global float4* U2c = (__global float4*) U2;															  \n" \
 "		const float4 u1 = read_imagef(U1_in, smp, (int2) (x, y));												  \n" \
 "		const float4 num = mad((float4) M[gidx], u1, U2c[gidx]);												  \n" \

@@ -17,8 +17,6 @@
 */
 
 #define VERSION "0.5.9"
-#define INVALID_COLOR_T 1
-#define INVALID_BSAMPLE 2
 
 #ifdef _MSC_VER
 #define strcasecmp _stricmp
@@ -48,7 +46,7 @@
 #include <VapourSynth.h>
 #include <VSHelper.h>
 
-enum color_t { Gray, YUV, RGB, RGB24, RGB32 };
+enum color_t { Gray, YUV, RGB24, RGB32 };
 
 #ifdef __AVISYNTH_6_H__
 class KNLMeansClass : public GenericVideoFilter {
@@ -58,8 +56,8 @@ private:
     PClip baby;
     const char* ocl_device;
     const bool lsb, info;
-    color_t color;
     void* hostBuffer;
+    color_t color;
     cl_uint idmn[2];
     cl_platform_id platformID;
     cl_device_id deviceID;
@@ -89,9 +87,9 @@ typedef struct {
     int64_t d, a, s, wmode, info;
     double h;
     const char* ocl_device;
+    void* hostBuffer;
     color_t color;
     cl_uint idmn[2];
-    void* hostBuffer;
     cl_platform_id platformID;
     cl_device_id deviceID;
     cl_context context;
