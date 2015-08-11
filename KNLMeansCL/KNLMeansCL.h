@@ -27,7 +27,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cmath>
-#include <cstring>
+#include <string>
 #include <fstream>
 
 #ifdef __APPLE__
@@ -46,7 +46,7 @@
 #include <VapourSynth.h>
 #include <VSHelper.h>
 
-enum color_t { Gray, YUV, RGB24, RGB32 };
+enum color_t { Gray, YUV, RGB16, RGB32 };
 
 #ifdef __AVISYNTH_6_H__
 class KNLMeansClass : public GenericVideoFilter {
