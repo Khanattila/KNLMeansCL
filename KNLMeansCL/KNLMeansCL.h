@@ -27,7 +27,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cmath>
-#include <string>
+#include <cstring>
 #include <fstream>
 
 #ifdef __APPLE__

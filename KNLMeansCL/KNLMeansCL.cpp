@@ -155,9 +155,9 @@ inline cl_uint KNLMeansClass::readBufferImage(PVideoFrame &frm, cl_command_queue
                 bidx = y * idmn[0];
                 fidx = y * pitch;
                 for (int x = 0; x < (int) idmn[0]; x++) {
-                    frmp[fidx + x * 3] = (bufferp[bidx + x] & 0x001F) << 3;
-                    frmp[fidx + x * 3 + 1] = (bufferp[bidx + x] & 0x07E0) >> 3;
-                    frmp[fidx + x * 3 + 2] = (bufferp[bidx + x] & 0xF800) >> 8;
+                    frmp[fidx + x * 3] = ((bufferp[bidx + x] & 0x1F) << 3) | 0x7;
+                    frmp[fidx + x * 3 + 1] = ((bufferp[bidx + x] & 0x07E0) >> 3) | 0x3;
+                    frmp[fidx + x * 3 + 2] = ((bufferp[bidx + x] & 0xF800) >> 8) | 0x7;
                 }
             }
             break;
@@ -508,8 +508,8 @@ KNLMeansClass::KNLMeansClass(PClip _child, const int _D, const int _A, const int
         ctype = lsb ? CL_UNORM_INT16 : CL_UNORM_INT8;
     } else if (vi.IsRGB() && vi.IsRGB24()) {
         color = RGB16;
-        corder = CL_RGBx;
-        ctype = CL_UNORM_SHORT_565;
+        corder = CL_R;
+        ctype = CL_UNSIGNED_INT16;
     } else if (vi.IsRGB() && vi.IsRGB32()) {
         color = RGB32;
         corder = CL_RGBA;
