@@ -25,7 +25,47 @@
 #define DFT_lsb false
 #define DFT_info false
 
+#define RGB16BIT(r, g, b) ((r << 11) | (g << 5) | b)
+#define RED_MASK(var) (((var) & 0xF800) >> 8)
+#define GREEN_MASK(var) (((var) & 0x07E0) >> 3)
+#define BLUE_MASK(var) (((var) & 0x001F) << 3)
+
 #include "KNLMeansCL.h"
+
+//////////////////////////////////////////
+// OrderedDithering
+static const uint8_t dither_red[64] = {
+    1, 7, 3, 5, 0, 8, 2, 6,
+    7, 1, 5, 3, 8, 0, 6, 2,
+    3, 5, 0, 8, 2, 6, 1, 7,
+    5, 3, 8, 0, 6, 2, 7, 1,
+    0, 8, 2, 6, 1, 7, 3, 5,
+    8, 0, 6, 2, 7, 1, 5, 3,
+    2, 6, 1, 7, 3, 5, 0, 8,
+    6, 2, 7, 1, 5, 3, 8, 0
+};
+
+static const uint8_t dither_green[64] = {
+    1, 3, 2, 2, 3, 1, 2, 2,
+    2, 2, 0, 4, 2, 2, 4, 0,
+    3, 1, 2, 2, 1, 3, 2, 2,
+    2, 2, 4, 0, 2, 2, 0, 4,
+    1, 3, 2, 2, 3, 1, 2, 2,
+    2, 2, 0, 4, 2, 2, 4, 0,
+    3, 1, 2, 2, 1, 3, 2, 2,
+    2, 2, 4, 0, 2, 2, 0, 4
+};
+
+static const uint8_t dither_blue[64] = {
+    5, 3, 8, 0, 6, 2, 7, 1,
+    3, 5, 0, 8, 2, 6, 1, 7,
+    8, 0, 6, 2, 7, 1, 5, 3,
+    0, 8, 2, 6, 1, 7, 3, 5,
+    6, 2, 7, 1, 5, 3, 8, 0,
+    2, 6, 1, 7, 3, 5, 0, 8,
+    7, 1, 5, 3, 8, 0, 6, 2,
+    1, 7, 3, 5, 0, 8, 2, 6
+};
 
 //////////////////////////////////////////
 // AviSynthEquals
@@ -155,9 +195,9 @@ inline cl_uint KNLMeansClass::readBufferImage(PVideoFrame &frm, cl_command_queue
                 bidx = y * idmn[0];
                 fidx = y * pitch;
                 for (int x = 0; x < (int) idmn[0]; x++) {
-                    frmp[fidx + x * 3] = ((bufferp[bidx + x] & 0x1F) << 3) | 0x7;
-                    frmp[fidx + x * 3 + 1] = ((bufferp[bidx + x] & 0x07E0) >> 3) | 0x3;
-                    frmp[fidx + x * 3 + 2] = ((bufferp[bidx + x] & 0xF800) >> 8) | 0x7;
+                    frmp[fidx + x * 3] = BLUE_MASK(bufferp[bidx + x]);
+                    frmp[fidx + x * 3 + 1] = GREEN_MASK(bufferp[bidx + x]);
+                    frmp[fidx + x * 3 + 2] = RED_MASK(bufferp[bidx + x]);
                 }
             }
             break;
@@ -224,9 +264,9 @@ inline cl_uint KNLMeansClass::writeBufferImage(PVideoFrame &frm, cl_command_queu
                     fidx[1] = y * pitch[1];
                     fidx[2] = y * pitch[2];
                     for (int x = 0; x < (int) idmn[0]; x++) {
-                        bufferp[bidx + x * 4] = msbp[0][fidx[0] + x] << 8 | lsbp[0][fidx[0] + x];
-                        bufferp[bidx + x * 4 + 1] = msbp[1][fidx[1] + x] << 8 | lsbp[1][fidx[1] + x];
-                        bufferp[bidx + x * 4 + 2] = msbp[2][fidx[2] + x] << 8 | lsbp[2][fidx[2] + x];
+                        bufferp[bidx + x * 4] = (msbp[0][fidx[0] + x] << 8) | lsbp[0][fidx[0] + x];
+                        bufferp[bidx + x * 4 + 1] = (msbp[1][fidx[1] + x] << 8) | lsbp[1][fidx[1] + x];
+                        bufferp[bidx + x * 4 + 2] = (msbp[2][fidx[2] + x] << 8) | lsbp[2][fidx[2] + x];
                         bufferp[bidx + x * 4 + 3] = 0;
                     }
                 }
@@ -273,10 +313,11 @@ inline cl_uint KNLMeansClass::writeBufferImage(PVideoFrame &frm, cl_command_queu
                 bidx = y * idmn[0];
                 fidx = y * pitch;
                 for (int x = 0; x < (int) idmn[0]; x++) {
-                    bufferp[bidx + x] = 
-                        ((frmp[fidx + x * 3 + 2] >> 3) << 11) | 
-                        ((frmp[fidx + x * 3 + 1] >> 2) << 5) | 
-                        (frmp[fidx + x * 3] >> 3);
+                    uint8_t tid = ((y & 7) << 3) + (x & 7);
+                    uint8_t r = fastmin(frmp[fidx + x * 3 + 2] + dither_red[tid], 0xFF) >> 3;
+                    uint8_t g = fastmin(frmp[fidx + x * 3 + 1] + dither_green[tid], 0xFF) >> 2;
+                    uint8_t b = fastmin(frmp[fidx + x * 3] + dither_blue[tid], 0xFF) >> 3;
+                    bufferp[bidx + x] = RGB16BIT(r, g, b);
                 }
             }
             ret = clEnqueueWriteImage(command_queue, image, CL_TRUE, origin, region,
