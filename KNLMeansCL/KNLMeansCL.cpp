@@ -25,47 +25,12 @@
 #define DFT_lsb false
 #define DFT_info false
 
-#define RGB16BIT(r, g, b) ((r << 11) | (g << 5) | b)
-#define RED_MASK(var) (((var) & 0xF800) >> 8)
-#define GREEN_MASK(var) (((var) & 0x07E0) >> 3)
-#define BLUE_MASK(var) (((var) & 0x001F) << 3)
+#define RGB30BIT(r, g, b) ((r << 22) | (g << 12) | (b << 2))
+#define RED_MASK(var) (((var) & 0x3FF00000) >> 22)
+#define GREEN_MASK(var) (((var) & 0xFFC00) >> 12)
+#define BLUE_MASK(var) (((var) & 0x3FF) >> 2)
 
 #include "KNLMeansCL.h"
-
-//////////////////////////////////////////
-// OrderedDithering
-static const uint8_t dither_red[64] = {
-    1, 7, 3, 5, 0, 8, 2, 6,
-    7, 1, 5, 3, 8, 0, 6, 2,
-    3, 5, 0, 8, 2, 6, 1, 7,
-    5, 3, 8, 0, 6, 2, 7, 1,
-    0, 8, 2, 6, 1, 7, 3, 5,
-    8, 0, 6, 2, 7, 1, 5, 3,
-    2, 6, 1, 7, 3, 5, 0, 8,
-    6, 2, 7, 1, 5, 3, 8, 0
-};
-
-static const uint8_t dither_green[64] = {
-    1, 3, 2, 2, 3, 1, 2, 2,
-    2, 2, 0, 4, 2, 2, 4, 0,
-    3, 1, 2, 2, 1, 3, 2, 2,
-    2, 2, 4, 0, 2, 2, 0, 4,
-    1, 3, 2, 2, 3, 1, 2, 2,
-    2, 2, 0, 4, 2, 2, 4, 0,
-    3, 1, 2, 2, 1, 3, 2, 2,
-    2, 2, 4, 0, 2, 2, 0, 4
-};
-
-static const uint8_t dither_blue[64] = {
-    5, 3, 8, 0, 6, 2, 7, 1,
-    3, 5, 0, 8, 2, 6, 1, 7,
-    8, 0, 6, 2, 7, 1, 5, 3,
-    0, 8, 2, 6, 1, 7, 3, 5,
-    6, 2, 7, 1, 5, 3, 8, 0,
-    2, 6, 1, 7, 3, 5, 0, 8,
-    7, 1, 5, 3, 8, 0, 6, 2,
-    1, 7, 3, 5, 0, 8, 2, 6
-};
 
 //////////////////////////////////////////
 // AviSynthEquals
@@ -183,10 +148,10 @@ inline cl_uint KNLMeansClass::readBufferImage(PVideoFrame &frm, cl_command_queue
                 }
                 break;
             }
-        case RGB16: {
+        case RGB30: {
             ret = clEnqueueReadImage(command_queue, image, CL_TRUE, origin, region,
-                idmn[0] * sizeof(uint16_t), 0, hostBuffer, 0, NULL, NULL);
-            uint16_t *bufferp = (uint16_t*) hostBuffer;
+                idmn[0] * sizeof(uint32_t), 0, hostBuffer, 0, NULL, NULL);
+            uint32_t *bufferp = (uint32_t*) hostBuffer;
             int pitch = frm->GetPitch();
             uint8_t *frmp = frm->GetWritePtr();
             int bidx, fidx;
@@ -202,7 +167,7 @@ inline cl_uint KNLMeansClass::readBufferImage(PVideoFrame &frm, cl_command_queue
             }
             break;
         }
-        case RGB32:
+        case RGBA32:
             ret = clEnqueueReadImage(command_queue, image, CL_TRUE, origin, region,
                 frm->GetPitch(), 0, frm->GetWritePtr(), 0, NULL, NULL);
             break;
@@ -303,8 +268,8 @@ inline cl_uint KNLMeansClass::writeBufferImage(PVideoFrame &frm, cl_command_queu
                     idmn[0] * 4 * sizeof(uint8_t), 0, hostBuffer, 0, NULL, NULL);
                 break;
             }
-        case RGB16: {
-            uint16_t *bufferp = (uint16_t*) hostBuffer;
+        case RGB30: {
+            uint32_t *bufferp = (uint32_t*) hostBuffer;
             int pitch = frm->GetPitch();
             const uint8_t *frmp = frm->GetReadPtr();
             int bidx, fidx;
@@ -313,18 +278,14 @@ inline cl_uint KNLMeansClass::writeBufferImage(PVideoFrame &frm, cl_command_queu
                 bidx = y * idmn[0];
                 fidx = y * pitch;
                 for (int x = 0; x < (int) idmn[0]; x++) {
-                    uint8_t tid = ((y & 7) << 3) + (x & 7);
-                    uint8_t r = fastmin(frmp[fidx + x * 3 + 2] + dither_red[tid], 0xFF) >> 3;
-                    uint8_t g = fastmin(frmp[fidx + x * 3 + 1] + dither_green[tid], 0xFF) >> 2;
-                    uint8_t b = fastmin(frmp[fidx + x * 3] + dither_blue[tid], 0xFF) >> 3;
-                    bufferp[bidx + x] = RGB16BIT(r, g, b);
+                    bufferp[bidx + x] = RGB30BIT(frmp[fidx + x * 3 + 2], frmp[fidx + x * 3 + 1], frmp[fidx + x * 3]);
                 }
             }
             ret = clEnqueueWriteImage(command_queue, image, CL_TRUE, origin, region,
-                idmn[0] * sizeof(uint16_t), 0, hostBuffer, 0, NULL, NULL);
+                idmn[0] * sizeof(uint32_t), 0, hostBuffer, 0, NULL, NULL);
             break;
         }
-        case RGB32:
+        case RGBA32:
             ret = clEnqueueWriteImage(command_queue, image, CL_TRUE, origin, region,
                 frm->GetPitch(), 0, frm->GetReadPtr(), 0, NULL, NULL);
             break;
@@ -346,7 +307,7 @@ inline cl_uint readBufferImage(KNLMeansData *data, const VSAPI *vsapi, VSFrameRe
                 vsapi->getStride(frm, 0), 0, vsapi->getWritePtr(frm, 0), 0, NULL, NULL);
             break;
         case YUV:
-        case RGB32: {
+        case RGBA32: {
             int bsample = data->vi->format->bytesPerSample;
             ret = clEnqueueReadImage(command_queue, image, CL_TRUE, origin, region,
                 data->idmn[0] * 4 * bsample, 0, data->hostBuffer, 0, NULL, NULL);
@@ -436,7 +397,7 @@ inline cl_uint writeBufferImage(KNLMeansData *data, const VSAPI *vsapi, const VS
                 vsapi->getStride(frm, 0), 0, vsapi->getReadPtr(frm, 0), 0, NULL, NULL);
             break;
         case YUV:
-        case RGB32: {
+        case RGBA32: {
             int bsample = data->vi->format->bytesPerSample;
             int pitch[3] = {
                 vsapi->getStride(frm, 0),
@@ -548,11 +509,11 @@ KNLMeansClass::KNLMeansClass(PClip _child, const int _D, const int _A, const int
         corder = CL_RGBA;
         ctype = lsb ? CL_UNORM_INT16 : CL_UNORM_INT8;
     } else if (vi.IsRGB() && vi.IsRGB24()) {
-        color = RGB16;
+        color = RGB30;
         corder = CL_R;
-        ctype = CL_UNSIGNED_INT16;
+        ctype = CL_UNSIGNED_INT32;
     } else if (vi.IsRGB() && vi.IsRGB32()) {
-        color = RGB32;
+        color = RGBA32;
         corder = CL_RGBA;
         ctype = CL_UNORM_INT8;
     } else {
@@ -644,8 +605,8 @@ KNLMeansClass::KNLMeansClass(PClip _child, const int _D, const int _A, const int
         else if (color == YUV) hostBuffer = malloc(idmn[0] * idmn[1] * 4 * sizeof(uint16_t));
     } else {
         if (color == YUV) hostBuffer = malloc(idmn[0] * idmn[1] * 4 * sizeof(uint8_t));
-        else if (color == RGB16) hostBuffer = malloc(idmn[0] * idmn[1] * sizeof(uint16_t));
-        else if (color == RGB32) hostBuffer = malloc(idmn[0] * idmn[1] * 4 * sizeof(uint8_t));
+        else if (color == RGB30) hostBuffer = malloc(idmn[0] * idmn[1] * sizeof(uint32_t));
+        else if (color == RGBA32) hostBuffer = malloc(idmn[0] * idmn[1] * 4 * sizeof(uint8_t));
     }
 
     // Creates and Build a program executable from the program source.
@@ -655,7 +616,7 @@ KNLMeansClass::KNLMeansClass(PClip _child, const int _D, const int _A, const int
         -D H_BLOCK_X=%i -D H_BLOCK_Y=%i -D V_BLOCK_X=%i -D V_BLOCK_Y=%i \
         -D NLMK_TCOLOR=%i -D NLMK_S=%i -D NLMK_WMODE=%i -D NLMK_TEMPORAL=%i -D NLMK_H2_INV_NORM=%ff",
          H_BLOCK_X, H_BLOCK_Y, V_BLOCK_X, V_BLOCK_Y,
-         color, S, wmode, D, 65025.0 / (h*h*(2 * S + 1) * (2 * S + 1)));
+         color, S, wmode, D, 65025.0 / (3*h*h*(2 * S + 1) * (2 * S + 1)));
     ret = clBuildProgram(program, 1, &deviceID, options, NULL, NULL);
     if (ret != CL_SUCCESS) {
         size_t log_size;
@@ -1260,13 +1221,13 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out,
             -D H_BLOCK_X=%i -D H_BLOCK_Y=%i -D V_BLOCK_X=%i -D V_BLOCK_Y=%i \
             -D NLMK_RGB=%i -D NLMK_S=%li -D NLMK_WMODE=%li -D NLMK_TEMPORAL=%li -D NLMK_H2_INV_NORM=%ff",
             H_BLOCK_X, H_BLOCK_Y, V_BLOCK_X, V_BLOCK_Y,
-            0, d.s, d.wmode, d.d, 65025.0 / (d.h*d.h*(2 * d.s + 1) * (2 * d.s + 1)));
+            0, d.s, d.wmode, d.d, 65025.0 / (3*d.h*d.h*(2 * d.s + 1) * (2 * d.s + 1)));
     } else {
         snprintf(options, 2048, "-cl-denorms-are-zero -cl-fast-relaxed-math -Werror \
            -D H_BLOCK_X=%i -D H_BLOCK_Y=%i -D V_BLOCK_X=%i -D V_BLOCK_Y=%i \
            -D NLMK_RGB=%i -D NLMK_S=%li -D NLMK_WMODE=%li -D NLMK_TEMPORAL=%li -D NLMK_H2_INV_NORM=%ff",
            H_BLOCK_X, H_BLOCK_Y, V_BLOCK_X, V_BLOCK_Y,
-           0, d.s, d.wmode, d.d, 65025.0 / (d.h*d.h*(2 * d.s + 1) * (2 * d.s + 1)));
+           0, d.s, d.wmode, d.d, 65025.0 / (3*d.h*d.h*(2 * d.s + 1) * (2 * d.s + 1)));
     }
     ret = clBuildProgram(d.program, 1, &d.deviceID, options, NULL, NULL);
     if (ret != CL_SUCCESS) {

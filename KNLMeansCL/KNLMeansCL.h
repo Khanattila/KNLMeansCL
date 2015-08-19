@@ -46,7 +46,7 @@
 #include <VapourSynth.h>
 #include <VSHelper.h>
 
-enum color_t { Gray, YUV, RGB16, RGB32 };
+enum color_t { Gray, YUV, RGB30, RGBA32 };
 
 #ifdef __AVISYNTH_6_H__
 class KNLMeansClass : public GenericVideoFilter {

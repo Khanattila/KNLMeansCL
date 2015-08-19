@@ -24,16 +24,14 @@
 static const cl_uint H_BLOCK_X = 32, H_BLOCK_Y = 4, V_BLOCK_X = 32, V_BLOCK_Y = 4;
 static const char* source_code =
 "																												  \n" \
-"float4 UINTtoFLOAT4(uint rgb) {																				  \n" \
-"	const uchar4 r = (uchar4) (rgb >> 11, (rgb & 0x7E0) >> 5, rgb & 0x1F, 1);	                                  \n" \
-"   const float4 temp = convert_float4(r);   					                                                  \n" \
-"	return native_divide(temp, (float4) (31.0f, 63.0f, 31.0f, 1.0f));											  \n" \
-"}																												  \n" \
+"# define WGH_R 0.4713394928090557f																				  \n" \
+"# define WGH_G	0.6548939043680122f																				  \n" \
+"# define WGH_B	0.5907224869091433f																				  \n" \
 "																												  \n" \
-"uint FLOAT4toUINT(float4 rgb) {																				  \n" \
-"   const float4 temp = rgb * ((float4) (31.0f, 63.0f, 31.0f, 1.0f));                                             \n" \
-"	const uchar4 r = convert_uchar4_sat(temp);            			        			    				      \n" \
-"	return ((r.x  << 11) | (r.y << 5) | r.z);                                   							      \n" \
+"float4 UINT4toFLOAT4(uint4 rgb) {																				  \n" \
+"	const uint4 r = (uint4) (((rgb.x & 0x3FF00000) >> 20), ((rgb.x & 0xFFC00) >> 10), (rgb.x & 0x3FF), 1);        \n" \
+"   const float4 temp = convert_float4(r);   					                                                  \n" \
+"	return native_divide(temp, (float4) (1023.0f, 1023.0f, 1023.0f, 1023.0f));	    							  \n" \
 "}																												  \n" \
 "																												  \n" \
 "__kernel																										  \n" \
@@ -66,29 +64,24 @@ static const char* source_code =
 "	const sampler_t smp = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP_TO_EDGE | CLK_FILTER_NEAREST;			  \n" \
 "	const int gidx = mad24(y, dim.x, x);																		  \n" \
 "																												  \n" \
-"	if (NLMK_TCOLOR == 0) {																						  \n" \
-"		const float u1 = read_imagef(U1, smp, (int2) (x, y)).x;													  \n" \
-"		const float u1_pq = read_imagef(U1_pq, smp, (int2) (x, y) + q).x;										  \n" \
-"		U4[gidx] = (u1 - u1_pq) * (u1 - u1_pq);																	  \n" \
+"	if (NLMK_TCOLOR == 0) {	                    																  \n" \
+"		const float4 u1 = read_imagef(U1, smp, (int2) (x, y)).x;											      \n" \
+"		const float4 u1_pq = read_imagef(U1_pq, smp, (int2) (x, y) + q).x;										  \n" \
+"		U4[gidx] = distance(u1, u1_pq);									                                          \n" \
 "	} else if (NLMK_TCOLOR == 1) {																				  \n" \
 "		const float4 u1 = read_imagef(U1, smp, (int2) (x, y));													  \n" \
 "		const float4 u1_pq = read_imagef(U1_pq, smp, (int2) (x, y) + q);										  \n" \
-"		const float4 tmp = (u1 - u1_pq) * (u1 - u1_pq);	        											      \n" \
-"		U4[gidx] = tmp.x + tmp.y + tmp.z + tmp.w;																  \n" \
+"		U4[gidx] = distance(u1, u1_pq);     							    									  \n" \
 "	} else if (NLMK_TCOLOR == 2) {																				  \n" \
-"		const float4 u1 = UINTtoFLOAT4(read_imageui(U1, smp, (int2) (x, y)).x);							          \n" \
-"		const float4 u1_pq = UINTtoFLOAT4(read_imageui(U1, smp, (int2) (x, y) + q).x);					          \n" \
-"		const float r = native_divide(u1.x + u1_pq.x, 6.0f);													  \n" \
-"		const float4 wgh = (float4) (2.0f/3.0f + r, 4.0f/3.0f, 1.0f - r, 0.0f);									  \n" \
-"		const float4 tmp = wgh * ((u1 - u1_pq) * (u1 - u1_pq));												      \n" \
-"		U4[gidx] = tmp.x + tmp.y + tmp.z + tmp.w;																  \n" \
+"		const float4 u1 = UINT4toFLOAT4(read_imageui(U1, smp, (int2) (x, y)));							          \n" \
+"		const float4 u1_pq = UINT4toFLOAT4(read_imageui(U1, smp, (int2) (x, y) + q));					          \n" \
+"		const float4 wgh = (float4) (WGH_R, WGH_G, WGH_B, 0.0f);            									  \n" \
+"		U4[gidx] = distance(wgh * u1, wgh * u1_pq);						        								  \n" \
 "	} else if (NLMK_TCOLOR == 3) {																				  \n" \
 "		const float4 u1 = read_imagef(U1, smp, (int2) (x, y));													  \n" \
 "		const float4 u1_pq = read_imagef(U1_pq, smp, (int2) (x, y) + q);										  \n" \
-"		const float r = native_divide(u1.x + u1_pq.x, 6.0f);													  \n" \
-"		const float4 wgh = (float4) (2.0f/3.0f + r, 4.0f/3.0f, 1.0f - r, 0.0f);									  \n" \
-"		const float4 tmp = wgh * ((u1 - u1_pq) * (u1 - u1_pq));												      \n" \
-"		U4[gidx] = tmp.x + tmp.y + tmp.z + tmp.w;																  \n" \
+"		const float4 wgh = (float4) (WGH_R, WGH_G, WGH_B, 0.0f);            									  \n" \
+"		U4[gidx] = distance(wgh * u1, wgh * u1_pq);	       														  \n" \
 "	}																											  \n" \
 "}																												  \n" \
 "																												  \n" \
@@ -137,10 +130,14 @@ static const char* source_code =
 "	float sum = 0.0f;																							  \n" \
 "	for(int j = -NLMK_S; j <= NLMK_S; j++)																		  \n" \
 "		sum += buffer[ly + V_BLOCK_Y + j][lx];																	  \n" \
-"	U4_out[mdata] =																								  \n" \
-"		(NLMK_WMODE == 2) ? fmax(1.0f -sum * NLMK_H2_INV_NORM, 0.0f) * fmax(1.0f -sum * NLMK_H2_INV_NORM, 0.0f) : \n" \
-"		(NLMK_WMODE == 1) ? native_exp(-sum * NLMK_H2_INV_NORM) :												  \n" \
-"		native_recip(1.0f + sum * NLMK_H2_INV_NORM);															  \n" \
+"																												  \n" \
+"	if(NLMK_WMODE == 0) {																						  \n" \
+"	    U4_out[mdata] =	native_recip(1.0f + sum*sum * NLMK_H2_INV_NORM);                                          \n" \
+"	} else if (NLMK_WMODE == 1) {																				  \n" \
+"		U4_out[mdata] =	native_exp(- sum*sum * NLMK_H2_INV_NORM);	    								          \n" \
+"	} else if (NLMK_WMODE == 2) {																				  \n" \
+"	    U4_out[mdata] =	pown(fdim(1.0f, sum*sum * NLMK_H2_INV_NORM), 2);	                                      \n" \
+"	}	                                                                										  \n" \
 "}																												  \n" \
 "																												  \n" \
 "__kernel																										  \n" \
@@ -164,7 +161,7 @@ static const char* source_code =
 "		const float u1_mq = read_imagef(U1, smp, (int2) (x, y) - q).x;											  \n" \
 "		U2c[gidx].x += NLMK_TEMPORAL ? (u4 * u1_pq) : (u4 * u1_pq) + (u4_mq * u1_mq);							  \n" \
 "		U2c[gidx].y += NLMK_TEMPORAL ? (u4) : (u4 + u4_mq);														  \n" \
-"	} else if (NLMK_TCOLOR == 1) {	    																		  \n" \
+"	} else if (NLMK_TCOLOR == 1) {															                      \n" \
 "		__global float4* U2c = (__global float4*) U2;															  \n" \
 "		const float4 u1_pq = read_imagef(U1, smp, (int2) (x, y) + q);											  \n" \
 "		const float4 u1_mq = read_imagef(U1, smp, (int2) (x, y) - q);											  \n" \
@@ -173,18 +170,18 @@ static const char* source_code =
 "		U2c[gidx] += accu;																						  \n" \
 "	} else if (NLMK_TCOLOR == 2) {	    																		  \n" \
 "		__global float4* U2c = (__global float4*) U2;															  \n" \
-"		const float4 u1_pq = UINTtoFLOAT4(read_imageui(U1, smp, (int2) (x, y) + q).x);					          \n" \
-"		const float4 u1_mq = UINTtoFLOAT4(read_imageui(U1, smp, (int2) (x, y) - q).x);					          \n" \
+"		const float4 u1_pq = UINT4toFLOAT4(read_imageui(U1, smp, (int2) (x, y) + q));					          \n" \
+"		const float4 u1_mq = UINT4toFLOAT4(read_imageui(U1, smp, (int2) (x, y) - q));					          \n" \
 "		float4 accu = NLMK_TEMPORAL ? (u4 * u1_pq) : (u4 * u1_pq) + (u4_mq * u1_mq);							  \n" \
 "		accu.w = NLMK_TEMPORAL ? (u4) : (u4 + u4_mq);															  \n" \
 "		U2c[gidx] += accu;																						  \n" \
-"	} else if (NLMK_TCOLOR == 3) {	    																		  \n" \
+"	} else if (NLMK_TCOLOR == 3) {															                      \n" \
 "		__global float4* U2c = (__global float4*) U2;															  \n" \
 "		const float4 u1_pq = read_imagef(U1, smp, (int2) (x, y) + q);											  \n" \
 "		const float4 u1_mq = read_imagef(U1, smp, (int2) (x, y) - q);											  \n" \
 "		float4 accu = NLMK_TEMPORAL ? (u4 * u1_pq) : (u4 * u1_pq) + (u4_mq * u1_mq);							  \n" \
 "		accu.w = NLMK_TEMPORAL ? (u4) : (u4 + u4_mq);															  \n" \
-"		U2c[gidx] += accu;																						  \n" \
+"		U2c[gidx] += accu;																						  \n"
 "	}																											  \n" \
 "}																												  \n" \
 "																												  \n" \
@@ -198,7 +195,7 @@ static const char* source_code =
 "																												  \n" \
 "	const sampler_t smp = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP_TO_EDGE | CLK_FILTER_NEAREST;			  \n" \
 "	const int gidx = mad24(y, dim.x, x);            															  \n" \
-"																												  \n" \
+"       																										  \n" \
 "	if (NLMK_TCOLOR == 0) {																						  \n" \
 "		__global float2* U2c = (__global float2*) U2;															  \n" \
 "		const float u1 = read_imagef(U1_in, smp, (int2) (x, y)).x;												  \n" \
@@ -211,23 +208,25 @@ static const char* source_code =
 "		const float4 u1 = read_imagef(U1_in, smp, (int2) (x, y));												  \n" \
 "		const float4 num = mad((float4) M[gidx], u1, U2c[gidx]);												  \n" \
 "		const float4 den = (float4) (U2c[gidx].w + M[gidx]);													  \n" \
-"		float4 val = native_divide(num, den); val.w = u1.w;														  \n" \
+"		const float4 val = native_divide(num, den);												                  \n" \
 "		write_imagef(U1_out, (int2) (x, y), val);																  \n" \
 "	} else if (NLMK_TCOLOR == 2) {																				  \n" \
 "		__global float4* U2c = (__global float4*) U2;															  \n" \
-"		const float4 u1 = UINTtoFLOAT4(read_imageui(U1_in, smp, (int2) (x, y)).x);	    					      \n" \
+"		const float4 u1 = UINT4toFLOAT4(read_imageui(U1_in, smp, (int2) (x, y)));	    					      \n" \
 "		const float4 num = mad((float4) M[gidx], u1, U2c[gidx]);												  \n" \
 "		const float4 den = (float4) (U2c[gidx].w + M[gidx]);													  \n" \
-"		float4 val = native_divide(num, den); val.w = u1.w;														  \n" \
-"		write_imageui(U1_out, (int2) (x, y), FLOAT4toUINT(u1));						    				          \n" \
+"       const float4 temp = native_divide(num, den);															  \n" \
+"		const uint4 nrm = convert_uint4_rtz(mad(temp, (float4) 1023.0f, 0.5f));        			                  \n" \
+"		const uint4 val = (uint4) (((nrm.x << 20) | (nrm.y << 10) | nrm.z), 0, 0, 1);	           				  \n" \
+"		write_imageui(U1_out, (int2) (x, y), val);                  				    				          \n" \
 "	} else if (NLMK_TCOLOR == 3) {																				  \n" \
 "		__global float4* U2c = (__global float4*) U2;															  \n" \
 "		const float4 u1 = read_imagef(U1_in, smp, (int2) (x, y));												  \n" \
 "		const float4 num = mad((float4) M[gidx], u1, U2c[gidx]);												  \n" \
 "		const float4 den = (float4) (U2c[gidx].w + M[gidx]);													  \n" \
-"		float4 val = native_divide(num, den); val.w = u1.w;														  \n" \
+"		const float4 val = native_divide(num, den); val.w = u1.w;												  \n" \
 "		write_imagef(U1_out, (int2) (x, y), val);																  \n" \
-"	}																											  \n" \
+"	}       																									  \n" \
 "}																												  ";
 
 #endif //__KERNEL_H__
