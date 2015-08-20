@@ -25,10 +25,10 @@
 #define DFT_lsb false
 #define DFT_info false
 
-#define RGB30BIT(r, g, b) ((r << 22) | (g << 12) | (b << 2))
-#define RED_MASK(var) (((var) & 0x3FF00000) >> 22)
-#define GREEN_MASK(var) (((var) & 0xFFC00) >> 12)
-#define BLUE_MASK(var) (((var) & 0x3FF) >> 2)
+#define RGB30BIT(r, g, b) (((r & 0x3FF) << 20) | ((g & 0x3FF) << 10) | (b & 0x3FF))
+#define RED_MASK(var) (((var) & 0x3FF00000) >> 20)
+#define GREEN_MASK(var) (((var) & 0xFFC00) >> 10)
+#define BLUE_MASK(var) ((var) & 0x3FF)
 
 #include "KNLMeansCL.h"
 
@@ -148,26 +148,7 @@ inline cl_uint KNLMeansClass::readBufferImage(PVideoFrame &frm, cl_command_queue
                 }
                 break;
             }
-        case RGB30: {
-            ret = clEnqueueReadImage(command_queue, image, CL_TRUE, origin, region,
-                idmn[0] * sizeof(uint32_t), 0, hostBuffer, 0, NULL, NULL);
-            uint32_t *bufferp = (uint32_t*) hostBuffer;
-            int pitch = frm->GetPitch();
-            uint8_t *frmp = frm->GetWritePtr();
-            int bidx, fidx;
-            #pragma omp parallel for private(bidx, fidx)
-            for (int y = 0; y < (int) idmn[1]; y++) {
-                bidx = y * idmn[0];
-                fidx = y * pitch;
-                for (int x = 0; x < (int) idmn[0]; x++) {
-                    frmp[fidx + x * 3] = BLUE_MASK(bufferp[bidx + x]);
-                    frmp[fidx + x * 3 + 1] = GREEN_MASK(bufferp[bidx + x]);
-                    frmp[fidx + x * 3 + 2] = RED_MASK(bufferp[bidx + x]);
-                }
-            }
-            break;
-        }
-        case RGBA32:
+        case RGB:
             ret = clEnqueueReadImage(command_queue, image, CL_TRUE, origin, region,
                 frm->GetPitch(), 0, frm->GetWritePtr(), 0, NULL, NULL);
             break;
@@ -285,7 +266,7 @@ inline cl_uint KNLMeansClass::writeBufferImage(PVideoFrame &frm, cl_command_queu
                 idmn[0] * sizeof(uint32_t), 0, hostBuffer, 0, NULL, NULL);
             break;
         }
-        case RGBA32:
+        case RGB:
             ret = clEnqueueWriteImage(command_queue, image, CL_TRUE, origin, region,
                 frm->GetPitch(), 0, frm->GetReadPtr(), 0, NULL, NULL);
             break;
@@ -307,7 +288,7 @@ inline cl_uint readBufferImage(KNLMeansData *data, const VSAPI *vsapi, VSFrameRe
                 vsapi->getStride(frm, 0), 0, vsapi->getWritePtr(frm, 0), 0, NULL, NULL);
             break;
         case YUV:
-        case RGBA32: {
+        case RGB: {
             int bsample = data->vi->format->bytesPerSample;
             ret = clEnqueueReadImage(command_queue, image, CL_TRUE, origin, region,
                 data->idmn[0] * 4 * bsample, 0, data->hostBuffer, 0, NULL, NULL);
@@ -316,7 +297,6 @@ inline cl_uint readBufferImage(KNLMeansData *data, const VSAPI *vsapi, VSFrameRe
                 vsapi->getStride(frm, 1),
                 vsapi->getStride(frm, 2)
             };
-            int bidx, fidx[3];
             switch (bsample) {
                 case 1: {
                     uint8_t *bufferp = (uint8_t*) data->hostBuffer;
@@ -325,6 +305,7 @@ inline cl_uint readBufferImage(KNLMeansData *data, const VSAPI *vsapi, VSFrameRe
                         vsapi->getWritePtr(frm, 1),
                         vsapi->getWritePtr(frm, 2)
                     };
+                    int bidx, fidx[3];
                     #pragma omp parallel for private(bidx, fidx)
                     for (int y = 0; y < (int) data->idmn[1]; y++) {
                         bidx = y * data->idmn[0] * 4;
@@ -346,6 +327,7 @@ inline cl_uint readBufferImage(KNLMeansData *data, const VSAPI *vsapi, VSFrameRe
                         (uint16_t*) vsapi->getWritePtr(frm, 1),
                         (uint16_t*) vsapi->getWritePtr(frm, 2)
                     };
+                    int bidx, fidx[3];
                     #pragma omp parallel for private(bidx, fidx)
                     for (int y = 0; y < (int) data->idmn[1]; y++) {
                         bidx = y * data->idmn[0] * 4;
@@ -367,6 +349,7 @@ inline cl_uint readBufferImage(KNLMeansData *data, const VSAPI *vsapi, VSFrameRe
                         (uint32_t*) vsapi->getWritePtr(frm, 1),
                         (uint32_t*) vsapi->getWritePtr(frm, 2)
                     };
+                    int bidx, fidx[3];
                     #pragma omp parallel for private(bidx, fidx)
                     for (int y = 0; y < (int) data->idmn[1]; y++) {
                         bidx = y * data->idmn[0] * 4;
@@ -374,14 +357,44 @@ inline cl_uint readBufferImage(KNLMeansData *data, const VSAPI *vsapi, VSFrameRe
                         fidx[1] = y * pitch[1];
                         fidx[2] = y * pitch[2];
                         for (int x = 0; x < (int) data->idmn[0]; x++) {
-                            frmp[0][fidx[0] + x] = bufferp[bidx + x * 4];
-                            frmp[1][fidx[1] + x] = bufferp[bidx + x * 4 + 1];
-                            frmp[2][fidx[2] + x] = bufferp[bidx + x * 4 + 2];
+                            frmp[0][fidx[0] + x] = bufferp[bidx + x];
+                            frmp[1][fidx[1] + x] = bufferp[bidx + x];
+                            frmp[2][fidx[2] + x] = bufferp[bidx + x];
                         }
                     }
                     break;
                 }
             }
+        }
+        case YUV30:
+        case RGB30: {
+            ret = clEnqueueReadImage(command_queue, image, CL_TRUE, origin, region,
+                data->idmn[0] * sizeof(uint32_t), 0, data->hostBuffer, 0, NULL, NULL);
+            int pitch[3] = {
+                vsapi->getStride(frm, 0),
+                vsapi->getStride(frm, 1),
+                vsapi->getStride(frm, 2)
+            };
+            uint32_t *bufferp = (uint32_t*) data->hostBuffer;
+            uint16_t *frmp[3] = {
+                (uint16_t*) vsapi->getWritePtr(frm, 0),
+                (uint16_t*) vsapi->getWritePtr(frm, 1),
+                (uint16_t*) vsapi->getWritePtr(frm, 2)
+            };
+            int bidx, fidx[3];
+            #pragma omp parallel for private(bidx, fidx)
+            for (int y = 0; y < (int) data->idmn[1]; y++) {
+                bidx = y * data->idmn[0];
+                fidx[0] = y * pitch[0];
+                fidx[1] = y * pitch[1];
+                fidx[2] = y * pitch[2];
+                for (int x = 0; x < (int) data->idmn[0]; x++) {
+                    frmp[0][fidx[0] + x] = BLUE_MASK(bufferp[bidx + x]);
+                    frmp[1][fidx[1] + x] = GREEN_MASK(bufferp[bidx + x]);
+                    frmp[2][fidx[2] + x] = RED_MASK(bufferp[bidx + x]);
+                }
+            }
+            break;
         }
     }
     return ret;
@@ -397,14 +410,13 @@ inline cl_uint writeBufferImage(KNLMeansData *data, const VSAPI *vsapi, const VS
                 vsapi->getStride(frm, 0), 0, vsapi->getReadPtr(frm, 0), 0, NULL, NULL);
             break;
         case YUV:
-        case RGBA32: {
+        case RGB: {
             int bsample = data->vi->format->bytesPerSample;
             int pitch[3] = {
                 vsapi->getStride(frm, 0),
                 vsapi->getStride(frm, 1),
                 vsapi->getStride(frm, 2)
             };
-            int bidx, fidx[3];
             switch (bsample) {
                 case 1: {
                     uint8_t *bufferp = (uint8_t*) data->hostBuffer;
@@ -413,6 +425,7 @@ inline cl_uint writeBufferImage(KNLMeansData *data, const VSAPI *vsapi, const VS
                         vsapi->getReadPtr(frm, 1),
                         vsapi->getReadPtr(frm, 2)
                     };
+                    int bidx, fidx[3];
                     #pragma omp parallel for private(bidx, fidx)
                     for (int y = 0; y < (int) data->idmn[1]; y++) {
                         bidx = y * data->idmn[0] * 4;
@@ -435,6 +448,7 @@ inline cl_uint writeBufferImage(KNLMeansData *data, const VSAPI *vsapi, const VS
                         (uint16_t*) vsapi->getReadPtr(frm, 1),
                         (uint16_t*) vsapi->getReadPtr(frm, 2)
                     };
+                    int bidx, fidx[3];
                     #pragma omp parallel for private(bidx, fidx)
                     for (int y = 0; y < (int) data->idmn[1]; y++) {
                         bidx = y * data->idmn[0] * 4;
@@ -457,6 +471,7 @@ inline cl_uint writeBufferImage(KNLMeansData *data, const VSAPI *vsapi, const VS
                         (uint32_t*) vsapi->getReadPtr(frm, 1),
                         (uint32_t*) vsapi->getReadPtr(frm, 2)
                     };
+                    int bidx, fidx[3];
                     #pragma omp parallel for private(bidx, fidx)
                     for (int y = 0; y < (int) data->idmn[1]; y++) {
                         bidx = y * data->idmn[0] * 4;
@@ -475,6 +490,32 @@ inline cl_uint writeBufferImage(KNLMeansData *data, const VSAPI *vsapi, const VS
             }
             ret = clEnqueueWriteImage(command_queue, image, CL_TRUE, origin, region,
                 data->idmn[0] * 4 * bsample, 0, data->hostBuffer, 0, NULL, NULL);
+        }
+        case YUV30:
+        case RGB30: {
+            int pitch[3] = {
+                vsapi->getStride(frm, 0),
+                vsapi->getStride(frm, 1),
+                vsapi->getStride(frm, 2)
+            };
+            uint32_t *bufferp = (uint32_t*) data->hostBuffer;
+            const uint16_t *frmp[3] = {
+                (uint16_t*) vsapi->getReadPtr(frm, 0),
+                (uint16_t*) vsapi->getReadPtr(frm, 1),
+                (uint16_t*) vsapi->getReadPtr(frm, 2)
+            };
+            int bidx, fidx[3];
+            #pragma omp parallel for private(bidx, fidx)
+            for (int y = 0; y < (int) data->idmn[1]; y++) {
+                bidx = y * data->idmn[0];
+                fidx[0] = y * pitch[0];
+                fidx[1] = y * pitch[1];
+                fidx[2] = y * pitch[2];
+                for (int x = 0; x < (int) data->idmn[0]; x++) {
+                    bufferp[bidx + x] = RGB30BIT(frmp[0][fidx[0] + x], frmp[1][fidx[1] + x], frmp[2][fidx[2] + x]);
+                }
+            }
+            break;
         }
     }
     return ret;
@@ -508,21 +549,19 @@ KNLMeansClass::KNLMeansClass(PClip _child, const int _D, const int _A, const int
         color = YUV;
         corder = CL_RGBA;
         ctype = lsb ? CL_UNORM_INT16 : CL_UNORM_INT8;
-    } else if (vi.IsRGB() && vi.IsRGB24()) {
-        color = RGB30;
-        corder = CL_R;
-        ctype = CL_UNSIGNED_INT32;
     } else if (vi.IsRGB() && vi.IsRGB32()) {
-        color = RGBA32;
+        color = RGB;
         corder = CL_RGBA;
         ctype = CL_UNORM_INT8;
     } else {
-        env->ThrowError("KNLMeansCL: planar YUV or RGB data!");
+        env->ThrowError("KNLMeansCL: planar YUV or RGB32 data!");
     }
      
     // Checks user value.
     if (vi.IsRGB() && lsb)
         env->ThrowError("KNLMeansCL: RGB48y is not supported!");
+    if (vi.IsRGB() && info)
+        env->ThrowError("KNLMeansCL: info requires a YUV color space!");
     if (D < 0)
         env->ThrowError("KNLMeansCL: D must be greater than or equal to 0!");
     if (A < 0)
@@ -556,7 +595,7 @@ KNLMeansClass::KNLMeansClass(PClip _child, const int _D, const int _A, const int
     cl_platform_id *temp_platforms = (cl_platform_id*) malloc(sizeof(cl_platform_id) * num_platforms);
     ret |= clGetPlatformIDs(num_platforms, temp_platforms, NULL);
     if (ret != CL_SUCCESS) {
-        env->ThrowError("KNLMeansCL: AviSynthCreate error(0)!");
+        env->ThrowError("KNLMeansCL: AviSynthCreate error(clGetPlatformIDs)!");
     }
     for (cl_uint i = 0; i < num_platforms; i++) {
         ret |= clGetDeviceIDs(temp_platforms[i], device, 0, 0, &num_devices);
@@ -574,7 +613,7 @@ KNLMeansClass::KNLMeansClass(PClip _child, const int _D, const int _A, const int
     }
     free(temp_platforms);
     if (ret != CL_SUCCESS && ret != CL_DEVICE_NOT_FOUND) {
-        env->ThrowError("KNLMeansCL: AviSynthCreate error(1)!");
+        env->ThrowError("KNLMeansCL: AviSynthCreate error(clGetDeviceIDs)!");
     } else if (device_aviable == CL_FALSE) {
         env->ThrowError("KNLMeansCL: opencl device not available!");
     }
@@ -605,8 +644,7 @@ KNLMeansClass::KNLMeansClass(PClip _child, const int _D, const int _A, const int
         else if (color == YUV) hostBuffer = malloc(idmn[0] * idmn[1] * 4 * sizeof(uint16_t));
     } else {
         if (color == YUV) hostBuffer = malloc(idmn[0] * idmn[1] * 4 * sizeof(uint8_t));
-        else if (color == RGB30) hostBuffer = malloc(idmn[0] * idmn[1] * sizeof(uint32_t));
-        else if (color == RGBA32) hostBuffer = malloc(idmn[0] * idmn[1] * 4 * sizeof(uint8_t));
+        else if (color == RGB) hostBuffer = malloc(idmn[0] * idmn[1] * 4 * sizeof(uint8_t));
     }
 
     // Creates and Build a program executable from the program source.
@@ -627,7 +665,7 @@ KNLMeansClass::KNLMeansClass(PClip _child, const int _D, const int _A, const int
         outfile.write(log, log_size);
         outfile.close();
         free(log);
-        env->ThrowError("KNLMeansCL: AviSynthCreate error (2)!");
+        env->ThrowError("KNLMeansCL: AviSynthCreate error (clBuildProgram)!");
     }
 
     // Creates kernel objects.
@@ -662,7 +700,7 @@ KNLMeansClass::KNLMeansClass(PClip _child, const int _D, const int _A, const int
     ret |= clSetKernelArg(kernel[5], 2, sizeof(cl_mem), &mem_U[0]);
     ret |= clSetKernelArg(kernel[5], 3, sizeof(cl_mem), &mem_U[3]);
     ret |= clSetKernelArg(kernel[5], 4, 2 * sizeof(cl_uint), &idmn);
-    if (ret != CL_SUCCESS) 	env->ThrowError("KNLMeansCL: AviSynthCreate error (3)!");
+    if (ret != CL_SUCCESS) 	env->ThrowError("KNLMeansCL: AviSynthCreate error (clSetKernelArg)!");
 }
 #endif //__AVISYNTH_6_H__
 
@@ -1038,7 +1076,8 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out,
 
     // Checks sampleType, bitsPerSample and sets channel type.
     KNLMeansData d;
-    cl_channel_type channel;
+    cl_channel_order corder;
+    cl_channel_type ctype;
     int err;
     d.node = vsapi->propGetNode(in, "clip", 0, 0);
     d.knot = vsapi->propGetNode(in, "rclip", 0, &err);
@@ -1051,39 +1090,89 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out,
         return;
     }
     if (isConstantFormat(d.vi)) {
-        if (d.vi->format->colorFamily == cmRGB) {
-            vsapi->setError(out, "knlm.KNLMeansCL: colorFamily must be cmGray, cmYUV or cmYCoCg!");
-            vsapi->freeNode(d.node);
-            vsapi->freeNode(d.knot);
-            return;
-        }
-        if (d.vi->format->sampleType == stInteger) {
-            if (d.vi->format->bitsPerSample == 8) {
-                channel = CL_UNORM_INT8;
-            } else if (d.vi->format->bitsPerSample == 16) {
-                channel = CL_UNORM_INT16;
-            } else {
-                vsapi->setError(out, "knlm.KNLMeansCL: format must be INT8, INT16, HALF or FLOAT!");
+        switch (d.vi->format->id) {
+            case pfGray8:
+            case pfYUV420P8:
+            case pfYUV422P8:
+            case pfYUV410P8:
+            case pfYUV411P8:
+            case pfYUV440P8:
+                d.color = Gray;
+                corder = CL_LUMINANCE;
+                ctype = CL_UNORM_INT8;
+                break;
+            case pfGray16:
+            case pfYUV420P16:
+            case pfYUV422P16:
+                d.color = Gray;
+                corder = CL_LUMINANCE;
+                ctype = CL_UNORM_INT16;
+                break;
+            case pfGrayH:
+                d.color = Gray;
+                corder = CL_LUMINANCE;
+                ctype = CL_HALF_FLOAT;
+                break;
+            case pfGrayS:
+                d.color = Gray;
+                corder = CL_LUMINANCE;
+                ctype = CL_FLOAT;
+                break;
+            case pfYUV444P8:
+                d.color = YUV;
+                corder = CL_RGBA;
+                ctype = CL_UNORM_INT8;
+                break;
+            case pfYUV444P10:
+                d.color = YUV30;
+                corder = CL_R;
+                ctype = CL_UNSIGNED_INT32;
+                break;
+            case pfYUV444P16:
+                d.color = YUV;
+                corder = CL_RGBA;
+                ctype = CL_UNORM_INT16;
+                break;
+            case pfYUV444PH:
+                d.color = YUV;
+                corder = CL_RGBA;
+                ctype = CL_HALF_FLOAT;
+                break;
+            case pfYUV444PS:
+                d.color = YUV;
+                corder = CL_RGBA;
+                ctype = CL_FLOAT;
+                break;
+            case pfRGB24:
+                d.color = RGB;
+                corder = CL_RGBA;
+                ctype = CL_UNORM_INT8;
+                break;
+            case pfRGB30:
+                d.color = RGB30;
+                corder = CL_R;
+                ctype = CL_UNSIGNED_INT32;
+                break;
+            case pfRGB48:
+                d.color = RGB;
+                corder = CL_RGBA;
+                ctype = CL_UNORM_INT16;
+                break;
+            case pfRGBH:
+                d.color = RGB;
+                corder = CL_RGBA;
+                ctype = CL_HALF_FLOAT;
+                break;
+            case pfRGBS:
+                d.color = RGB;
+                corder = CL_RGBA;
+                ctype = CL_FLOAT;
+                break;
+            default:
+                vsapi->setError(out, "knlm.KNLMeansCL: video format not supported!");
                 vsapi->freeNode(d.node);
                 vsapi->freeNode(d.knot);
-                return;
-            }
-        } else if (d.vi->format->sampleType == stFloat) {
-            if (d.vi->format->bitsPerSample == 16) {
-                channel = CL_HALF_FLOAT;
-            } else if (d.vi->format->bitsPerSample == 32) {
-                channel = CL_FLOAT;
-            } else {
-                vsapi->setError(out, "knlm.KNLMeansCL: format must be INT8, INT16, HALF or FLOAT!");
-                vsapi->freeNode(d.node);
-                vsapi->freeNode(d.knot);
-                return;
-            }
-        } else {
-            vsapi->setError(out, "knlm.KNLMeansCL: unknow sampleType!");
-            vsapi->freeNode(d.node);
-            vsapi->freeNode(d.knot);
-            return;
+                break;
         }
     } else {
         vsapi->setError(out, "knlm.KNLMeansCL: only constant format!");
@@ -1112,26 +1201,31 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out,
     if (d.d < 0) {
         vsapi->setError(out, "knlm.KNLMeansCL: D must be greater than or equal to 0!");
         vsapi->freeNode(d.node);
+        vsapi->freeNode(d.knot);
         return;
     }
     if (d.a < 0) {
         vsapi->setError(out, "knlm.KNLMeansCL: A must be greater than or equal to 0!");
         vsapi->freeNode(d.node);
+        vsapi->freeNode(d.knot);
         return;
     }
     if (d.s < 0) {
         vsapi->setError(out, "knlm.KNLMeansCL: S must be greater than or equal to 0!");
         vsapi->freeNode(d.node);
+        vsapi->freeNode(d.knot);
         return;
     }
     if (d.wmode < 0 || d.wmode > 2) {
         vsapi->setError(out, "knlm.KNLMeansCL: wmode must be in range [0, 2]!");
         vsapi->freeNode(d.node);
+        vsapi->freeNode(d.knot);
         return;
     }
     if (d.h <= 0.0) {
         vsapi->setError(out, "knlm.KNLMeansCL: h must be greater than 0!");
         vsapi->freeNode(d.node);
+        vsapi->freeNode(d.knot);
         return;
     }
     cl_device_type device;
@@ -1146,6 +1240,7 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out,
     } else {
         vsapi->setError(out, "knlm.KNLMeansCL: device_type must be cpu, gpu, accelerator or default!");
         vsapi->freeNode(d.node);
+        vsapi->freeNode(d.knot);
         return;
     }
 
@@ -1156,13 +1251,15 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out,
     if (num_platforms == 0) {
         vsapi->setError(out, "knlm.KNLMeansCL: no opencl platforms available!");
         vsapi->freeNode(d.node);
+        vsapi->freeNode(d.knot);
         return;
     }
     cl_platform_id *temp_platforms = (cl_platform_id*) malloc(sizeof(cl_platform_id) * num_platforms);
     ret |= clGetPlatformIDs(num_platforms, temp_platforms, NULL);
     if (ret != CL_SUCCESS) {
-        vsapi->setError(out, "knlm.KNLMeansCL: VapourSynthCreate error (0)!");
+        vsapi->setError(out, "knlm.KNLMeansCL: VapourSynthCreate error (clGetPlatformIDs)!");
         vsapi->freeNode(d.node);
+        vsapi->freeNode(d.knot);
         return;
     }
     for (cl_uint i = 0; i < num_platforms; i++) {
@@ -1181,23 +1278,31 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out,
     }
     free(temp_platforms);
     if (ret != CL_SUCCESS && ret != CL_DEVICE_NOT_FOUND) {
-        vsapi->setError(out, "knlm.KNLMeansCL: VapourSynthCreate error (1)!");
+        vsapi->setError(out, "knlm.KNLMeansCL: VapourSynthCreate error (clGetDeviceIDs)!");
         vsapi->freeNode(d.node);
+        vsapi->freeNode(d.knot);
         return;
     } else if (device_aviable == CL_FALSE) {
         vsapi->setError(out, "knlm.KNLMeansCL: opencl device not available!");
         vsapi->freeNode(d.node);
+        vsapi->freeNode(d.knot);
         return;
     }
 
     // Creates an OpenCL context, 2D images and buffers object.
     d.context = clCreateContext(NULL, 1, &d.deviceID, NULL, NULL, NULL);
-    const cl_image_format image_format = { CL_LUMINANCE, channel };
+    const cl_image_format image_format = { corder, ctype };
     d.idmn[0] = d.vi->width;
     d.idmn[1] = d.vi->height;
     const size_t size = sizeof(float) * d.idmn[0] * d.idmn[1];
     d.mem_in[0] = clCreateImage2D(d.context, CL_MEM_READ_ONLY, &image_format,
-        d.idmn[0], d.idmn[1], 0, NULL, NULL);
+        d.idmn[0], d.idmn[1], 0, NULL, &ret);
+    if (ret == CL_IMAGE_FORMAT_NOT_SUPPORTED) {
+     vsapi->setError(out, "knlm.KNLMeansCL: image format is not supported by your device!");
+     vsapi->freeNode(d.node);
+     vsapi->freeNode(d.knot);
+     return;
+    }
     d.mem_in[2] = clCreateImage2D(d.context, CL_MEM_READ_ONLY, &image_format,
         d.idmn[0], d.idmn[1], 0, NULL, NULL);
     if (d.d) {
@@ -1208,15 +1313,22 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out,
     }
     d.mem_out = clCreateImage2D(d.context, CL_MEM_WRITE_ONLY, &image_format,
         d.idmn[0], d.idmn[1], 0, NULL, NULL);
-    d.mem_U[0] = clCreateBuffer(d.context, CL_MEM_READ_WRITE, 2 * size, NULL, NULL);
+    d.mem_U[0] = clCreateBuffer(d.context, CL_MEM_READ_WRITE, d.color ? 4 * size : 2 * size, NULL, NULL);
     d.mem_U[1] = clCreateBuffer(d.context, CL_MEM_READ_WRITE, size, NULL, NULL);
     d.mem_U[2] = clCreateBuffer(d.context, CL_MEM_READ_WRITE, size, NULL, NULL);
     d.mem_U[3] = clCreateBuffer(d.context, CL_MEM_READ_WRITE, size, NULL, NULL);
 
+    // Host buffer.
+    if (d.color == YUV || d.color == RGB) {
+       d.hostBuffer = malloc(d.idmn[0] * d.idmn[1] * 4 * d.vi->format->bytesPerSample);
+    } else if (d.color == YUV30 || d.color == RGB30) {
+        d.hostBuffer = malloc(d.idmn[0] * d.idmn[1] * sizeof(uint32_t));
+    }
+
     // Creates and Build a program executable from the program source.
     d.program = clCreateProgramWithSource(d.context, 1, &source_code, NULL, NULL);
     char options[2048];
-    if (channel == CL_FLOAT) {
+    if (ctype == CL_FLOAT) {
         snprintf(options, 2048, "-Werror \
             -D H_BLOCK_X=%i -D H_BLOCK_Y=%i -D V_BLOCK_X=%i -D V_BLOCK_Y=%i \
             -D NLMK_RGB=%i -D NLMK_S=%li -D NLMK_WMODE=%li -D NLMK_TEMPORAL=%li -D NLMK_H2_INV_NORM=%ff",
@@ -1239,8 +1351,9 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out,
         outfile.write(log, log_size);
         outfile.close();
         free(log);
-        vsapi->setError(out, "knlm.KNLMeansCL: VapourSynthCreate error (2)!");
+        vsapi->setError(out, "knlm.KNLMeansCL: VapourSynthCreate error (clBuildProgram)!");
         vsapi->freeNode(d.node);
+        vsapi->freeNode(d.knot);
         return;
     }
 
@@ -1277,8 +1390,9 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out,
     ret |= clSetKernelArg(d.kernel[5], 3, sizeof(cl_mem), &d.mem_U[3]);
     ret |= clSetKernelArg(d.kernel[5], 4, 2 * sizeof(cl_uint), &d.idmn);
     if (ret != CL_SUCCESS) {
-        vsapi->setError(out, "knlm.KNLMeansCL: VapourSynthCreate error (3)!");
+        vsapi->setError(out, "knlm.KNLMeansCL: VapourSynthCreate error (clSetKernelArg)!");
         vsapi->freeNode(d.node);
+        vsapi->freeNode(d.knot);
         return;
     }
 
