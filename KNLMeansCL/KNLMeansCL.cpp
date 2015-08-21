@@ -46,8 +46,8 @@ inline bool KNLMeansClass::avs_equals(VideoInfo *v, VideoInfo *w) {
 // VapourSynthEquals
 #ifdef VAPOURSYNTH_H
 inline bool vs_equals(const VSVideoInfo *v, const VSVideoInfo *w) {
-    return v->width == w->width && v->height == w->height && v->fpsNum == w->fpsNum && v->fpsDen == w->fpsDen
-        && v->numFrames == w->numFrames && v->format == w->format;
+    return v->width == w->width && v->height == w->height && v->fpsNum == w->fpsNum && 
+        v->fpsDen == w->fpsDen && v->numFrames == w->numFrames && v->format == w->format;
 }
 #endif //__VAPOURSYNTH_H__
 
@@ -390,9 +390,9 @@ inline cl_uint readBufferImage(KNLMeansData *data, const VSAPI *vsapi, VSFrameRe
                 fidx[1] = y * pitch[1];
                 fidx[2] = y * pitch[2];
                 for (int x = 0; x < (int) data->idmn[0]; x++) {
-                    frmp[0][fidx[0] + x] = BLUE_MASK(bufferp[bidx + x]);
-                    frmp[1][fidx[1] + x] = GREEN_MASK(bufferp[bidx + x]);
-                    frmp[2][fidx[2] + x] = RED_MASK(bufferp[bidx + x]);
+                    frmp[0][fidx[0] + x] = (uint16_t) BLUE_MASK(bufferp[bidx + x]);
+                    frmp[1][fidx[1] + x] = (uint16_t) GREEN_MASK(bufferp[bidx + x]);
+                    frmp[2][fidx[2] + x] = (uint16_t) RED_MASK(bufferp[bidx + x]);
                 }
             }
             break;
@@ -537,8 +537,8 @@ KNLMeansClass::KNLMeansClass(PClip _child, const int _D, const int _A, const int
     baby->SetCacheHints(CACHE_WINDOW, D);
 
     // Checks source clip and rclip.
-    cl_channel_order corder;
-    cl_channel_type ctype;
+    cl_channel_order corder = NULL;
+    cl_channel_type ctype = NULL;
     if (cmode && !vi.IsYV24() && !vi.IsRGB32())
         env->ThrowError("KNLMeansCL: cmode requires YV24 image format!");
     if (vi.IsPlanar() && (vi.IsY8() || vi.IsYV411() || vi.IsYV12() || vi.IsYV16())) {
@@ -575,7 +575,7 @@ KNLMeansClass::KNLMeansClass(PClip _child, const int _D, const int _A, const int
         env->ThrowError("KNLMeansCL: wmode must be in range [0, 2]!");
     if (h <= 0.0f)
         env->ThrowError("KNLMeansCL: h must be greater than 0!");
-    cl_device_type device;
+    cl_device_type device = NULL;
     if (!strcasecmp(ocl_device, "CPU")) {
         device = CL_DEVICE_TYPE_CPU;
     } else if (!strcasecmp(ocl_device, "GPU")) {
@@ -722,7 +722,7 @@ static void VS_CC knlmeansInit(VSMap *in, VSMap *out, void **instanceData,
 // AviSynthGetFrame
 #ifdef __AVISYNTH_6_H__
 PVideoFrame __stdcall KNLMeansClass::GetFrame(int n, IScriptEnvironment* env) {
-    // Variables.
+    // Variables.  
     PVideoFrame src = child->GetFrame(n, env);
     PVideoFrame ref = baby->GetFrame(n, env);
     const size_t origin[3] = { 0, 0, 0 };
@@ -751,9 +751,10 @@ PVideoFrame __stdcall KNLMeansClass::GetFrame(int n, IScriptEnvironment* env) {
     ret |= clEnqueueNDRangeKernel(command_queue, kernel[0], 2, NULL, global_work, NULL, 0, NULL, NULL);
     if (D) {
         // Temporal.
+        const int maxframe = vi.num_frames - 1;
         for (int k = -D; k <= D; k++) {
-            src = child->GetFrame(n + k, env);
-            ref = baby->GetFrame(n + k, env);
+            src = child->GetFrame(clamp(n + k, 0, maxframe), env);
+            ref = baby->GetFrame(clamp(n + k, 0, maxframe), env);
             ret |= writeBufferImage(src, command_queue, mem_in[1], origin, region);
             ret |= writeBufferImage(ref, command_queue, mem_in[3], origin, region);
             for (int j = -A; j <= A; j++) {
@@ -959,11 +960,12 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
             DrawString(frm, pitch, 0, y++, "KNLMeansCL");
             DrawString(frm, pitch, 0, y++, " Version " VERSION);
             DrawString(frm, pitch, 0, y++, " Copyright(C) Khanattila");
-            snprintf(buffer, 2048, " D:%li  A:%lix%li  S:%lix%li", 2 * d->d + 1,
-                2 * d->a + 1, 2 * d->a + 1, 2 * d->s + 1, 2 * d->s + 1);
+            snprintf(buffer, 2048, " D:%li  A:%lix%li  S:%lix%li", 2 * int64ToIntS(d->d) + 1,
+                2 * int64ToIntS(d->a) + 1, 2 * int64ToIntS(d->a) + 1, 2 * int64ToIntS(d->s) + 1, 
+                2 * int64ToIntS(d->s) + 1);
             DrawString(frm, pitch, 0, y++, buffer);
-            snprintf(buffer, 2048, " Iterations: %li",
-                ((2 * d->d + 1)*(2 * d->a + 1)*(2 * d->a + 1) - 1) / (d->d ? 1 : 2));
+            snprintf(buffer, 2048, " Iterations: %li", ((2 * int64ToIntS(d->d) + 1)*(2 * int64ToIntS(d->a) + 1)*
+                (2 * int64ToIntS(d->a) + 1) - 1) / (int64ToIntS(d->d) ? 1 : 2));
             DrawString(frm, pitch, 0, y++, buffer);
             snprintf(buffer, 2048, " Global work size: %lux%lu",
                 (unsigned long) global_work[0], (unsigned long) global_work[1]);
@@ -1079,8 +1081,8 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out,
 
     // Checks sampleType, bitsPerSample and sets channel type.
     KNLMeansData d;
-    cl_channel_order corder;
-    cl_channel_type ctype;
+    cl_channel_order corder = NULL;
+    cl_channel_type ctype = NULL;
     int err;
     d.node = vsapi->propGetNode(in, "clip", 0, 0);
     d.knot = vsapi->propGetNode(in, "rclip", 0, &err);
@@ -1344,13 +1346,15 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out,
             -D H_BLOCK_X=%i -D H_BLOCK_Y=%i -D V_BLOCK_X=%i -D V_BLOCK_Y=%i \
             -D NLMK_RGB=%i -D NLMK_S=%li -D NLMK_WMODE=%li -D NLMK_TEMPORAL=%li -D NLMK_H2_INV_NORM=%ff",
             H_BLOCK_X, H_BLOCK_Y, V_BLOCK_X, V_BLOCK_Y,
-            0, d.s, d.wmode, d.d, 65025.0 / (3*d.h*d.h*(2 * d.s + 1) * (2 * d.s + 1)));
+            0, int64ToIntS(d.s), int64ToIntS(d.wmode), int64ToIntS(d.d), 
+            65025.0 / (3 * d.h*d.h*(2 * d.s + 1) * (2 * d.s + 1)));
     } else {
         snprintf(options, 2048, "-cl-denorms-are-zero -cl-fast-relaxed-math -Werror \
            -D H_BLOCK_X=%i -D H_BLOCK_Y=%i -D V_BLOCK_X=%i -D V_BLOCK_Y=%i \
            -D NLMK_RGB=%i -D NLMK_S=%li -D NLMK_WMODE=%li -D NLMK_TEMPORAL=%li -D NLMK_H2_INV_NORM=%ff",
            H_BLOCK_X, H_BLOCK_Y, V_BLOCK_X, V_BLOCK_Y,
-           0, d.s, d.wmode, d.d, 65025.0 / (3*d.h*d.h*(2 * d.s + 1) * (2 * d.s + 1)));
+           0, int64ToIntS(d.s), int64ToIntS(d.wmode), int64ToIntS(d.d),
+           65025.0 / (3 * d.h*d.h*(2 * d.s + 1) * (2 * d.s + 1)));
     }
     ret = clBuildProgram(d.program, 1, &d.deviceID, options, NULL, NULL);
     if (ret != CL_SUCCESS) {
@@ -1409,7 +1413,13 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out,
 
     // Creates a new filter and returns a reference to it.
     KNLMeansData *data = (KNLMeansData*) malloc(sizeof(d));
-    *data = d;
+    if(data) *data = d;
+    else {
+        vsapi->setError(out, "knlm.KNLMeansCL: VapourSynthCreate error (malloc fail)!");
+        vsapi->freeNode(d.node);
+        vsapi->freeNode(d.knot);
+        return;
+    }
     vsapi->createFilter(in, out, "KNLMeansCL", knlmeansInit, VapourSynthPluginGetFrame,
         VapourSynthPluginFree, fmParallelRequests, 0, data, core);
 }
