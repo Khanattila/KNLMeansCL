@@ -19,6 +19,7 @@
 #define DFT_D 0
 #define DFT_A 2
 #define DFT_S 4
+#define DFT_cmode false
 #define DFT_wmode 1
 #define DFT_h 1.2f
 #define DFT_ocl_device "DEFAULT"
@@ -525,10 +526,10 @@ inline cl_uint writeBufferImage(KNLMeansData *data, const VSAPI *vsapi, const VS
 //////////////////////////////////////////
 // AviSynthInit
 #ifdef __AVISYNTH_6_H__
-KNLMeansClass::KNLMeansClass(PClip _child, const int _D, const int _A, const int _S, const int _wmode, const double _h,
-    PClip _baby, const char* _ocl_device, const bool _lsb, const bool _info, IScriptEnvironment* env) :
-    GenericVideoFilter(_child), D(_D), A(_A), S(_S), wmode(_wmode), h(_h), baby(_baby), ocl_device(_ocl_device),
-    lsb(_lsb), info(_info) {
+KNLMeansClass::KNLMeansClass(PClip _child, const int _D, const int _A, const int _S, const bool _cmode, 
+    const int _wmode, const double _h, PClip _baby, const char* _ocl_device, const bool _lsb, const bool _info, 
+    IScriptEnvironment* env) : GenericVideoFilter(_child), D(_D), A(_A), S(_S), cmode(_cmode), wmode(_wmode), h(_h), 
+    baby(_baby), ocl_device(_ocl_device), lsb(_lsb), info(_info) {
 
     // Checks AviSynth Version.
     env->CheckVersion(6);
@@ -536,18 +537,17 @@ KNLMeansClass::KNLMeansClass(PClip _child, const int _D, const int _A, const int
     baby->SetCacheHints(CACHE_WINDOW, D);
 
     // Checks source clip and rclip.
-    VideoInfo rvi = baby->GetVideoInfo();
     cl_channel_order corder;
     cl_channel_type ctype;
-    if (!avs_equals(&vi, &rvi))
-        env->ThrowError("KNLMeansCL: rclip do not math source clip!");
+    if (cmode && !vi.IsYV24() && !vi.IsRGB32())
+        env->ThrowError("KNLMeansCL: cmode requires YV24 image format!");
     if (vi.IsPlanar() && (vi.IsY8() || vi.IsYV411() || vi.IsYV12() || vi.IsYV16())) {
         color = Gray;
         corder = CL_LUMINANCE;
         ctype = lsb ? CL_UNORM_INT16 : CL_UNORM_INT8;
     } else if (vi.IsPlanar() && vi.IsYV24()) {
-        color = YUV;
-        corder = CL_RGBA;
+        color = cmode ? YUV : Gray;
+        corder = cmode ? CL_RGBA: CL_LUMINANCE;
         ctype = lsb ? CL_UNORM_INT16 : CL_UNORM_INT8;
     } else if (vi.IsRGB() && vi.IsRGB32()) {
         color = RGB;
@@ -556,12 +556,15 @@ KNLMeansClass::KNLMeansClass(PClip _child, const int _D, const int _A, const int
     } else {
         env->ThrowError("KNLMeansCL: planar YUV or RGB32 data!");
     }
+    VideoInfo rvi = baby->GetVideoInfo();
+    if (!avs_equals(&vi, &rvi))
+        env->ThrowError("KNLMeansCL: rclip do not math source clip!");
      
     // Checks user value.
     if (vi.IsRGB() && lsb)
         env->ThrowError("KNLMeansCL: RGB48y is not supported!");
     if (vi.IsRGB() && info)
-        env->ThrowError("KNLMeansCL: info requires a YUV color space!");
+        env->ThrowError("KNLMeansCL: info requires YUV color space!");
     if (D < 0)
         env->ThrowError("KNLMeansCL: D must be greater than or equal to 0!");
     if (A < 0)
@@ -1062,9 +1065,9 @@ static void VS_CC VapourSynthPluginFree(void *instanceData, VSCore *core, const 
 #ifdef __AVISYNTH_6_H__
 AVSValue __cdecl AviSynthPluginCreate(AVSValue args, void* user_data, IScriptEnvironment* env) {
     return new KNLMeansClass(args[0].AsClip(), args[1].AsInt(DFT_D), args[2].AsInt(DFT_A), args[3].AsInt(DFT_S),
-        args[4].AsInt(DFT_wmode), args[5].AsFloat(DFT_h), args[6].Defined() ? args[6].AsClip() : args[0].AsClip(),
-        args[7].AsString(DFT_ocl_device), args[8].AsBool(DFT_lsb), args[9].AsBool(DFT_info),
-        env);
+        args[4].AsBool(DFT_cmode), args[5].AsInt(DFT_wmode), args[6].AsFloat(DFT_h), args[7].Defined() ? 
+        args[7].AsClip() : args[0].AsClip(), args[8].AsString(DFT_ocl_device), args[9].AsBool(DFT_lsb), 
+        args[10].AsBool(DFT_info), env);
 }
 #endif //__AVISYNTH_6_H__
 
@@ -1083,13 +1086,15 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out,
     d.knot = vsapi->propGetNode(in, "rclip", 0, &err);
     if (err) d.knot = vsapi->propGetNode(in, "clip", 0, 0);
     d.vi = vsapi->getVideoInfo(d.node);
-    if (!vs_equals(d.vi, vsapi->getVideoInfo(d.knot))) {
-        vsapi->setError(out, "knlm.KNLMeansCL: rclip do not math source clip!");
-        vsapi->freeNode(d.node);
-        vsapi->freeNode(d.knot);
-        return;
-    }
     if (isConstantFormat(d.vi)) {
+        d.cmode = vsapi->propGetInt(in, "cmode", 0, &err);
+        if (err) d.cmode = DFT_cmode;
+        if (d.cmode && (d.vi->format->subSamplingW != 0) && (d.vi->format->subSamplingH != 0)) {
+            vsapi->setError(out, "knlm.KNLMeansCL: cmode requires 4:4:4 subsampling!");
+            vsapi->freeNode(d.node);
+            vsapi->freeNode(d.knot);
+            return;
+        }
         switch (d.vi->format->id) {
             case pfGray8:
             case pfYUV420P8:
@@ -1119,28 +1124,28 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out,
                 ctype = CL_FLOAT;
                 break;
             case pfYUV444P8:
-                d.color = YUV;
-                corder = CL_RGBA;
+                d.color = d.cmode ? YUV : Gray;
+                corder = d.cmode ? CL_RGBA : CL_LUMINANCE;
                 ctype = CL_UNORM_INT8;
                 break;
             case pfYUV444P10:
-                d.color = YUV30;
-                corder = CL_R;
-                ctype = CL_UNSIGNED_INT32;
+                d.color = d.cmode ? YUV30 : Gray;
+                corder = d.cmode ? CL_R : CL_LUMINANCE;
+                ctype = d.cmode ? CL_UNSIGNED_INT32 : CL_UNORM_INT16;
                 break;
             case pfYUV444P16:
-                d.color = YUV;
-                corder = CL_RGBA;
+                d.color = d.cmode ? YUV : Gray;
+                corder = d.cmode ? CL_RGBA : CL_LUMINANCE;
                 ctype = CL_UNORM_INT16;
                 break;
             case pfYUV444PH:
-                d.color = YUV;
-                corder = CL_RGBA;
+                d.color = d.cmode ? YUV : Gray;
+                corder = d.cmode ? CL_RGBA : CL_LUMINANCE;
                 ctype = CL_HALF_FLOAT;
                 break;
             case pfYUV444PS:
-                d.color = YUV;
-                corder = CL_RGBA;
+                d.color = d.cmode ? YUV : Gray;
+                corder = d.cmode ? CL_RGBA : CL_LUMINANCE;
                 ctype = CL_FLOAT;
                 break;
             case pfRGB24:
@@ -1176,6 +1181,12 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out,
         }
     } else {
         vsapi->setError(out, "knlm.KNLMeansCL: only constant format!");
+        vsapi->freeNode(d.node);
+        vsapi->freeNode(d.knot);
+        return;
+    }
+    if (!vs_equals(d.vi, vsapi->getVideoInfo(d.knot))) {
+        vsapi->setError(out, "knlm.KNLMeansCL: rclip do not math source clip!");
         vsapi->freeNode(d.node);
         vsapi->freeNode(d.knot);
         return;
@@ -1412,7 +1423,7 @@ extern "C" __declspec(dllexport) const char* __stdcall AvisynthPluginInit3(
     IScriptEnvironment* env, const AVS_Linkage* const vectors) {
 
     AVS_linkage = vectors;
-    env->AddFunction("KNLMeansCL", "c[D]i[A]i[S]i[wmode]i[h]f[rclip]c[device_type]s[lsb_inout]b[info]b",
+    env->AddFunction("KNLMeansCL", "c[D]i[A]i[S]i[cmode]b[wmode]i[h]f[rclip]c[device_type]s[lsb_inout]b[info]b",
         AviSynthPluginCreate, 0);
     return "KNLMeansCL for AviSynth";
 }
@@ -1425,7 +1436,7 @@ VS_EXTERNAL_API(void) VapourSynthPluginInit(VSConfigPlugin configFunc,
     VSRegisterFunction registerFunc, VSPlugin *plugin) {
 
     configFunc("com.Khanattila.KNLMeansCL", "knlm", "KNLMeansCL for VapourSynth", VAPOURSYNTH_API_VERSION, 1, plugin);
-    registerFunc("KNLMeansCL", "clip:clip;d:int:opt;a:int:opt;s:int:opt;wmode:int:opt;h:float:opt;\
+    registerFunc("KNLMeansCL", "clip:clip;d:int:opt;a:int:opt;s:int:opt;cmode:int:opt;wmode:int:opt;h:float:opt;\
 rclip:clip:opt;device_type:data:opt;info:int:opt", VapourSynthPluginCreate, nullptr, plugin);
 }
 #endif //__VAPOURSYNTH_H__

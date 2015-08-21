@@ -16,7 +16,7 @@
 *	along with KNLMeansCL. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#define VERSION "0.5.9"
+#define VERSION "0.6.0"
 
 #ifdef _MSC_VER
 #define strcasecmp _stricmp
@@ -55,7 +55,7 @@ private:
     const double h;
     PClip baby;
     const char* ocl_device;
-    const bool lsb, info;
+    const bool cmode, lsb, info;
     void* hostBuffer;
     color_t color;
     cl_uint idmn[2];
@@ -71,8 +71,9 @@ private:
     cl_uint writeBufferImage(PVideoFrame &frm, cl_command_queue command_queue,
         cl_mem image, const size_t origin[3], const size_t region[3]);
 public:
-    KNLMeansClass(PClip _child, const int _D, const int _A, const int _S, const int _wmode, const double _h,
-        PClip _baby, const char* _ocl_device, const bool _lsb, const bool _info, IScriptEnvironment* env);
+    KNLMeansClass(PClip _child, const int _D, const int _A, const int _S, const bool _cmode, const int _wmode, 
+        const double _h, PClip _baby, const char* _ocl_device, const bool _lsb, const bool _info, 
+        IScriptEnvironment* env);
     ~KNLMeansClass();
     PVideoFrame __stdcall GetFrame(int n, IScriptEnvironment* env);
 };
@@ -82,7 +83,7 @@ public:
 typedef struct {
     VSNodeRef *node, *knot;
     const VSVideoInfo *vi;
-    int64_t d, a, s, wmode, info;
+    int64_t d, a, s, cmode, wmode, info;
     double h;
     const char* ocl_device;
     void* hostBuffer;
@@ -103,10 +104,6 @@ inline size_t mrounds(const size_t num, const size_t mul) {
 
 template <typename T>T fastmax(const T& left, const T& right) {
     return left > right ? left : right;
-}
-
-template <typename T>T fastmin(const T& left, const T& right) {
-    return left < right ? left : right;
 }
 
 template <typename T>T clamp(const T& value, const T& low, const T& high) {

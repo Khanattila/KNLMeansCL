@@ -24,12 +24,12 @@
 static const cl_uint H_BLOCK_X = 32, H_BLOCK_Y = 4, V_BLOCK_X = 32, V_BLOCK_Y = 4;
 static const char* source_code =
 "																												  \n" \
-"#define WGH_R 0.4713394928090557f																				  \n" \
-"#define WGH_G	0.6548939043680122f																				  \n" \
-"#define WGH_B	0.5907224869091433f																				  \n" \
-"#define cfGRAY 0																								  \n" \
-"#define cfYUV 1																								  \n" \
-"#define cfRGB 2																								  \n" \
+"#define WGH_R   0.4713394928090557f																			  \n" \
+"#define WGH_G	 0.6548939043680122f																			  \n" \
+"#define WGH_B	 0.5907224869091433f																			  \n" \
+"#define cfGRAY  0																								  \n" \
+"#define cfYUV   1																								  \n" \
+"#define cfRGB   2																								  \n" \
 "#define cfYUV30 3																								  \n" \
 "#define cfRGB30 4																								  \n" \
 "																												  \n" \
@@ -48,7 +48,7 @@ static const char* source_code =
 "																												  \n" \
 "	const int gidx = mad24(y, dim.x, x);																		  \n" \
 "																												  \n" \
-"	if (NLMK_TCOLOR == cfGray) {	                    														  \n" \
+"	if (NLMK_TCOLOR == cfGRAY) {	                    														  \n" \
 "		__global float2* U2c = (__global float2*) U2;															  \n" \
 "		U2c[gidx] = (float2) 0.0f;																				  \n" \
 "	} else {			                        										                          \n" \
@@ -170,14 +170,14 @@ static const char* source_code =
 "		const float u1_mq = read_imagef(U1, smp, (int2) (x, y) - q).x;											  \n" \
 "		U2c[gidx].x += NLMK_TEMPORAL ? (u4 * u1_pq) : (u4 * u1_pq) + (u4_mq * u1_mq);							  \n" \
 "		U2c[gidx].y += NLMK_TEMPORAL ? (u4) : (u4 + u4_mq);														  \n" \
-"	} else if (NLMK_TCOLOR == cfYUV | NLMK_TCOLOR == cfRGB) {									                  \n" \
+"	} else if (NLMK_TCOLOR == cfYUV || NLMK_TCOLOR == cfRGB) {									                  \n" \
 "		__global float4* U2c = (__global float4*) U2;															  \n" \
 "		const float4 u1_pq = read_imagef(U1, smp, (int2) (x, y) + q);											  \n" \
 "		const float4 u1_mq = read_imagef(U1, smp, (int2) (x, y) - q);											  \n" \
 "		float4 accu = NLMK_TEMPORAL ? (u4 * u1_pq) : (u4 * u1_pq) + (u4_mq * u1_mq);							  \n" \
 "		accu.w = NLMK_TEMPORAL ? (u4) : (u4 + u4_mq);															  \n" \
 "		U2c[gidx] += accu;																						  \n" \
-"	} else if (NLMK_TCOLOR == cfYUV30 | NLMK_TCOLOR == cfRGB30) { 												  \n" \
+"	} else if (NLMK_TCOLOR == cfYUV30 || NLMK_TCOLOR == cfRGB30) { 												  \n" \
 "		__global float4* U2c = (__global float4*) U2;															  \n" \
 "		const float4 u1_pq = UINT4toFLOAT4(read_imageui(U1, smp, (int2) (x, y) + q));					          \n" \
 "		const float4 u1_mq = UINT4toFLOAT4(read_imageui(U1, smp, (int2) (x, y) - q));					          \n" \
@@ -205,14 +205,14 @@ static const char* source_code =
 "		const float den = U2c[gidx].y + M[gidx];																  \n" \
 "		const float val = native_divide(num, den);																  \n" \
 "		write_imagef(U1_out, (int2) (x, y), (float4) (val, val, val, 1.0f));									  \n" \
-"	} else if (NLMK_TCOLOR == cfYUV | NLMK_TCOLOR == cfRGB) {													  \n" \
+"	} else if (NLMK_TCOLOR == cfYUV || NLMK_TCOLOR == cfRGB) {													  \n" \
 "		__global float4* U2c = (__global float4*) U2;															  \n" \
 "		const float4 u1 = read_imagef(U1_in, smp, (int2) (x, y));												  \n" \
 "		const float4 num = mad((float4) M[gidx], u1, U2c[gidx]);												  \n" \
 "		const float4 den = (float4) (U2c[gidx].w + M[gidx]);													  \n" \
 "		const float4 val = native_divide(num, den);												                  \n" \
 "		write_imagef(U1_out, (int2) (x, y), val);																  \n" \
-"	} else if (NLMK_TCOLOR == cfYUV30 | NLMK_TCOLOR == cfRGB30) {												  \n" \
+"	} else if (NLMK_TCOLOR == cfYUV30 || NLMK_TCOLOR == cfRGB30) {												  \n" \
 "		__global float4* U2c = (__global float4*) U2;															  \n" \
 "		const float4 u1 = UINT4toFLOAT4(read_imageui(U1_in, smp, (int2) (x, y)));	    					      \n" \
 "		const float4 num = mad((float4) M[gidx], u1, U2c[gidx]);												  \n" \
