@@ -46,7 +46,7 @@
 #include <VapourSynth.h>
 #include <VSHelper.h>
 
-enum color_t { Gray, YUV, RGB30, RGBA32 };
+enum color_t { Gray, YUV, RGB };
 
 #ifdef __AVISYNTH_6_H__
 class KNLMeansClass : public GenericVideoFilter {
@@ -66,8 +66,6 @@ private:
     cl_kernel kernel[6];
     cl_mem mem_in[4], mem_out, mem_U[4];
     bool avs_equals(VideoInfo *v, VideoInfo *w);
-    void readBufferGray(uint8_t *msbp, int pitch);
-    void writeBufferGray(const uint8_t *msbp, int pitch);
     cl_uint readBufferImage(PVideoFrame &frm, cl_command_queue command_queue,
         cl_mem image, const size_t origin[3], const size_t region[3]);
     cl_uint writeBufferImage(PVideoFrame &frm, cl_command_queue command_queue,
