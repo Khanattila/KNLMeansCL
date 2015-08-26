@@ -1,4 +1,11 @@
 ## Change Log ##
+**- v0.6.0 (2015-08-26)**
+  - Added color distance (cmode).
+  - VapourSynth: added support for missing color format.
+  - Changed weighted RGB distance.
+  - No more SSE2 / SSE3 required. 
+  - Minor changes and bug fixes.
+  
 **- v0.5.9 (2015-08-02)**
   - Fixed rare issues with OpenCL compiler, again. 
 
