@@ -26,8 +26,9 @@
 #define DFT_lsb false
 #define DFT_info false
 
-#define BIT_16(msb, lsb, shift) ((msb << 8 | lsb) << shift && 0xFFFF)
-#define BIT_32(msb, nsb, osb, lsb, shift) ((msb << 24 | nsb << 16 | osb << 8 | lsb) << shift && 0xFFFFFFFF)
+#define GET_MSB(val) (val >> 8 & 0xFF)
+#define GET_LSB(val) (val & 0xFF)
+#define BIT_16(msb, lsb) (msb << 8 | lsb)
 
 #include "KNLMeansCL.h"
 
@@ -62,17 +63,14 @@ inline cl_uint KNLMeansClass::readBufferImage(PVideoFrame &frm, cl_command_queue
                 ret = clEnqueueReadImage(command_queue, image, CL_TRUE, origin, region,
                     idmn[0] * sizeof(uint16_t), 0, hostBuffer, 0, NULL, NULL);
                 uint16_t *bufferp = (uint16_t*) hostBuffer;
-                int pitch = frm->GetPitch(PLANAR_Y);
-                uint8_t *msbp = frm->GetWritePtr(PLANAR_Y);
-                uint8_t *lsbp = msbp + idmn[1] * pitch;
-                int bidx, fidx;
-                #pragma omp parallel for private(bidx, fidx)
-                for (int y = 0; y < (int) idmn[1]; y++) {
-                    bidx = y * idmn[0];
-                    fidx = y * pitch;
+                int srcY_s = frm->GetPitch(PLANAR_Y);
+                uint8_t *dstYmp = frm->GetWritePtr(PLANAR_Y);
+                uint8_t *dstYlp = srcY_s * idmn[1] + dstYmp;
+                #pragma omp parallel for
+                for (int y = 0; y < (int) idmn[1]; y++) {                   
                     for (int x = 0; x < (int) idmn[0]; x++) {
-                        lsbp[fidx + x] = (uint8_t) (bufferp[bidx + x] & 0x00FF);
-                        msbp[fidx + x] = (uint8_t) ((bufferp[bidx + x] & 0xFF00) >> 8);
+                        dstYmp[y * srcY_s + x] = GET_MSB(bufferp[y * idmn[0] + x]);
+                        dstYlp[y * srcY_s + x] = GET_LSB(bufferp[y * idmn[0] + x]);
                     }
                 }
                 break;
@@ -83,66 +81,48 @@ inline cl_uint KNLMeansClass::readBufferImage(PVideoFrame &frm, cl_command_queue
             }
         case YUV:
             if (lsb) {
+                int buffer_s = 4 * idmn[0];
                 ret = clEnqueueReadImage(command_queue, image, CL_TRUE, origin, region,
-                    idmn[0] * 4 * sizeof(uint16_t), 0, hostBuffer, 0, NULL, NULL);
-                uint16_t *bufferp = (uint16_t*) hostBuffer;
-                int pitch[3] = {
-                    frm->GetPitch(PLANAR_Y),
-                    frm->GetPitch(PLANAR_U),
-                    frm->GetPitch(PLANAR_V)
-                };
-                uint8_t *msbp[3] = {
-                    frm->GetWritePtr(PLANAR_Y),
-                    frm->GetWritePtr(PLANAR_U),
-                    frm->GetWritePtr(PLANAR_V)
-                };
-                uint8_t *lsbp[3] = {
-                    msbp[0] + idmn[1] * pitch[0],
-                    msbp[1] + idmn[1] * pitch[1],
-                    msbp[2] + idmn[1] * pitch[2]
-                };
-                int bidx, fidx[3];
-                   #pragma omp parallel for private(bidx, fidx)
-                for (int y = 0; y < (int) idmn[1]; y++) {
-                    bidx = y * idmn[0] * 4;
-                    fidx[0] = y * pitch[0];
-                    fidx[1] = y * pitch[1];
-                    fidx[2] = y * pitch[2];
+                    buffer_s * sizeof(uint16_t), 0, hostBuffer, 0, NULL, NULL);
+                uint16_t *bufferp = (uint16_t*) hostBuffer;              
+                int dstY_s = frm->GetPitch(PLANAR_Y);
+                int dstU_s = frm->GetPitch(PLANAR_U);
+                int dstV_s = frm->GetPitch(PLANAR_V);
+                uint8_t *dstYmp = frm->GetWritePtr(PLANAR_Y);
+                uint8_t *dstUmp = frm->GetWritePtr(PLANAR_U);
+                uint8_t *dstVmp = frm->GetWritePtr(PLANAR_V);
+                uint8_t *dstYlp = dstY_s * idmn[1] + dstYmp;
+                uint8_t *dstUlp = dstU_s * idmn[1] + dstUmp;
+                uint8_t *dstVlp = dstV_s * idmn[1] + dstVmp;               
+                #pragma omp parallel for
+                for (int y = 0; y < (int) idmn[1]; y++) {      
                     for (int x = 0; x < (int) idmn[0]; x++) {
-                        lsbp[0][fidx[0] + x] = (uint8_t) (bufferp[bidx + x * 4] & 0x00FF);
-                        msbp[0][fidx[0] + x] = (uint8_t) ((bufferp[bidx + x * 4] & 0xFF00) >> 8);
-                        lsbp[1][fidx[1] + x] = (uint8_t) (bufferp[bidx + x * 4 + 1] & 0x00FF);
-                        msbp[1][fidx[1] + x] = (uint8_t) ((bufferp[bidx + x * 4 + 1] & 0xFF00) >> 8);
-                        lsbp[2][fidx[2] + x] = (uint8_t) (bufferp[bidx + x * 4 + 2] & 0x00FF);
-                        msbp[2][fidx[2] + x] = (uint8_t) ((bufferp[bidx + x * 4 + 2] & 0xFF00) >> 8);
+                        dstYmp[y * dstY_s + x] = GET_MSB(bufferp[y * buffer_s + x * 4 + 0]);
+                        dstYlp[y * dstY_s + x] = GET_LSB(bufferp[y * buffer_s + x * 4 + 0]);
+                        dstUmp[y * dstU_s + x] = GET_MSB(bufferp[y * buffer_s + x * 4 + 1]);
+                        dstUlp[y * dstU_s + x] = GET_LSB(bufferp[y * buffer_s + x * 4 + 1]);
+                        dstVmp[y * dstV_s + x] = GET_MSB(bufferp[y * buffer_s + x * 4 + 2]);
+                        dstVlp[y * dstV_s + x] = GET_LSB(bufferp[y * buffer_s + x * 4 + 2]);
                     }
                 }
                 break;
             } else {
+                int buffer_s = 4 * idmn[0];
                 ret = clEnqueueReadImage(command_queue, image, CL_TRUE, origin, region,
-                    idmn[0] * 4 * sizeof(uint8_t), 0, hostBuffer, 0, NULL, NULL);
-                uint8_t *bufferp = (uint8_t*) hostBuffer;
-                int pitch[3] = {
-                    frm->GetPitch(PLANAR_Y),
-                    frm->GetPitch(PLANAR_U),
-                    frm->GetPitch(PLANAR_V)
-                };
-                uint8_t *frmp[3] = {
-                    frm->GetWritePtr(PLANAR_Y),
-                    frm->GetWritePtr(PLANAR_U),
-                    frm->GetWritePtr(PLANAR_V)
-                };
-                int bidx, fidx[3];
-                #pragma omp parallel for private(bidx, fidx)
+                    buffer_s * sizeof(uint8_t), 0, hostBuffer, 0, NULL, NULL);
+                uint8_t *bufferp = (uint8_t*) hostBuffer;               
+                int dstY_s = frm->GetPitch(PLANAR_Y);
+                int dstU_s = frm->GetPitch(PLANAR_U);
+                int dstV_s = frm->GetPitch(PLANAR_V);
+                uint8_t *dstYp = frm->GetWritePtr(PLANAR_Y);
+                uint8_t *dstUp = frm->GetWritePtr(PLANAR_U);
+                uint8_t *dstVp = frm->GetWritePtr(PLANAR_V);               
+                #pragma omp parallel for
                 for (int y = 0; y < (int) idmn[1]; y++) {
-                    bidx = y * idmn[0] * 4;
-                    fidx[0] = y * pitch[0];
-                    fidx[1] = y * pitch[1];
-                    fidx[2] = y * pitch[2];
                     for (int x = 0; x < (int) idmn[0]; x++) {
-                        frmp[0][fidx[0] + x] = bufferp[bidx + x * 4];
-                        frmp[1][fidx[1] + x] = bufferp[bidx + x * 4 + 1];
-                        frmp[2][fidx[2] + x] = bufferp[bidx + x * 4 + 2];
+                        dstYp[y * dstY_s + x] = bufferp[y * buffer_s + x * 4 + 0];
+                        dstUp[y * dstU_s + x] = bufferp[y * buffer_s + x * 4 + 1];
+                        dstVp[y * dstV_s + x] = bufferp[y * buffer_s + x * 4 + 2];
                     }
                 }
                 break;
@@ -163,16 +143,13 @@ inline cl_uint KNLMeansClass::writeBufferImage(PVideoFrame &frm, cl_command_queu
         case Gray:
             if (lsb) {
                 uint16_t *bufferp = (uint16_t*) hostBuffer;
-                int pitch = frm->GetPitch(PLANAR_Y);
-                const uint8_t *msbp = frm->GetReadPtr(PLANAR_Y);
-                const uint8_t *lsbp = msbp + idmn[1] * pitch;
-                int bidx, fidx;
-                #pragma omp parallel for private(bidx, fidx)
+                int srcY_s = frm->GetPitch(PLANAR_Y);
+                const uint8_t *srcYmp = frm->GetReadPtr(PLANAR_Y);
+                const uint8_t *srcYlp = srcY_s * idmn[1] + srcYmp;
+                #pragma omp parallel for
                 for (int y = 0; y < (int) idmn[1]; y++) {
-                    bidx = y * idmn[0];
-                    fidx = y * pitch;        
                     for (int x = 0; x < (int) idmn[0]; x++) {
-                        bufferp[bidx + x] = msbp[fidx + x] << 8 | lsbp[fidx + x];
+                        bufferp[y * idmn[0] + x] = BIT_16(srcYmp[y * srcY_s + x], srcYlp[y * srcY_s + x]);
                     }
                 }
                 ret = clEnqueueWriteImage(command_queue, image, CL_TRUE, origin, region,
@@ -186,66 +163,48 @@ inline cl_uint KNLMeansClass::writeBufferImage(PVideoFrame &frm, cl_command_queu
         case YUV:
             if (lsb) {
                 uint16_t *bufferp = (uint16_t*) hostBuffer;
-                int pitch[3] = {
-                    frm->GetPitch(PLANAR_Y),
-                    frm->GetPitch(PLANAR_U),
-                    frm->GetPitch(PLANAR_V)
-                };
-                const uint8_t *msbp[3] = {
-                    frm->GetReadPtr(PLANAR_Y),
-                    frm->GetReadPtr(PLANAR_U),
-                    frm->GetReadPtr(PLANAR_V)
-                };
-                const uint8_t *lsbp[3] = {
-                    msbp[0] + idmn[1] * pitch[0],
-                    msbp[1] + idmn[1] * pitch[1],
-                    msbp[2] + idmn[1] * pitch[2]
-                };
-                int bidx, fidx[3];
-                #pragma omp parallel for private(bidx, fidx)
-                for (int y = 0; y < (int) idmn[1]; y++) {
-                    bidx = y * idmn[0] * 4;
-                    fidx[0] = y * pitch[0];
-                    fidx[1] = y * pitch[1];
-                    fidx[2] = y * pitch[2];
+                int buffer_s = 4 * idmn[0];
+                int srcY_s = frm->GetPitch(PLANAR_Y);
+                int srcU_s = frm->GetPitch(PLANAR_U);
+                int srcV_s = frm->GetPitch(PLANAR_V);
+                const uint8_t *srcYmp = frm->GetReadPtr(PLANAR_Y);
+                const uint8_t *srcUmp = frm->GetReadPtr(PLANAR_U);
+                const uint8_t *srcVmp = frm->GetReadPtr(PLANAR_V);
+                const uint8_t *srcYlp = srcY_s * idmn[1] + srcYmp;
+                const uint8_t *srcUlp = srcU_s * idmn[1] + srcUmp;
+                const uint8_t *srcVlp = srcV_s * idmn[1] + srcVmp;         
+                #pragma omp parallel for
+                for (int y = 0; y < (int) idmn[1]; y++) {                 
                     for (int x = 0; x < (int) idmn[0]; x++) {
-                        bufferp[bidx + x * 4] = (msbp[0][fidx[0] + x] << 8) | lsbp[0][fidx[0] + x];
-                        bufferp[bidx + x * 4 + 1] = (msbp[1][fidx[1] + x] << 8) | lsbp[1][fidx[1] + x];
-                        bufferp[bidx + x * 4 + 2] = (msbp[2][fidx[2] + x] << 8) | lsbp[2][fidx[2] + x];
-                        bufferp[bidx + x * 4 + 3] = 0;
+                        bufferp[y * buffer_s + x * 4 + 0] = BIT_16(srcYmp[y * srcY_s + x], srcYlp[y * srcY_s + x]);
+                        bufferp[y * buffer_s + x * 4 + 1] = BIT_16(srcUmp[y * srcU_s + x], srcUlp[y * srcU_s + x]);
+                        bufferp[y * buffer_s + x * 4 + 2] = BIT_16(srcVmp[y * srcV_s + x], srcVlp[y * srcV_s + x]);
+                        bufferp[y * buffer_s + x * 4 + 3] = 0;
                     }
                 }
                 ret = clEnqueueWriteImage(command_queue, image, CL_TRUE, origin, region,
-                    idmn[0] * 4 * sizeof(uint16_t), 0, hostBuffer, 0, NULL, NULL);
+                    buffer_s * sizeof(uint16_t), 0, hostBuffer, 0, NULL, NULL);
                 break;
             } else {
                 uint8_t *bufferp = (uint8_t*) hostBuffer;
-                int pitch[3] = {
-                    frm->GetPitch(PLANAR_Y),
-                    frm->GetPitch(PLANAR_U),
-                    frm->GetPitch(PLANAR_V)
-                };
-                const uint8_t *frmp[3] = {
-                    frm->GetReadPtr(PLANAR_Y),
-                    frm->GetReadPtr(PLANAR_U),
-                    frm->GetReadPtr(PLANAR_V)
-                };
-                int bidx, fidx[3];
-                #pragma omp parallel for private(bidx, fidx)
+                int buffer_s = 4 * idmn[0];
+                int srcY_s = frm->GetPitch(PLANAR_Y);
+                int srcU_s = frm->GetPitch(PLANAR_U);
+                int srcV_s = frm->GetPitch(PLANAR_V);
+                const uint8_t *srcYp = frm->GetReadPtr(PLANAR_Y);
+                const uint8_t *srcUp = frm->GetReadPtr(PLANAR_U);
+                const uint8_t *srcVp = frm->GetReadPtr(PLANAR_V);    
+                #pragma omp parallel for
                 for (int y = 0; y < (int) idmn[1]; y++) {
-                    bidx = y * idmn[0] * 4;
-                    fidx[0] = y * pitch[0];
-                    fidx[1] = y * pitch[1];
-                    fidx[2] = y * pitch[2];
                     for (int x = 0; x < (int) idmn[0]; x++) {
-                        bufferp[bidx + x * 4] = frmp[0][fidx[0] + x];
-                        bufferp[bidx + x * 4 + 1] = frmp[1][fidx[1] + x];
-                        bufferp[bidx + x * 4 + 2] = frmp[2][fidx[2] + x];
-                        bufferp[bidx + x * 4 + 3] = 0;
+                        bufferp[y * buffer_s + x * 4 + 0] = srcYp[y * srcY_s + x];
+                        bufferp[y * buffer_s + x * 4 + 1] = srcUp[y * srcU_s + x];
+                        bufferp[y * buffer_s + x * 4 + 2] = srcVp[y * srcV_s + x];
+                        bufferp[y * buffer_s + x * 4 + 3] = 0;
                     }
                 }
                 ret = clEnqueueWriteImage(command_queue, image, CL_TRUE, origin, region,
-                    idmn[0] * 4 * sizeof(uint8_t), 0, hostBuffer, 0, NULL, NULL);
+                    buffer_s * sizeof(uint8_t), 0, hostBuffer, 0, NULL, NULL);
                 break;
             }      
         case RGB:
@@ -287,7 +246,7 @@ inline cl_uint readBufferImage(KNLMeansData *data, const VSAPI *vsapi, VSFrameRe
                     #pragma omp parallel for
                     for (int y = 0; y < (int) data->idmn[1]; y++) {
                         for (int x = 0; x < (int) data->idmn[0]; x++) {
-                            dstp0[y * dst0_s + x] = bufferp[y * buffer_s + 4 * x];
+                            dstp0[y * dst0_s + x] = bufferp[y * buffer_s + 4 * x + 0];
                             dstp1[y * dst1_s + x] = bufferp[y * buffer_s + 4 * x + 1];
                             dstp2[y * dst2_s + x] = bufferp[y * buffer_s + 4 * x + 2];
                         }
@@ -303,7 +262,7 @@ inline cl_uint readBufferImage(KNLMeansData *data, const VSAPI *vsapi, VSFrameRe
                     #pragma omp parallel for
                     for (int y = 0; y < (int) data->idmn[1]; y++) {           
                         for (int x = 0; x < (int) data->idmn[0]; x++) {
-                            dstp0_16[y * dst0_s + x] = bufferp[y * buffer_s + 4 * x] >> bshift;
+                            dstp0_16[y * dst0_s + x] = bufferp[y * buffer_s + 4 * x + 0] >> bshift;
                             dstp1_16[y * dst1_s + x] = bufferp[y * buffer_s + 4 * x + 1] >> bshift;
                             dstp2_16[y * dst2_s + x] = bufferp[y * buffer_s + 4 * x + 2] >> bshift;
                         }
@@ -318,7 +277,7 @@ inline cl_uint readBufferImage(KNLMeansData *data, const VSAPI *vsapi, VSFrameRe
                     #pragma omp parallel for
                     for (int y = 0; y < (int) data->idmn[1]; y++) {                     
                         for (int x = 0; x < (int) data->idmn[0]; x++) {
-                            dstp0_32[y * dst0_s + x] = bufferp[y * buffer_s + 4 * x];
+                            dstp0_32[y * dst0_s + x] = bufferp[y * buffer_s + 4 * x + 0];
                             dstp1_32[y * dst1_s + x] = bufferp[y * buffer_s + 4 * x + 1];
                             dstp2_32[y * dst2_s + x] = bufferp[y * buffer_s + 4 * x + 2];
                         }
@@ -345,19 +304,19 @@ inline cl_uint writeBufferImage(KNLMeansData *data, const VSAPI *vsapi, const VS
         case RGB: {
             int bsample = data->vi->format->bytesPerSample;         
             int buffer_s = 4 * data->idmn[0];
-            const uint8_t *srcp0 = vsapi->getReadPtr(frm, 0);
-            const uint8_t *srcp1 = vsapi->getReadPtr(frm, 1);
-            const uint8_t *srcp2 = vsapi->getReadPtr(frm, 2);
             int src0_s = vsapi->getStride(frm, 0) / bsample;
             int src1_s = vsapi->getStride(frm, 1) / bsample;
-            int src2_s = vsapi->getStride(frm, 2) / bsample;           
+            int src2_s = vsapi->getStride(frm, 2) / bsample;
+            const uint8_t *srcp0 = vsapi->getReadPtr(frm, 0);
+            const uint8_t *srcp1 = vsapi->getReadPtr(frm, 1);
+            const uint8_t *srcp2 = vsapi->getReadPtr(frm, 2);            
             switch (bsample) {
                 case 1: {
                     uint8_t *bufferp = (uint8_t*) data->hostBuffer;
                     #pragma omp parallel for
                     for (int y = 0; y < (int) data->idmn[1]; y++) {
                         for (int x = 0; x < (int) data->idmn[0]; x++) {
-                            bufferp[y * buffer_s + 4 * x] = srcp0[y * src0_s + x];
+                            bufferp[y * buffer_s + 4 * x + 0] = srcp0[y * src0_s + x];
                             bufferp[y * buffer_s + 4 * x + 1] = srcp1[y * src1_s + x];
                             bufferp[y * buffer_s + 4 * x + 2] = srcp2[y * src2_s + x];
                             bufferp[y * buffer_s + 4 * x + 3] = 0;
@@ -374,7 +333,7 @@ inline cl_uint writeBufferImage(KNLMeansData *data, const VSAPI *vsapi, const VS
                     #pragma omp parallel for
                     for (int y = 0; y < (int) data->idmn[1]; y++) {                      
                         for (int x = 0; x < (int) data->idmn[0]; x++) {
-                            bufferp[y * buffer_s + 4 * x] = srcp0_16[y * src0_s + x] << bshift;
+                            bufferp[y * buffer_s + 4 * x + 0] = srcp0_16[y * src0_s + x] << bshift;
                             bufferp[y * buffer_s + 4 * x + 1] = srcp1_16[y * src1_s + x] << bshift;
                             bufferp[y * buffer_s + 4 * x + 2] = srcp2_16[y * src2_s + x] << bshift;
                             bufferp[y * buffer_s + 4 * x + 3] = 0;
@@ -390,7 +349,7 @@ inline cl_uint writeBufferImage(KNLMeansData *data, const VSAPI *vsapi, const VS
                     #pragma omp parallel for
                     for (int y = 0; y < (int) data->idmn[1]; y++) {                      
                         for (int x = 0; x < (int) data->idmn[0]; x++) {
-                            bufferp[y * buffer_s + 4 * x] = srcp0_32[y * src0_s + x];
+                            bufferp[y * buffer_s + 4 * x + 0] = srcp0_32[y * src0_s + x];
                             bufferp[y * buffer_s + 4 * x + 1] = srcp1_32[y * src1_s + x];
                             bufferp[y * buffer_s + 4 * x + 2] = srcp2_32[y * src2_s + x];
                             bufferp[y * buffer_s + 4 * x + 3] = 0;
@@ -1091,7 +1050,7 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out,
 
     // Checks user value.
     if (d.info && d.vi->format->bitsPerSample != 8) {
-        vsapi->setError(out, "knlm.KNLMeansCL: info requires GrayP8 or YUVP8 color space!");
+        vsapi->setError(out, "knlm.KNLMeansCL: info requires Gray8 or YUVP8 color space!");
         vsapi->freeNode(d.node);
         vsapi->freeNode(d.knot);
         return;
