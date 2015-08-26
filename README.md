@@ -3,13 +3,9 @@
 **KNLMeansCL** is an optimized pixelwise OpenCL implementation of the Non-local means denoising algorithm. 
 Every pixel is restored by the weighted average of all pixels in its search window. The level of averaging is determined by the filtering parameter h. 
 
-Don't process chroma channels, copy it from the source clip if present.
-
-### Supported color space ###
+### Supported image format ###
 -  AviSynth: RGB32, Y8, YV411, YV12, YV16, YV24.
--  VapourSynth: GrayG, YUV420PG, YUV422PG, YUV444PG, YUV410PG, YUV411PG, YUV440PG.
-
-*The generic type name G is used to indicate 8, 16, H and S. Progressive only*.
+-  VapourSynth: Gray8, Gray16, GrayH, GrayS, YUV420P8, YUV422P8, YUV444P8, YUV410P8, YUV411P8, YUV440P8, YUV420P9, YUV422P9, YUV444P9, YUV420P10, YUV422P10, YUV444P10, YUV420P16, YUV422P16, YUV444P16, YUV444PH, YUV444PS, RGB24, RGB27, RGB30, RGB48, RGBH, RGBS.
 
 ### Syntax ###
 ```
@@ -21,16 +17,15 @@ knlm.KNLMeansCL (clip clip, int d (0), int a (2), int s (4), int wmode (1),
 ```
 
 ### Requirements ###
-- SSE2 / SSE3 instruction set.
 - OpenCL driver. AMD: [link](http://support.amd.com), NVIDIA: [link](http://www.nvidia.com/download/find.aspx), Intel: [link](https://software.intel.com/en-us/articles/opencl-drivers).
 - [Visual C++ Redistributable Package for Visual Studio 2013](http://www.microsoft.com/en-US/download/details.aspx?id=40784), windows build.
 
 ### Parameters ###
-- **clip (clip)**
+- **clip / clip clip**
 ``` 
 Video source.
 ```	
-- **int D (d)**
+- **int D / d**
 ```
 Set the number of past and future frame that the filter uses for denoising 
 the current frame. 
@@ -42,7 +37,7 @@ search window size = temporal size * spatial size.
 Default: 0.
 ```
 
-- **int A (a)**
+- **int A / a**
 ```	
 Set the radius of the search window. Usually, larger it the better the result of 
 the denoising.
@@ -51,7 +46,7 @@ search window size = temporal size * spatial size.
 	
 Default: 2.
 ```
-- **int S (s)**
+- **int S / s**
 ```	
 Set the radius of the similarity neighborhood window. The impact on performance is low,
 therefore it depends on the nature of the noise.
@@ -59,7 +54,14 @@ similarity neighborhood size = (2 * S + 1)^2.
 	
 Default: 4.
 ```
-- **int wmode (wmode)**
+- **bool cmode / cmode**
+```	
+Use distance color instead of gray level. Process luma and chroma at once.
+If color space is RGB, cmode is always true.
+	
+Default: false.
+```	
+- **int wmode / wmode**
 ```	
 0 := Cauchy weighting function has a very slow decay. It assign larger weights to
      dissimilar blocks than the Leclerc robust function, which will eventually lead
@@ -71,19 +73,19 @@ Default: 4.
 	
 Default: 1.
 ```	
-- **float h (h)**
+- **float h / h**
 ```	
 Controls the strength of the filtering. Larger values will remove more noise.
 	
 Default: 1.2.
 ```
-- **clip rclip (rclip)**
+- **clip rclip / rclip**
 ```	
 Extra reference clip option to do weighting calculation.
 	
 Default: source clip.
 ```
-- **string device_type (device_type)**
+- **string device_type / device_type**
 ```	
 CPU := An OpenCL device that is the host processor.
 GPU := An OpenCL device that is a GPU. 
@@ -92,13 +94,13 @@ DEFAULT := The default OpenCL device in the system.
 	
 Default: DEFAULT.
 ```	
-- **bool lsb_inout (not present)**
+- **bool lsb_inout / not present**
 ```		
 16-bit input and output clip.
 
 Default: false.
 ```	
-- **bool info (info)**
+- **bool info / info**
 ```	
 Display info on screen.
 VapourSynth requires 8-bits per sample.
