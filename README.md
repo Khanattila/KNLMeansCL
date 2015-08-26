@@ -13,8 +13,8 @@ KNLMeansCL (clip, int D (0), int A (2), int S (4), bool cmode(false), int wmode 
 	float h (1.2), string device_type ("default"), bool lsb_inout (false), 
 	bool info (false))
             
-knlm.KNLMeansCL (clip clip, int d (0), int a (2), int s (4), int cmode(0), int wmode (1),  
-        float h (1.2), string device_type ("default"), int info (0)) 
+knlm.KNLMeansCL (clip clip, int d (0), int a (2), int s (4), int cmode(0), 
+	int wmode (1), float h (1.2), string device_type ("default"), int info (0)) 
 ```
 
 ### Requirements ###
