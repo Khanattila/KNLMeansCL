@@ -1,6 +1,6 @@
 # KNLMeansCL #
 
-**KNLMeansCL** is an optimized pixelwise OpenCL implementation of the Non-local means denoising algorithm. 
+**KNLMeansCL** is an optimized OpenCL implementation of the Non-local means denoising algorithm. 
 Every pixel is restored by the weighted average of all pixels in its search window. The level of averaging is determined by the filtering parameter h. 
 
 ### Supported image format ###
@@ -9,11 +9,11 @@ Every pixel is restored by the weighted average of all pixels in its search wind
 
 ### Syntax ###
 ```
-KNLMeansCL (clip, int D (0), int A (2), int S (4), bool cmode(false), int wmode (1), float h (1.2), 
-            string device_type ("default"), bool lsb_inout (false), bool info (false))
+KNLMeansCL (clip, int D (0), int A (2), int S (4), bool cmode(false), int wmode (1), 
+	float h (1.2), string device_type ("default"), bool lsb_inout (false), bool info (false))
             
 knlm.KNLMeansCL (clip clip, int d (0), int a (2), int s (4), int cmode(0), int wmode (1),  
-                 float h (1.2), string device_type ("default"), int info (0)) 
+        float h (1.2), string device_type ("default"), int info (0)) 
 ```
 
 ### Requirements ###
