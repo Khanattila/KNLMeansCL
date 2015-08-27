@@ -64,8 +64,8 @@ bool cmode              Use color distance instead of gray intensities. Normally
 	
 
 int wmode               0 := Cauchy weighting function has a very slow decay. It assigns 
-			larger weights to dissimilar blocks than the Leclerc robust 
-			function, which will eventually lead to oversmoothing.
+		        larger weights to dissimilar blocks than the Leclerc robust 
+		        function, which will eventually lead to oversmoothing.
                         
                         1 := Leclerc weighting function has a faster decay, but still
                         assigns positive weights to dissimilar blocks. Original NLMeans 
@@ -79,7 +79,7 @@ int wmode               0 := Cauchy weighting function has a very slow decay. It
 	
 	
 float h                 Controls the strength of the filtering. Larger values will 
-			remove more noise.
+		        remove more noise.
 	                
                         Default: 1.2.
 
