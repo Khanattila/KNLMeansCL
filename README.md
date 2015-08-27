@@ -57,8 +57,8 @@ int s                   Set the radius of the similarity neighborhood window. Th
 
 bool cmode              Use color distance instead of gray intensities. Normally 
                         KNLMeansCL processes only Luma and copy Chroma if present. If 
-                        cmode is true KNLMeansCL processes Luma and Chroma together. If
-                        color space is RGB, cmode is always true.
+                        cmode is true KNLMeansCL processes Luma and Chroma together. 
+                        If color space is RGB, cmode is always true.
 	
                         Default: false.
 	
