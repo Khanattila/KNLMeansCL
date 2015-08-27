@@ -41,8 +41,8 @@ int d                   Set the number of past and future frame that the filter 
 
 
 int a                   Set the radius of the search window. A=0 uses 1 pixel, while D=1 
-			use 9 pixels and son on. Usually, larger it the better the result
-			of the denoising. Spatial size = (2 * A + 1)^2.
+                        use 9 pixels and son on. Usually, larger it the better the result
+                        of the denoising. Spatial size = (2 * A + 1)^2.
                         Total search window size = temporal size * spatial size.
 	
                         Default: 2.
@@ -56,16 +56,16 @@ int s                   Set the radius of the similarity neighborhood window. Th
 
 
 bool cmode              Use color distance instead of gray intensities. Normally 
-			KNLMeansCL processes only Luma and copy Chroma if present. If 
-			cmode is true KNLMeansCL processes Luma and Chroma together. If
-			color space is RGB, cmode is always true.
+                        KNLMeansCL processes only Luma and copy Chroma if present. If 
+                        cmode is true KNLMeansCL processes Luma and Chroma together. If
+                        color space is RGB, cmode is always true.
 	
                         Default: false.
 	
 
 int wmode               0 := Cauchy weighting function has a very slow decay. It assigns 
-		        larger weights to dissimilar blocks than the Leclerc robust 
-		        function, which will eventually lead to oversmoothing.
+                        larger weights to dissimilar blocks than the Leclerc robust 
+                        function, which will eventually lead to oversmoothing.
                         
                         1 := Leclerc weighting function has a faster decay, but still
                         assigns positive weights to dissimilar blocks. Original NLMeans 
@@ -79,7 +79,7 @@ int wmode               0 := Cauchy weighting function has a very slow decay. It
 	
 	
 float h                 Controls the strength of the filtering. Larger values will 
-		        remove more noise.
+                        remove more noise.
 	                
                         Default: 1.2.
 
