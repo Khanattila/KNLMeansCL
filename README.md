@@ -49,8 +49,8 @@ int a                   Set the radius of the search window. A=0 uses 1 pixel, w
 
 
 int s                   Set the radius of the similarity neighborhood window. The impact 
-			on performance is low, therefore it depends on the nature of the 
-			noise. Similarity neighborhood size = (2 * S + 1)^2.
+                        on performance is low, therefore it depends on the nature of the 
+                        noise. Similarity neighborhood size = (2 * S + 1)^2.
 	
                         Default: 4.
 
