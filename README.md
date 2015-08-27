@@ -1,11 +1,12 @@
 # KNLMeansCL #
 
 **KNLMeansCL** is an optimized OpenCL implementation of the Non-local means denoising algorithm. 
-Every pixel is restored by the weighted average of all pixels in its search window. The level of averaging is determined by the filtering parameter h. 
+Every pixel is restored by the weighted average of all pixels in its search window. 
+The level of averaging is determined by the filtering parameter h. 
 
 ### Supported image format ###
 -  AviSynth: RGB32, Y8, YV411, YV12, YV16, YV24.
--  VapourSynth: Gray8, Gray16, GrayH, GrayS, YUV420P8, YUV422P8, YUV444P8, YUV410P8, YUV411P8, YUV440P8, YUV420P9, YUV422P9, YUV444P9, YUV420P10, YUV422P10, YUV444P10, YUV420P16, YUV422P16, YUV444P16, YUV444PH, YUV444PS, RGB24, RGB27, RGB30, RGB48, RGBH, RGBS.
+-  VapourSynth: All.
 
 ### Syntax ###
 ```
@@ -57,8 +58,9 @@ Default: 4.
 ```
 - **bool cmode / cmode**
 ```	
-Use distance color instead of gray level. Process luma and chroma at once.
-If color space is RGB, cmode is always true.
+Use color distance instead of gray intensities. Normally KNLMeansCL processes only 
+Luma and copy Chroma if present. If cmode is true KNLMeansCL processes Luma and 
+Chroma together. If color space is RGB, cmode is always true.
 	
 Default: false.
 ```	
@@ -103,8 +105,7 @@ Default: false.
 ```	
 - **bool info / info**
 ```	
-Display info on screen.
-VapourSynth requires 8-bits per sample.
+Display info on screen. It requires YUV color space.
 
 Default: false.
 ```
