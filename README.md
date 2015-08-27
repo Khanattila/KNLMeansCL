@@ -1,19 +1,11 @@
 ## KNLMeansCL ##
 
 **KNLMeansCL** is an optimized OpenCL implementation of the Non-local means denoising algorithm. 
-Every pixel is restored by the weighted average of all pixels in its search window. 
-The level of averaging is determined by the filtering parameter h. 
+Every pixel is restored by the weighted average of all pixels in its search window. The level of averaging is determined by the filtering parameter h. 
 
 #### Requirements ####
 - OpenCL driver. AMD: [link](http://support.amd.com), NVIDIA: [link](http://www.nvidia.com/download/find.aspx), Intel: [link](https://software.intel.com/en-us/articles/opencl-drivers).
 - [Visual C++ Redistributable Package for Visual Studio 2013](http://www.microsoft.com/en-US/download/details.aspx?id=40784), windows build.
-
-#### Supported image format ####
-```
-AviSynth:               RGB32, Y8, YV411, YV12, YV16, YV24.
-
-VapourSynth: 	        All.
-```
 
 #### Syntax ####
 ```
@@ -26,6 +18,14 @@ VapourSynth:            knlm.KNLMeansCL (clip clip, int d (0), int a (2), int s 
                                 int cmode(0), int wmode (1), float h (1.2), 
                                 string device_type ("default"), int info (0)) 
 ```
+
+#### Supported image format ####
+```
+AviSynth:               RGB32, Y8, YV411, YV12, YV16, YV24.
+
+VapourSynth: 	        All.
+```
+
 
 #### Parameters ####
 ``` 
