@@ -15,16 +15,16 @@ AviSynth:               RGB32, Y8, YV411, YV12, YV16, YV24.
 VapourSynth: 	        All.
 ```
 
-#### Syntax ####	-----------------------------------------------------------------
+#### Syntax ####
 ```
 AviSynth:               KNLMeansCL (clip, int D (0), int A (2), int S (4), 
-				bool cmode(false),  int wmode (1), float h (1.2), 
-				string device_type ("default"), bool lsb_inout (false),
-				bool info (false))
+                                bool cmode(false),  int wmode (1), float h (1.2), 
+                                string device_type ("default"), bool lsb_inout (false),
+                                bool info (false))
 
 VapourSynth:            knlm.KNLMeansCL (clip clip, int d (0), int a (2), int s (4), 
-				int cmode(0), int wmode (1), float h (1.2), 
-				string device_type ("default"), int info (0)) 
+                                int cmode(0), int wmode (1), float h (1.2), 
+                                string device_type ("default"), int info (0)) 
 ```
 
 #### Parameters ####
@@ -33,9 +33,9 @@ clip clip               Video source.
 	
 
 int d                   Set the number of past and future frame that the filter uses for 
-			denoising the current frame. D=0 uses 1 frame, while D=1 uses 3
-			frames and so on. Usually, larger it the better the result of the
-			denoising. Temporal size = (2 * D + 1).
+                        denoising the current frame. D=0 uses 1 frame, while D=1 uses 3
+                        frames and so on. Usually, larger it the better the result of the
+                        denoising. Temporal size = (2 * D + 1).
 
                         Default: 0.
 
