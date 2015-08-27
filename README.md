@@ -4,23 +4,26 @@
 Every pixel is restored by the weighted average of all pixels in its search window. 
 The level of averaging is determined by the filtering parameter h. 
 
-#### Supported image format ####
--  AviSynth: RGB32, Y8, YV411, YV12, YV16, YV24.
--  VapourSynth: All.
-
-#### Syntax ####
-```
-AviSynth:       KNLMeansCL (clip, int D (0), int A (2), int S (4), bool cmode(false), int wmode (1), 
-                        float h (1.2), string device_type ("default"), bool lsb_inout (false), 
-                        bool info (false))
-
-VapourSynth:    knlm.KNLMeansCL (clip clip, int d (0), int a (2), int s (4), int cmode(0), 
-                        int wmode (1), float h (1.2), string device_type ("default"), int info (0)) 
-```
-
 #### Requirements ####
 - OpenCL driver. AMD: [link](http://support.amd.com), NVIDIA: [link](http://www.nvidia.com/download/find.aspx), Intel: [link](https://software.intel.com/en-us/articles/opencl-drivers).
 - [Visual C++ Redistributable Package for Visual Studio 2013](http://www.microsoft.com/en-US/download/details.aspx?id=40784), windows build.
+
+#### Supported image format ####
+```
+AviSynth:               RGB32, Y8, YV411, YV12, YV16, YV24.
+
+VapourSynth: 	        All.
+```
+
+#### Syntax ####
+```
+AviSynth:               KNLMeansCL (clip, int D (0), int A (2), int S (4), bool cmode(false), 
+                        int wmode (1), float h (1.2), string device_type ("default"), 
+                        bool lsb_inout (false), bool info (false))
+
+VapourSynth:            knlm.KNLMeansCL (clip clip, int d (0), int a (2), int s (4), int cmode(0), 
+                        int wmode (1), float h (1.2), string device_type ("default"), int info (0)) 
+```
 
 #### Parameters ####
 ``` 
@@ -35,8 +38,8 @@ int d                   Set the number of past and future frame that the filter 
                         Default: 0.
 
 
-int a                   Set the radius of the search window. A=0 uses 1 pixel, while D=1 use 9 pixels
-                        and son on. Usually, larger it the better the result of the denoising.
+int a                   Set the radius of the search window. A=0 uses 1 pixel, while D=1 use 9 
+                        pixels and son on. Usually, larger it the better the result of the denoising.
                         spatial size = (2 * A + 1)^2.
                         Total search window size = temporal size * spatial size.
 	
