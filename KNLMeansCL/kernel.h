@@ -24,9 +24,9 @@
 static const cl_uint H_BLOCK_X = 32, H_BLOCK_Y = 4, V_BLOCK_X = 32, V_BLOCK_Y = 4;
 static const char* source_code =
 "																												  \n" \
-"#define WGH_R   0.4713394928090557f																			  \n" \
-"#define WGH_G	 0.6548939043680122f																			  \n" \
-"#define WGH_B	 0.5907224869091433f																			  \n" \
+"#define WGH_R   0.6664827524f        	                   														  \n" \
+"#define WGH_G	 1.2866580779f        	        																  \n" \
+"#define WGH_B	 1.0468591696f        						            										  \n" \
 "#define cfGRAY  0																								  \n" \
 "#define cfYUV   1																								  \n" \
 "#define cfRGB   2																								  \n" \
@@ -62,18 +62,20 @@ static const char* source_code =
 "	const int gidx = mad24(y, dim.x, x);																		  \n" \
 "																												  \n" \
 "	if (NLMK_TCOLOR == cfGRAY) {	                    														  \n" \
-"		const float4 u1 = read_imagef(U1, smp, (int2) (x, y)).x;											      \n" \
-"		const float4 u1_pq = read_imagef(U1_pq, smp, (int2) (x, y) + q).x;										  \n" \
-"		U4[gidx] = pown(distance(u1, u1_pq), 2);						                                          \n" \
+"		const float u1 = read_imagef(U1, smp, (int2) (x, y)).x;			     								      \n" \
+"		const float u1_pq = read_imagef(U1_pq, smp, (int2) (x, y) + q).x;										  \n" \
+"		U4[gidx] = 3.0f * (u1 - u1_pq) * (u1 - u1_pq);                                                            \n" \
 "	} else if (NLMK_TCOLOR == cfYUV) {																			  \n" \
-"		const float4 u1 = read_imagef(U1, smp, (int2) (x, y));													  \n" \
+"		const float4 u1 = read_imagef(U1, smp, (int2) (x, y));			     								      \n" \
 "		const float4 u1_pq = read_imagef(U1_pq, smp, (int2) (x, y) + q);										  \n" \
-"		U4[gidx] = pown(distance(u1, u1_pq), 2);						    									  \n" \
+"		const float4 dist = (u1 - u1_pq) * (u1 - u1_pq);														  \n" \
+"		U4[gidx] = dist.x + dist.y + dist.z;                                                                      \n" \
 "	} else if (NLMK_TCOLOR == cfRGB) {																			  \n" \
-"		const float4 u1 = read_imagef(U1, smp, (int2) (x, y));													  \n" \
+"		const float4 u1 = read_imagef(U1, smp, (int2) (x, y));			     								      \n" \
 "		const float4 u1_pq = read_imagef(U1_pq, smp, (int2) (x, y) + q);										  \n" \
-"		const float4 wgh = (float4) (WGH_R, WGH_G, WGH_B, 0.0f);            									  \n" \
-"		U4[gidx] = pown(distance(wgh * u1, wgh * u1_pq), 2);													  \n" \
+"		const float4 wgh = (float4) (WGH_R, WGH_G, WGH_B, 0.0f)													  \n" \
+"		const float4 dist = wgh * (u1 - u1_pq) * (u1 - u1_pq);												      \n" \
+"		U4[gidx] = dist.x + dist.y + dist.z;                                                                      \n" \
 "	}																											  \n" \
 "}																												  \n" \
 "																												  \n" \
