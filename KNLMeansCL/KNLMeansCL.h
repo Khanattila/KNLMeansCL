@@ -16,11 +16,11 @@
 *	along with KNLMeansCL. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#define VERSION "0.6.0"
+#define VERSION "0.6.1"
 
 #ifdef _MSC_VER
-#define strcasecmp _stricmp
-#define snprintf sprintf_s
+    #define strcasecmp _stricmp
+    #define snprintf sprintf_s
 #endif
 
 #include <cstdint>
@@ -31,16 +31,20 @@
 #include <fstream>
 
 #ifdef __APPLE__
-#include <OpenCL/opencl.h>
+    #include <OpenCL/opencl.h>
 #else
-#include <CL/cl.h>
+    #include <CL/cl.h>
+#endif
+
+#if defined(_MSC_VER) && defined(CL_VERSION_1_2)
+    #pragma warning(disable : 4996)
 #endif
 
 #include "kernel.h"
 #include "startchar.h"
 
 #ifdef _WIN32
-#include "avisynth.h"
+    #include "avisynth.h"
 #endif
 
 #include <VapourSynth.h>
@@ -51,7 +55,7 @@ enum color_t { Gray, YUV, RGB };
 #ifdef __AVISYNTH_6_H__
 class KNLMeansClass : public GenericVideoFilter {
 private:
-    const int D, A, S, wmode;
+    const int d, a, s, wmode;
     const double h;
     PClip baby;
     const char* ocl_device;
@@ -71,7 +75,7 @@ private:
     cl_uint writeBufferImage(PVideoFrame &frm, cl_command_queue command_queue,
         cl_mem image, const size_t origin[3], const size_t region[3]);
 public:
-    KNLMeansClass(PClip _child, const int _D, const int _A, const int _S, const bool _cmode, const int _wmode, 
+    KNLMeansClass(PClip _child, const int _d, const int _a, const int _s, const bool _cmode, const int _wmode, 
         const double _h, PClip _baby, const char* _ocl_device, const bool _lsb, const bool _info, 
         IScriptEnvironment* env);
     ~KNLMeansClass();

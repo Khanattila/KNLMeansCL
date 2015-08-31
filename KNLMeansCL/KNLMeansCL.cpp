@@ -370,15 +370,15 @@ inline cl_uint writeBufferImage(KNLMeansData *data, const VSAPI *vsapi, const VS
 //////////////////////////////////////////
 // AviSynthInit
 #ifdef __AVISYNTH_6_H__
-KNLMeansClass::KNLMeansClass(PClip _child, const int _D, const int _A, const int _S, const bool _cmode, 
+KNLMeansClass::KNLMeansClass(PClip _child, const int _d, const int _a, const int _s, const bool _cmode, 
     const int _wmode, const double _h, PClip _baby, const char* _ocl_device, const bool _lsb, const bool _info, 
-    IScriptEnvironment* env) : GenericVideoFilter(_child), D(_D), A(_A), S(_S), cmode(_cmode), wmode(_wmode), h(_h), 
+    IScriptEnvironment* env) : GenericVideoFilter(_child), d(_d), a(_a), s(_s), cmode(_cmode), wmode(_wmode), h(_h), 
     baby(_baby), ocl_device(_ocl_device), lsb(_lsb), info(_info) {
 
     // Checks AviSynth Version.
     env->CheckVersion(6);
-    child->SetCacheHints(CACHE_WINDOW, D);
-    baby->SetCacheHints(CACHE_WINDOW, D);
+    child->SetCacheHints(CACHE_WINDOW, d);
+    baby->SetCacheHints(CACHE_WINDOW, d);
 
     // Checks source clip and rclip.
     cl_channel_order corder = NULL;
@@ -409,12 +409,12 @@ KNLMeansClass::KNLMeansClass(PClip _child, const int _D, const int _A, const int
         env->ThrowError("KNLMeansCL: RGB48y is not supported!");
     if (vi.IsRGB() && info)
         env->ThrowError("KNLMeansCL: info requires YUV color space!");
-    if (D < 0)
-        env->ThrowError("KNLMeansCL: D must be greater than or equal to 0!");
-    if (A < 0)
-        env->ThrowError("KNLMeansCL: A must be greater than or equal to 0!");
-    if (S < 0 || S > 4)
-        env->ThrowError("KNLMeansCL: S must be in range [0, 4]!");
+    if (d < 0)
+        env->ThrowError("KNLMeansCL: d must be greater than or equal to 0!");
+    if (a < 0)
+        env->ThrowError("KNLMeansCL: a must be greater than or equal to 0!");
+    if (s < 0 || s > 4)
+        env->ThrowError("KNLMeansCL: s must be in range [0, 4]!");
     if (wmode < 0 || wmode > 2)
         env->ThrowError("KNLMeansCL: wmode must be in range [0, 2]!");
     if (h <= 0.0f)
@@ -442,7 +442,7 @@ KNLMeansClass::KNLMeansClass(PClip _child, const int _D, const int _A, const int
     cl_platform_id *temp_platforms = (cl_platform_id*) malloc(sizeof(cl_platform_id) * num_platforms);
     ret |= clGetPlatformIDs(num_platforms, temp_platforms, NULL);
     if (ret != CL_SUCCESS) {
-        env->ThrowError("KNLMeansCL: AviSynthCreate error(clGetPlatformIDs)!");
+        env->ThrowError("KNLMeansCL: AviSynthCreate error (clGetPlatformIDs)!");
     }
     for (cl_uint i = 0; i < num_platforms; i++) {
         ret |= clGetDeviceIDs(temp_platforms[i], device, 0, 0, &num_devices);
@@ -460,7 +460,7 @@ KNLMeansClass::KNLMeansClass(PClip _child, const int _D, const int _A, const int
     }
     free(temp_platforms);
     if (ret != CL_SUCCESS && ret != CL_DEVICE_NOT_FOUND) {
-        env->ThrowError("KNLMeansCL: AviSynthCreate error(clGetDeviceIDs)!");
+        env->ThrowError("KNLMeansCL: AviSynthCreate error (clGetDeviceIDs)!");
     } else if (device_aviable == CL_FALSE) {
         env->ThrowError("KNLMeansCL: opencl device not available!");
     }
@@ -475,7 +475,7 @@ KNLMeansClass::KNLMeansClass(PClip _child, const int _D, const int _A, const int
     if (ret == CL_IMAGE_FORMAT_NOT_SUPPORTED) 
         env->ThrowError("KNLMeansCL: image format is not supported by your device!");
     mem_in[2] = clCreateImage2D(context, CL_MEM_READ_ONLY, &image_format, idmn[0], idmn[1], 0, NULL, NULL);
-    if (D) {
+    if (d) {
         mem_in[1] = clCreateImage2D(context, CL_MEM_READ_ONLY, &image_format, idmn[0], idmn[1], 0, NULL, NULL);
         mem_in[3] = clCreateImage2D(context, CL_MEM_READ_ONLY, &image_format, idmn[0], idmn[1], 0, NULL, NULL);
     }
@@ -498,11 +498,11 @@ KNLMeansClass::KNLMeansClass(PClip _child, const int _D, const int _A, const int
     // Creates and Build a program executable from the program source.
     program = clCreateProgramWithSource(context, 1, &source_code, NULL, NULL);
     char options[2048];
-    snprintf(options, 2048, "-cl-denorms-are-zero -cl-fast-relaxed-math -Werror \
+    snprintf(options, 2048, "-cl-single-precision-constant -cl-denorms-are-zero -cl-fast-relaxed-math -Werror \
         -D H_BLOCK_X=%i -D H_BLOCK_Y=%i -D V_BLOCK_X=%i -D V_BLOCK_Y=%i \
-        -D NLMK_TCOLOR=%i -D NLMK_S=%i -D NLMK_WMODE=%i -D NLMK_TEMPORAL=%i -D NLMK_H2_INV_NORM=%ff",
+        -D NLMK_TCOLOR=%i -D NLMK_S=%i -D NLMK_WMODE=%i -D NLMK_TEMPORAL=%i -D NLMK_H2_INV_NORM=%lf",
          H_BLOCK_X, H_BLOCK_Y, V_BLOCK_X, V_BLOCK_Y,
-         color, S, wmode, D, 65025.0 / (3*h*h*(2 * S + 1) * (2 * S + 1)));
+         color, s, wmode, d, 65025.0 / (3*h*h*(2 * s + 1) * (2 * s + 1)));
     ret = clBuildProgram(program, 1, &deviceID, options, NULL, NULL);
     if (ret != CL_SUCCESS) {
         size_t log_size;
@@ -529,7 +529,7 @@ KNLMeansClass::KNLMeansClass(PClip _child, const int _D, const int _A, const int
     ret |= clSetKernelArg(kernel[0], 1, sizeof(cl_mem), &mem_U[3]);
     ret |= clSetKernelArg(kernel[0], 2, 2 * sizeof(cl_uint), &idmn);
     ret |= clSetKernelArg(kernel[1], 0, sizeof(cl_mem), &mem_in[2]);
-    ret |= clSetKernelArg(kernel[1], 1, sizeof(cl_mem), &mem_in[D ? 3 : 2]);
+    ret |= clSetKernelArg(kernel[1], 1, sizeof(cl_mem), &mem_in[d ? 3 : 2]);
     ret |= clSetKernelArg(kernel[1], 2, sizeof(cl_mem), &mem_U[1]);
     ret |= clSetKernelArg(kernel[1], 3, 2 * sizeof(cl_uint), &idmn);
     ret |= clSetKernelArg(kernel[2], 0, sizeof(cl_mem), &mem_U[1]);
@@ -538,7 +538,7 @@ KNLMeansClass::KNLMeansClass(PClip _child, const int _D, const int _A, const int
     ret |= clSetKernelArg(kernel[3], 0, sizeof(cl_mem), &mem_U[2]);
     ret |= clSetKernelArg(kernel[3], 1, sizeof(cl_mem), &mem_U[1]);
     ret |= clSetKernelArg(kernel[3], 2, 2 * sizeof(cl_uint), &idmn);
-    ret |= clSetKernelArg(kernel[4], 0, sizeof(cl_mem), &mem_in[D ? 1 : 0]);
+    ret |= clSetKernelArg(kernel[4], 0, sizeof(cl_mem), &mem_in[d ? 1 : 0]);
     ret |= clSetKernelArg(kernel[4], 1, sizeof(cl_mem), &mem_U[0]);
     ret |= clSetKernelArg(kernel[4], 2, sizeof(cl_mem), &mem_U[1]);
     ret |= clSetKernelArg(kernel[4], 3, sizeof(cl_mem), &mem_U[3]);
@@ -594,16 +594,16 @@ PVideoFrame __stdcall KNLMeansClass::GetFrame(int n, IScriptEnvironment* env) {
     ret |= writeBufferImage(src, command_queue, mem_in[0], origin, region);
     ret |= writeBufferImage(ref, command_queue, mem_in[2], origin, region);
     ret |= clEnqueueNDRangeKernel(command_queue, kernel[0], 2, NULL, global_work, NULL, 0, NULL, NULL);
-    if (D) {
+    if (d) {
         // Temporal.
         const int maxframe = vi.num_frames - 1;
-        for (int k = -D; k <= D; k++) {
+        for (int k = -d; k <= d; k++) {
             src = child->GetFrame(clamp(n + k, 0, maxframe), env);
             ref = baby->GetFrame(clamp(n + k, 0, maxframe), env);
             ret |= writeBufferImage(src, command_queue, mem_in[1], origin, region);
             ret |= writeBufferImage(ref, command_queue, mem_in[3], origin, region);
-            for (int j = -A; j <= A; j++) {
-                for (int i = -A; i <= A; i++) {
+            for (int j = -a; j <= a; j++) {
+                for (int i = -a; i <= a; i++) {
                     if (k || j || i) {
                         const cl_int q[2] = { i, j };
                         ret |= clSetKernelArg(kernel[1], 4, 2 * sizeof(cl_int), &q);
@@ -622,9 +622,9 @@ PVideoFrame __stdcall KNLMeansClass::GetFrame(int n, IScriptEnvironment* env) {
         }
     } else {
         // Spatial.
-        for (int j = -A; j <= 0; j++) {
-            for (int i = -A; i <= A; i++) {
-                if (j * (2 * A + 1) + i < 0) {
+        for (int j = -a; j <= 0; j++) {
+            for (int i = -a; i <= a; i++) {
+                if (j * (2 * a + 1) + i < 0) {
                     const cl_int q[2] = { i, j };
                     ret |= clSetKernelArg(kernel[1], 4, 2 * sizeof(cl_int), &q);
                     ret |= clEnqueueNDRangeKernel(command_queue, kernel[1],
@@ -654,9 +654,9 @@ PVideoFrame __stdcall KNLMeansClass::GetFrame(int n, IScriptEnvironment* env) {
         DrawString(frm, pitch, 0, y++, "KNLMeansCL");
         DrawString(frm, pitch, 0, y++, " Version " VERSION);
         DrawString(frm, pitch, 0, y++, " Copyright(C) Khanattila");
-        snprintf(buffer, 2048, " D:%li  A:%lix%li  S:%lix%li", 2 * D + 1, 2 * A + 1, 2 * A + 1, 2 * S + 1, 2 * S + 1);
+        snprintf(buffer, 2048, " D:%li  A:%lix%li  S:%lix%li", 2 * d + 1, 2 * a + 1, 2 * a + 1, 2 * s + 1, 2 * s + 1);
         DrawString(frm, pitch, 0, y++, buffer);
-        snprintf(buffer, 2048, " Iterations: %li", ((2 * D + 1)*(2 * A + 1)*(2 * A + 1) - 1) / (D ? 1 : 2));
+        snprintf(buffer, 2048, " Iterations: %li", ((2 * d + 1)*(2 * a + 1)*(2 * a + 1) - 1) / (d ? 1 : 2));
         DrawString(frm, pitch, 0, y++, buffer);
         snprintf(buffer, 2048, " Global work size: %lux%lu",
             (unsigned long) global_work[0], (unsigned long) global_work[1]);
@@ -853,7 +853,7 @@ KNLMeansClass::~KNLMeansClass() {
     clReleaseMemObject(mem_U[1]);
     clReleaseMemObject(mem_U[0]);
     clReleaseMemObject(mem_out);
-    if (D) {
+    if (d) {
         clReleaseMemObject(mem_in[3]);
         clReleaseMemObject(mem_in[1]);
     }
@@ -1056,19 +1056,19 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out,
         return;
     }
     if (d.d < 0) {
-        vsapi->setError(out, "knlm.KNLMeansCL: D must be greater than or equal to 0!");
+        vsapi->setError(out, "knlm.KNLMeansCL: d must be greater than or equal to 0!");
         vsapi->freeNode(d.node);
         vsapi->freeNode(d.knot);
         return;
     }
     if (d.a < 0) {
-        vsapi->setError(out, "knlm.KNLMeansCL: A must be greater than or equal to 0!");
+        vsapi->setError(out, "knlm.KNLMeansCL: a must be greater than or equal to 0!");
         vsapi->freeNode(d.node);
         vsapi->freeNode(d.knot);
         return;
     }
     if (d.s < 0) {
-        vsapi->setError(out, "knlm.KNLMeansCL: S must be greater than or equal to 0!");
+        vsapi->setError(out, "knlm.KNLMeansCL: s must be greater than or equal to 0!");
         vsapi->freeNode(d.node);
         vsapi->freeNode(d.knot);
         return;
@@ -1186,16 +1186,16 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out,
     d.program = clCreateProgramWithSource(d.context, 1, &source_code, NULL, NULL);
     char options[2048];
     if (ctype == CL_FLOAT) {
-        snprintf(options, 2048, "-Werror \
+        snprintf(options, 2048, "-cl-single-precision-constant -Werror \
             -D H_BLOCK_X=%i -D H_BLOCK_Y=%i -D V_BLOCK_X=%i -D V_BLOCK_Y=%i \
-            -D NLMK_TCOLOR=%i -D NLMK_S=%li -D NLMK_WMODE=%li -D NLMK_TEMPORAL=%li -D NLMK_H2_INV_NORM=%ff",
+            -D NLMK_TCOLOR=%i -D NLMK_S=%li -D NLMK_WMODE=%li -D NLMK_TEMPORAL=%li -D NLMK_H2_INV_NORM=%lf",
             H_BLOCK_X, H_BLOCK_Y, V_BLOCK_X, V_BLOCK_Y,
             d.color, int64ToIntS(d.s), int64ToIntS(d.wmode), int64ToIntS(d.d), 
             65025.0 / (3 * d.h*d.h*(2 * d.s + 1) * (2 * d.s + 1)));
     } else {
-        snprintf(options, 2048, "-cl-denorms-are-zero -cl-fast-relaxed-math -Werror \
+        snprintf(options, 2048, "-cl-single-precision-constant -cl-denorms-are-zero -cl-fast-relaxed-math -Werror \
            -D H_BLOCK_X=%i -D H_BLOCK_Y=%i -D V_BLOCK_X=%i -D V_BLOCK_Y=%i \
-           -D NLMK_TCOLOR=%i -D NLMK_S=%li -D NLMK_WMODE=%li -D NLMK_TEMPORAL=%li -D NLMK_H2_INV_NORM=%ff",
+           -D NLMK_TCOLOR=%i -D NLMK_S=%li -D NLMK_WMODE=%li -D NLMK_TEMPORAL=%li -D NLMK_H2_INV_NORM=%lf",
            H_BLOCK_X, H_BLOCK_Y, V_BLOCK_X, V_BLOCK_Y,
            d.color, int64ToIntS(d.s), int64ToIntS(d.wmode), int64ToIntS(d.d),
            65025.0 / (3 * d.h*d.h*(2 * d.s + 1) * (2 * d.s + 1)));
@@ -1277,7 +1277,7 @@ extern "C" __declspec(dllexport) const char* __stdcall AvisynthPluginInit3(
     IScriptEnvironment* env, const AVS_Linkage* const vectors) {
 
     AVS_linkage = vectors;
-    env->AddFunction("KNLMeansCL", "c[D]i[A]i[S]i[cmode]b[wmode]i[h]f[rclip]c[device_type]s[lsb_inout]b[info]b",
+    env->AddFunction("KNLMeansCL", "c[d]i[a]i[s]i[cmode]b[wmode]i[h]f[rclip]c[device_type]s[lsb_inout]b[info]b",
         AviSynthPluginCreate, 0);
     return "KNLMeansCL for AviSynth";
 }
