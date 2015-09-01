@@ -1,4 +1,8 @@
 ## Change Log ##
+**- v0.6.1 (2015-09-01)**
+  - Fixed 'h'strength in some situations.
+  - Minor changes.
+
 **- v0.6.0 (2015-08-26)**
   - Added color distance (cmode).
   - VapourSynth: added support for missing color format.
