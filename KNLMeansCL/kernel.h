@@ -73,7 +73,7 @@ static const char* source_code =
 "	} else if (NLMK_TCOLOR == cfRGB) {																			  \n" \
 "		const float4 u1 = read_imagef(U1, smp, (int2) (x, y));			     								      \n" \
 "		const float4 u1_pq = read_imagef(U1_pq, smp, (int2) (x, y) + q);										  \n" \
-"		const float4 wgh = (float4) (WGH_R, WGH_G, WGH_B, 0.0f)													  \n" \
+"		const float4 wgh = (float4) (WGH_R, WGH_G, WGH_B, 0.0f);												  \n" \
 "		const float4 dist = wgh * (u1 - u1_pq) * (u1 - u1_pq);												      \n" \
 "		U4[gidx] = dist.x + dist.y + dist.z;                                                                      \n" \
 "	}																											  \n" \
