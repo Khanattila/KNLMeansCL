@@ -1,4 +1,9 @@
 ## Change Log ##
+**- v0.6.2 (2015-09-04)**
+  - Fixed warning use of logical '||' with constant operand.
+  - Fixed wrong snprintf format specifier.
+  - Enhanced error log.
+
 **- v0.6.1 (2015-09-01)**
   - Fixed 'h'strength in some situations.
   - Minor changes.
@@ -23,7 +28,7 @@
   - Weighted RGB distance.
 
 **- v0.5.6 (2015-06-26)**
-  - VapourSynth: fix temporal support (regression v0.5.2).
+  - VapourSynth: fix temporal support.
   - VapourSynth: fix arg device_type ignored.
   - Fix possible opencl device not available. 
 
@@ -35,7 +40,7 @@
 
 **- v0.5.3 (2015-05-31)**
   - VapourSynth: better accuracy with 32-bits.
-  - VapourSynth: fix arguments (regression v0.5.2).
+  - VapourSynth: fix arguments.
 
 **- v0.5.2 (2015-05-24)**
   - Add AviSynth+ support.
