@@ -155,7 +155,14 @@ static const char* source_code =
 "		const float u1_mq = read_imagef(U1, smp, (int2) (x, y) - q).x;											  \n" \
 "		U2c[gidx].x += NLMK_TEMPORAL ? (u4 * u1_pq) : (u4 * u1_pq) + (u4_mq * u1_mq);							  \n" \
 "		U2c[gidx].y += NLMK_TEMPORAL ? (u4) : (u4 + u4_mq);														  \n" \
-"	} else if (NLMK_TCOLOR == cfYUV || NLMK_TCOLOR == cfRGB) {									                  \n" \
+"	} else if (NLMK_TCOLOR == cfYUV) {									                                          \n" \
+"		__global float4* U2c = (__global float4*) U2;															  \n" \
+"		const float4 u1_pq = read_imagef(U1, smp, (int2) (x, y) + q);											  \n" \
+"		const float4 u1_mq = read_imagef(U1, smp, (int2) (x, y) - q);											  \n" \
+"		float4 accu = NLMK_TEMPORAL ? (u4 * u1_pq) : (u4 * u1_pq) + (u4_mq * u1_mq);							  \n" \
+"		accu.w = NLMK_TEMPORAL ? (u4) : (u4 + u4_mq);															  \n" \
+"		U2c[gidx] += accu;																						  \n" \
+"	} else if (NLMK_TCOLOR == cfRGB) {									                                          \n" \
 "		__global float4* U2c = (__global float4*) U2;															  \n" \
 "		const float4 u1_pq = read_imagef(U1, smp, (int2) (x, y) + q);											  \n" \
 "		const float4 u1_mq = read_imagef(U1, smp, (int2) (x, y) - q);											  \n" \
@@ -183,7 +190,14 @@ static const char* source_code =
 "		const float den = U2c[gidx].y + M[gidx];																  \n" \
 "		const float val = native_divide(num, den);																  \n" \
 "		write_imagef(U1_out, (int2) (x, y), (float4) (val, val, val, 1.0f));									  \n" \
-"	} else if (NLMK_TCOLOR == cfYUV || NLMK_TCOLOR == cfRGB) {													  \n" \
+"	} else if (NLMK_TCOLOR == cfYUV) {													                          \n" \
+"		__global float4* U2c = (__global float4*) U2;															  \n" \
+"		const float4 u1 = read_imagef(U1_in, smp, (int2) (x, y));												  \n" \
+"		const float4 num = mad((float4) M[gidx], u1, U2c[gidx]);												  \n" \
+"		const float4 den = (float4) (U2c[gidx].w + M[gidx]);													  \n" \
+"		const float4 val = native_divide(num, den);												                  \n" \
+"		write_imagef(U1_out, (int2) (x, y), val);																  \n" \
+"	} else if (NLMK_TCOLOR == cfRGB) {													                          \n" \
 "		__global float4* U2c = (__global float4*) U2;															  \n" \
 "		const float4 u1 = read_imagef(U1_in, smp, (int2) (x, y));												  \n" \
 "		const float4 num = mad((float4) M[gidx], u1, U2c[gidx]);												  \n" \
