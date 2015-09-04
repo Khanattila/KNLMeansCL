@@ -500,20 +500,29 @@ KNLMeansClass::KNLMeansClass(PClip _child, const int _d, const int _a, const int
     char options[2048];
     snprintf(options, 2048, "-cl-single-precision-constant -cl-denorms-are-zero -cl-fast-relaxed-math -Werror \
         -D H_BLOCK_X=%i -D H_BLOCK_Y=%i -D V_BLOCK_X=%i -D V_BLOCK_Y=%i \
-        -D NLMK_TCOLOR=%i -D NLMK_S=%i -D NLMK_WMODE=%i -D NLMK_TEMPORAL=%i -D NLMK_H2_INV_NORM=%lf",
+        -D NLMK_TCOLOR=%i -D NLMK_S=%i -D NLMK_WMODE=%i -D NLMK_TEMPORAL=%i -D NLMK_H2_INV_NORM=%f",
          H_BLOCK_X, H_BLOCK_Y, V_BLOCK_X, V_BLOCK_Y,
          color, s, wmode, d, 65025.0 / (3*h*h*(2 * s + 1) * (2 * s + 1)));
     ret = clBuildProgram(program, 1, &deviceID, options, NULL, NULL);
     if (ret != CL_SUCCESS) {
-        size_t log_size;
+        size_t options_size, log_size;
+        clGetProgramBuildInfo(program, deviceID, CL_PROGRAM_BUILD_OPTIONS, 0, NULL, &options_size);
         clGetProgramBuildInfo(program, deviceID, CL_PROGRAM_BUILD_LOG, 0, NULL, &log_size);
+        char *options = (char*) malloc(options_size);
         char *log = (char*) malloc(log_size);
+        clGetProgramBuildInfo(program, deviceID, CL_PROGRAM_BUILD_OPTIONS, options_size, options, NULL);
         clGetProgramBuildInfo(program, deviceID, CL_PROGRAM_BUILD_LOG, log_size, log, NULL);
-        std::ofstream outfile("KNLMeansCL.txt", std::ofstream::binary);
-        outfile.write(log, log_size);
+        std::ofstream outfile("Log-KNLMeansCL.txt", std::ofstream::out);
+        outfile << "---------------------------------" << std::endl;
+        outfile << "*** Error in OpenCL compiler ***" << std::endl;
+        outfile << "---------------------------------" << std::endl;
+        outfile << std::endl << "# Build Options" << std::endl;
+        outfile << options << std::endl;
+        outfile << std::endl << "# Build Log" << std::endl;
+        outfile << log << std::endl;
         outfile.close();
         free(log);
-        env->ThrowError("KNLMeansCL: AviSynthCreate error (clBuildProgram)!");
+        env->ThrowError("KNLMeansCL: AviSynthCreate error (clBuildProgram)!\n Please report Log-KNLMeansCL.txt.");
     }
 
     // Creates kernel objects.
@@ -1188,26 +1197,35 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out,
     if (ctype == CL_FLOAT) {
         snprintf(options, 2048, "-cl-single-precision-constant -Werror \
             -D H_BLOCK_X=%i -D H_BLOCK_Y=%i -D V_BLOCK_X=%i -D V_BLOCK_Y=%i \
-            -D NLMK_TCOLOR=%i -D NLMK_S=%li -D NLMK_WMODE=%li -D NLMK_TEMPORAL=%li -D NLMK_H2_INV_NORM=%lf",
+            -D NLMK_TCOLOR=%i -D NLMK_S=%i -D NLMK_WMODE=%i -D NLMK_TEMPORAL=%i -D NLMK_H2_INV_NORM=%f",
             H_BLOCK_X, H_BLOCK_Y, V_BLOCK_X, V_BLOCK_Y,
             d.color, int64ToIntS(d.s), int64ToIntS(d.wmode), int64ToIntS(d.d), 
             65025.0 / (3 * d.h*d.h*(2 * d.s + 1) * (2 * d.s + 1)));
     } else {
         snprintf(options, 2048, "-cl-single-precision-constant -cl-denorms-are-zero -cl-fast-relaxed-math -Werror \
            -D H_BLOCK_X=%i -D H_BLOCK_Y=%i -D V_BLOCK_X=%i -D V_BLOCK_Y=%i \
-           -D NLMK_TCOLOR=%i -D NLMK_S=%li -D NLMK_WMODE=%li -D NLMK_TEMPORAL=%li -D NLMK_H2_INV_NORM=%lf",
+           -D NLMK_TCOLOR=%i -D NLMK_S=%i -D NLMK_WMODE=%i -D NLMK_TEMPORAL=%i -D NLMK_H2_INV_NORM=%f",
            H_BLOCK_X, H_BLOCK_Y, V_BLOCK_X, V_BLOCK_Y,
            d.color, int64ToIntS(d.s), int64ToIntS(d.wmode), int64ToIntS(d.d),
            65025.0 / (3 * d.h*d.h*(2 * d.s + 1) * (2 * d.s + 1)));
     }
     ret = clBuildProgram(d.program, 1, &d.deviceID, options, NULL, NULL);
     if (ret != CL_SUCCESS) {
-        size_t log_size;
+        size_t options_size, log_size;
+        clGetProgramBuildInfo(d.program, d.deviceID, CL_PROGRAM_BUILD_OPTIONS, 0, NULL, &options_size);
         clGetProgramBuildInfo(d.program, d.deviceID, CL_PROGRAM_BUILD_LOG, 0, NULL, &log_size);
+        char *options = (char*) malloc(options_size);
         char *log = (char*) malloc(log_size);
+        clGetProgramBuildInfo(d.program, d.deviceID, CL_PROGRAM_BUILD_OPTIONS, options_size, options, NULL);
         clGetProgramBuildInfo(d.program, d.deviceID, CL_PROGRAM_BUILD_LOG, log_size, log, NULL);
-        std::ofstream outfile("KNLMeansCL.txt", std::ofstream::binary);
-        outfile.write(log, log_size);
+        std::ofstream outfile("Log-KNLMeansCL.txt", std::ofstream::out);
+        outfile << "---------------------------------" << std::endl;
+        outfile << "*** Error in OpenCL compiler ***" << std::endl;
+        outfile << "---------------------------------" << std::endl;
+        outfile << std::endl << "# Build Options" << std::endl;
+        outfile << options << std::endl;
+        outfile << std::endl << "# Build Log" << std::endl;
+        outfile << log << std::endl;
         outfile.close();
         free(log);
         vsapi->setError(out, "knlm.KNLMeansCL: VapourSynthCreate error (clBuildProgram)!");
