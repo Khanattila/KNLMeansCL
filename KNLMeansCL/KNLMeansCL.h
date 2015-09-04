@@ -16,7 +16,7 @@
 *	along with KNLMeansCL. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#define VERSION "0.6.1"
+#define VERSION "0.6.2"
 
 #ifdef _MSC_VER
     #define strcasecmp _stricmp
