@@ -1228,7 +1228,8 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out,
         outfile << log << std::endl;
         outfile.close();
         free(log);
-        vsapi->setError(out, "knlm.KNLMeansCL: VapourSynthCreate error (clBuildProgram)!");
+        vsapi->setError(out, "knlm.KNLMeansCL: VapourSynthCreate error (clBuildProgram)!\n" 
+            "Please report Log-KNLMeansCL.txt.");
         vsapi->freeNode(d.node);
         vsapi->freeNode(d.knot);
         return;
