@@ -19,6 +19,7 @@
 #define VERSION "0.6.2"
 
 #ifdef _MSC_VER
+    #define _stdcall __stdcall
     #define strcasecmp _stricmp
     #define snprintf sprintf_s
 #endif
@@ -46,7 +47,7 @@
 #include "startchar.h"
 
 #ifdef _WIN32
-    #include "avisynth.h"
+    #include <avisynth.h>
 #endif
 
 #include <VapourSynth.h>
