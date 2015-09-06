@@ -38,6 +38,8 @@
 
 #if defined(_MSC_VER) && defined(CL_VERSION_1_2)
     #pragma warning(disable : 4996)
+#elif defined(__GNUC__) && defined(CL_VERSION_1_2)
+    #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #endif
 
 #include "kernel.h"

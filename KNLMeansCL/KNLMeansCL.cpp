@@ -809,11 +809,11 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
             DrawString(frm, pitch, 0, y++, "KNLMeansCL");
             DrawString(frm, pitch, 0, y++, " Version " VERSION);
             DrawString(frm, pitch, 0, y++, " Copyright(C) Khanattila");
-            snprintf(buffer, 2048, " D:%li  A:%lix%li  S:%lix%li", 2 * int64ToIntS(d->d) + 1,
+            snprintf(buffer, 2048, " D:%i  A:%ix%i  S:%ix%i", 2 * int64ToIntS(d->d) + 1,
                 2 * int64ToIntS(d->a) + 1, 2 * int64ToIntS(d->a) + 1, 2 * int64ToIntS(d->s) + 1, 
                 2 * int64ToIntS(d->s) + 1);
             DrawString(frm, pitch, 0, y++, buffer);
-            snprintf(buffer, 2048, " Iterations: %li", ((2 * int64ToIntS(d->d) + 1)*(2 * int64ToIntS(d->a) + 1)*
+            snprintf(buffer, 2048, " Iterations: %i", ((2 * int64ToIntS(d->d) + 1)*(2 * int64ToIntS(d->a) + 1)*
                 (2 * int64ToIntS(d->a) + 1) - 1) / (int64ToIntS(d->d) ? 1 : 2));
             DrawString(frm, pitch, 0, y++, buffer);
             snprintf(buffer, 2048, " Global work size: %lux%lu",
@@ -930,8 +930,8 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out,
 
     // Checks source clip and rclip.
     KNLMeansData d;
-    cl_channel_order corder = NULL;
-    cl_channel_type ctype = NULL;
+    cl_channel_order corder = 0;
+    cl_channel_type ctype = 0;
     int err;
     d.node = vsapi->propGetNode(in, "clip", 0, 0);
     d.knot = vsapi->propGetNode(in, "rclip", 0, &err);
