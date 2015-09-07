@@ -463,7 +463,7 @@ KNLMeansClass::KNLMeansClass(PClip _child, const int _d, const int _a, const int
     sum_devices = 0;
     for (cl_uint i = 0; i < num_platforms; i++) {
         cl_uint num_devices = 0;
-        clGetDeviceIDs(temp_platforms[i], device, NULL, NULL, &num_devices);
+        clGetDeviceIDs(temp_platforms[i], device, 0, 0, &num_devices);
         sum_devices += num_devices;
     }
     if (sum_devices == 0)   
@@ -476,7 +476,7 @@ KNLMeansClass::KNLMeansClass(PClip _child, const int _d, const int _a, const int
     cl_uint index = 0;
     for (cl_uint i = 0; i < num_platforms; i++) {
         cl_uint num_devices = 0;
-        clGetDeviceIDs(temp_platforms[i], device, NULL, NULL, &num_devices);
+        clGetDeviceIDs(temp_platforms[i], device, 0, 0, &num_devices);
         for (cl_uint j = 0; j < num_devices; j++) {
             cl_device_id device_id = 0;
             clGetDeviceIDs(temp_platforms[i], device, 1, &device_id, NULL);
@@ -1174,7 +1174,7 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out,
     d.sum_devices = 0;
     for (cl_uint i = 0; i < num_platforms; i++) {
         cl_uint num_devices = 0;
-        clGetDeviceIDs(temp_platforms[i], device, NULL, NULL, &num_devices);
+        clGetDeviceIDs(temp_platforms[i], device, 0, 0, &num_devices);
         d.sum_devices += num_devices;
     }
     if (d.sum_devices == 0) {
@@ -1199,7 +1199,7 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out,
     cl_uint index = 0;
     for (cl_uint i = 0; i < num_platforms; i++) {
         cl_uint num_devices = 0;
-        clGetDeviceIDs(temp_platforms[i], device, NULL, NULL, &num_devices);
+        clGetDeviceIDs(temp_platforms[i], device, 0, 0, &num_devices);
         for (cl_uint j = 0; j < num_devices; j++) {
             cl_device_id device_id = 0;
             clGetDeviceIDs(temp_platforms[i], device, 1, &device_id, NULL);
