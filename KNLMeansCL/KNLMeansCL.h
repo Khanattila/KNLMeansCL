@@ -25,6 +25,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
+#include <clocale>
 #include <cmath>
 #include <cstring>
 #include <fstream>

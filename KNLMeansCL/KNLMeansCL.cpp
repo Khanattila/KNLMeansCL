@@ -530,11 +530,13 @@ KNLMeansClass::KNLMeansClass(PClip _child, const int _d, const int _a, const int
     // Creates and Build a program executable from the program source.
     program = clCreateProgramWithSource(context, 1, &source_code, NULL, NULL);
     char options[2048];
+    setlocale(LC_ALL, "C");
     snprintf(options, 2048, "-cl-single-precision-constant -cl-denorms-are-zero -cl-fast-relaxed-math -Werror \
         -D H_BLOCK_X=%i -D H_BLOCK_Y=%i -D V_BLOCK_X=%i -D V_BLOCK_Y=%i \
         -D NLMK_TCOLOR=%i -D NLMK_S=%i -D NLMK_WMODE=%i -D NLMK_TEMPORAL=%i -D NLMK_H2_INV_NORM=%f",
          H_BLOCK_X, H_BLOCK_Y, V_BLOCK_X, V_BLOCK_Y,
          color, s, wmode, d, 65025.0 / (3*h*h*(2 * s + 1) * (2 * s + 1)));
+    setlocale(LC_ALL, "");
     ret = clBuildProgram(program, 1, &deviceID, options, NULL, NULL);
     if (ret != CL_SUCCESS) {
         size_t options_size, log_size;
@@ -1270,6 +1272,7 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out,
     // Creates and Build a program executable from the program source.
     d.program = clCreateProgramWithSource(d.context, 1, &source_code, NULL, NULL);
     char options[2048];
+    setlocale(LC_ALL, "C");
     if (ctype == CL_FLOAT) {
         snprintf(options, 2048, "-cl-single-precision-constant -Werror \
             -D H_BLOCK_X=%i -D H_BLOCK_Y=%i -D V_BLOCK_X=%i -D V_BLOCK_Y=%i \
@@ -1285,6 +1288,7 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out,
            d.color, int64ToIntS(d.s), int64ToIntS(d.wmode), int64ToIntS(d.d),
            65025.0 / (3 * d.h*d.h*(2 * d.s + 1) * (2 * d.s + 1)));
     }
+    setlocale(LC_ALL, "");
     ret = clBuildProgram(d.program, 1, &d.deviceID, options, NULL, NULL);
     if (ret != CL_SUCCESS) {
         size_t options_size, log_size;
