@@ -100,10 +100,10 @@ string device_type      CPU := An OpenCL device that is the host processor.
                         
 
 int device_id		The 'device_id'º device of type 'device_type' in the system.
-			Example: [device_type = "GPU", device_id = 1] return the second 
-			GPU in the system.
+                        Example: [device_type = "GPU", device_id = 1] return the second 
+                        GPU in the system.
 			
-			Default: 0.
+                        Default: 0.
 	
 	
 bool lsb_inout          AviSynth hack. Set 16-bit input and output clip.
