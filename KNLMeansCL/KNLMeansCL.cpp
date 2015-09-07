@@ -30,7 +30,18 @@
 #define GET_LSB(val) (val & 0xFF)
 #define BIT_16(msb, lsb) (msb << 8 | lsb)
 
+#ifdef _MSC_VER
+    #define strcasecmp _stricmp
+    #define snprintf sprintf_s
+#endif
+
 #include "KNLMeansCL.h"
+
+#if defined(_MSC_VER) && defined(CL_VERSION_1_2)
+    #pragma warning(disable : 4996)
+#elif defined(__GNUC__) && defined(CL_VERSION_1_2)
+    #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
 
 //////////////////////////////////////////
 // AviSynthEquals
@@ -53,10 +64,10 @@ inline bool vs_equals(const VSVideoInfo *v, const VSVideoInfo *w) {
 //////////////////////////////////////////
 // AviSynthMemoryManagement 
 #ifdef __AVISYNTH_6_H__
-inline cl_uint KNLMeansClass::readBufferImage(PVideoFrame &frm, cl_command_queue command_queue,
+inline cl_int KNLMeansClass::readBufferImage(PVideoFrame &frm, cl_command_queue command_queue,
     cl_mem image, const size_t origin[3], const size_t region[3]) {
 
-    cl_uint ret = CL_SUCCESS;
+    cl_int ret = CL_SUCCESS;
     switch (color) {
         case Gray:
             if (lsb) {
@@ -69,19 +80,19 @@ inline cl_uint KNLMeansClass::readBufferImage(PVideoFrame &frm, cl_command_queue
                 #pragma omp parallel for
                 for (int y = 0; y < (int) idmn[1]; y++) {                   
                     for (int x = 0; x < (int) idmn[0]; x++) {
-                        dstYmp[y * srcY_s + x] = GET_MSB(bufferp[y * idmn[0] + x]);
-                        dstYlp[y * srcY_s + x] = GET_LSB(bufferp[y * idmn[0] + x]);
+                        dstYmp[y * srcY_s + x] = (uint8_t) GET_MSB(bufferp[y * idmn[0] + x]);
+                        dstYlp[y * srcY_s + x] = (uint8_t) GET_LSB(bufferp[y * idmn[0] + x]);
                     }
                 }
                 break;
             } else {
                 ret = clEnqueueReadImage(command_queue, image, CL_TRUE, origin, region,
-                    frm->GetPitch(PLANAR_Y), 0, frm->GetWritePtr(PLANAR_Y), 0, NULL, NULL);
+                    (size_t) frm->GetPitch(PLANAR_Y), 0, frm->GetWritePtr(PLANAR_Y), 0, NULL, NULL);
                 break;
             }
         case YUV:
             if (lsb) {
-                int buffer_s = 4 * idmn[0];
+                int buffer_s = 4 * (int) idmn[0];
                 ret = clEnqueueReadImage(command_queue, image, CL_TRUE, origin, region,
                     buffer_s * sizeof(uint16_t), 0, hostBuffer, 0, NULL, NULL);
                 uint16_t *bufferp = (uint16_t*) hostBuffer;              
@@ -97,17 +108,17 @@ inline cl_uint KNLMeansClass::readBufferImage(PVideoFrame &frm, cl_command_queue
                 #pragma omp parallel for
                 for (int y = 0; y < (int) idmn[1]; y++) {      
                     for (int x = 0; x < (int) idmn[0]; x++) {
-                        dstYmp[y * dstY_s + x] = GET_MSB(bufferp[y * buffer_s + x * 4 + 0]);
-                        dstYlp[y * dstY_s + x] = GET_LSB(bufferp[y * buffer_s + x * 4 + 0]);
-                        dstUmp[y * dstU_s + x] = GET_MSB(bufferp[y * buffer_s + x * 4 + 1]);
-                        dstUlp[y * dstU_s + x] = GET_LSB(bufferp[y * buffer_s + x * 4 + 1]);
-                        dstVmp[y * dstV_s + x] = GET_MSB(bufferp[y * buffer_s + x * 4 + 2]);
-                        dstVlp[y * dstV_s + x] = GET_LSB(bufferp[y * buffer_s + x * 4 + 2]);
+                        dstYmp[y * dstY_s + x] = (uint8_t) GET_MSB(bufferp[y * buffer_s + x * 4 + 0]);
+                        dstYlp[y * dstY_s + x] = (uint8_t) GET_LSB(bufferp[y * buffer_s + x * 4 + 0]);
+                        dstUmp[y * dstU_s + x] = (uint8_t) GET_MSB(bufferp[y * buffer_s + x * 4 + 1]);
+                        dstUlp[y * dstU_s + x] = (uint8_t) GET_LSB(bufferp[y * buffer_s + x * 4 + 1]);
+                        dstVmp[y * dstV_s + x] = (uint8_t) GET_MSB(bufferp[y * buffer_s + x * 4 + 2]);
+                        dstVlp[y * dstV_s + x] = (uint8_t) GET_LSB(bufferp[y * buffer_s + x * 4 + 2]);
                     }
                 }
                 break;
             } else {
-                int buffer_s = 4 * idmn[0];
+                int buffer_s = 4 * (int) idmn[0];
                 ret = clEnqueueReadImage(command_queue, image, CL_TRUE, origin, region,
                     buffer_s * sizeof(uint8_t), 0, hostBuffer, 0, NULL, NULL);
                 uint8_t *bufferp = (uint8_t*) hostBuffer;               
@@ -129,16 +140,16 @@ inline cl_uint KNLMeansClass::readBufferImage(PVideoFrame &frm, cl_command_queue
             }
         case RGB:
             ret = clEnqueueReadImage(command_queue, image, CL_TRUE, origin, region,
-                frm->GetPitch(), 0, frm->GetWritePtr(), 0, NULL, NULL);
+                (size_t) frm->GetPitch(), 0, frm->GetWritePtr(), 0, NULL, NULL);
             break;
     }
     return ret;
 }
 
-inline cl_uint KNLMeansClass::writeBufferImage(PVideoFrame &frm, cl_command_queue command_queue,
+inline cl_int KNLMeansClass::writeBufferImage(PVideoFrame &frm, cl_command_queue command_queue,
     cl_mem image, const size_t origin[3], const size_t region[3]) {
 
-    cl_uint ret = CL_SUCCESS;
+    cl_int ret = CL_SUCCESS;
     switch (color) {
         case Gray:
             if (lsb) {
@@ -149,7 +160,7 @@ inline cl_uint KNLMeansClass::writeBufferImage(PVideoFrame &frm, cl_command_queu
                 #pragma omp parallel for
                 for (int y = 0; y < (int) idmn[1]; y++) {
                     for (int x = 0; x < (int) idmn[0]; x++) {
-                        bufferp[y * idmn[0] + x] = BIT_16(srcYmp[y * srcY_s + x], srcYlp[y * srcY_s + x]);
+                        bufferp[y * idmn[0] + x] = (uint16_t) BIT_16(srcYmp[y * srcY_s + x], srcYlp[y * srcY_s + x]);
                     }
                 }
                 ret = clEnqueueWriteImage(command_queue, image, CL_TRUE, origin, region,
@@ -157,13 +168,13 @@ inline cl_uint KNLMeansClass::writeBufferImage(PVideoFrame &frm, cl_command_queu
                 break;
             } else {
                 ret = clEnqueueWriteImage(command_queue, image, CL_TRUE, origin, region,
-                    frm->GetPitch(PLANAR_Y), 0, frm->GetReadPtr(PLANAR_Y), 0, NULL, NULL);
+                    (size_t) frm->GetPitch(PLANAR_Y), 0, frm->GetReadPtr(PLANAR_Y), 0, NULL, NULL);
                 break;
             }
         case YUV:
             if (lsb) {
                 uint16_t *bufferp = (uint16_t*) hostBuffer;
-                int buffer_s = 4 * idmn[0];
+                int buffer_s = 4 * (int) idmn[0];
                 int srcY_s = frm->GetPitch(PLANAR_Y);
                 int srcU_s = frm->GetPitch(PLANAR_U);
                 int srcV_s = frm->GetPitch(PLANAR_V);
@@ -176,9 +187,12 @@ inline cl_uint KNLMeansClass::writeBufferImage(PVideoFrame &frm, cl_command_queu
                 #pragma omp parallel for
                 for (int y = 0; y < (int) idmn[1]; y++) {                 
                     for (int x = 0; x < (int) idmn[0]; x++) {
-                        bufferp[y * buffer_s + x * 4 + 0] = BIT_16(srcYmp[y * srcY_s + x], srcYlp[y * srcY_s + x]);
-                        bufferp[y * buffer_s + x * 4 + 1] = BIT_16(srcUmp[y * srcU_s + x], srcUlp[y * srcU_s + x]);
-                        bufferp[y * buffer_s + x * 4 + 2] = BIT_16(srcVmp[y * srcV_s + x], srcVlp[y * srcV_s + x]);
+                        bufferp[y * buffer_s + x * 4 + 0] = 
+                            (uint16_t) BIT_16(srcYmp[y * srcY_s + x], srcYlp[y * srcY_s + x]);
+                        bufferp[y * buffer_s + x * 4 + 1] = 
+                            (uint16_t) BIT_16(srcUmp[y * srcU_s + x], srcUlp[y * srcU_s + x]);
+                        bufferp[y * buffer_s + x * 4 + 2] = 
+                            (uint16_t) BIT_16(srcVmp[y * srcV_s + x], srcVlp[y * srcV_s + x]);
                         bufferp[y * buffer_s + x * 4 + 3] = 0;
                     }
                 }
@@ -187,7 +201,7 @@ inline cl_uint KNLMeansClass::writeBufferImage(PVideoFrame &frm, cl_command_queu
                 break;
             } else {
                 uint8_t *bufferp = (uint8_t*) hostBuffer;
-                int buffer_s = 4 * idmn[0];
+                int buffer_s = 4 * (int) idmn[0];
                 int srcY_s = frm->GetPitch(PLANAR_Y);
                 int srcU_s = frm->GetPitch(PLANAR_U);
                 int srcV_s = frm->GetPitch(PLANAR_V);
@@ -209,7 +223,7 @@ inline cl_uint KNLMeansClass::writeBufferImage(PVideoFrame &frm, cl_command_queu
             }      
         case RGB:
             ret = clEnqueueWriteImage(command_queue, image, CL_TRUE, origin, region,
-                frm->GetPitch(), 0, frm->GetReadPtr(), 0, NULL, NULL);
+                (size_t) frm->GetPitch(), 0, frm->GetReadPtr(), 0, NULL, NULL);
             break;
     }
     return ret;
@@ -219,21 +233,21 @@ inline cl_uint KNLMeansClass::writeBufferImage(PVideoFrame &frm, cl_command_queu
 //////////////////////////////////////////
 // VapourSynthMemoryManagement
 #ifdef VAPOURSYNTH_H
-inline cl_uint readBufferImage(KNLMeansData *data, const VSAPI *vsapi, VSFrameRef *frm,
+inline cl_int readBufferImage(KNLMeansData *data, const VSAPI *vsapi, VSFrameRef *frm,
     cl_command_queue command_queue, cl_mem image, const size_t origin[3], const size_t region[3]) {
 
-    cl_uint ret = CL_SUCCESS;
+    cl_int ret = CL_SUCCESS;
     switch (data->color) {
         case Gray:
             ret = clEnqueueReadImage(command_queue, image, CL_TRUE, origin, region,
-                vsapi->getStride(frm, 0), 0, vsapi->getWritePtr(frm, 0), 0, NULL, NULL);
+                (size_t) vsapi->getStride(frm, 0), 0, vsapi->getWritePtr(frm, 0), 0, NULL, NULL);
             break;
         case YUV:
         case RGB: {
             int bsample = data->vi->format->bytesPerSample;
-            int buffer_s = 4 * data->idmn[0];
+            int buffer_s = 4 * (int) data->idmn[0];
             ret = clEnqueueReadImage(command_queue, image, CL_TRUE, origin, region,
-                buffer_s * bsample, 0, data->hostBuffer, 0, NULL, NULL);
+                (size_t) buffer_s * bsample, 0, data->hostBuffer, 0, NULL, NULL);
             uint8_t *dstp0 = vsapi->getWritePtr(frm, 0);
             uint8_t *dstp1 = vsapi->getWritePtr(frm, 1);
             uint8_t *dstp2 = vsapi->getWritePtr(frm, 2);
@@ -262,9 +276,9 @@ inline cl_uint readBufferImage(KNLMeansData *data, const VSAPI *vsapi, VSFrameRe
                     #pragma omp parallel for
                     for (int y = 0; y < (int) data->idmn[1]; y++) {           
                         for (int x = 0; x < (int) data->idmn[0]; x++) {
-                            dstp0_16[y * dst0_s + x] = bufferp[y * buffer_s + 4 * x + 0] >> bshift;
-                            dstp1_16[y * dst1_s + x] = bufferp[y * buffer_s + 4 * x + 1] >> bshift;
-                            dstp2_16[y * dst2_s + x] = bufferp[y * buffer_s + 4 * x + 2] >> bshift;
+                            dstp0_16[y * dst0_s + x] = (uint16_t) (bufferp[y * buffer_s + 4 * x + 0] >> bshift);
+                            dstp1_16[y * dst1_s + x] = (uint16_t) (bufferp[y * buffer_s + 4 * x + 1] >> bshift);
+                            dstp2_16[y * dst2_s + x] = (uint16_t) (bufferp[y * buffer_s + 4 * x + 2] >> bshift);
                         }
                     }
                     break;
@@ -291,19 +305,19 @@ inline cl_uint readBufferImage(KNLMeansData *data, const VSAPI *vsapi, VSFrameRe
     return ret;
 }
 
-inline cl_uint writeBufferImage(KNLMeansData *data, const VSAPI *vsapi, const VSFrameRef *frm,
+inline cl_int writeBufferImage(KNLMeansData *data, const VSAPI *vsapi, const VSFrameRef *frm,
     cl_command_queue command_queue, cl_mem image, const size_t origin[3], const size_t region[3]) {
 
-    cl_uint ret = CL_SUCCESS;
+    cl_int ret = CL_SUCCESS;
     switch (data->color) {
         case Gray:
             ret = clEnqueueWriteImage(command_queue, image, CL_TRUE, origin, region,
-                vsapi->getStride(frm, 0), 0, vsapi->getReadPtr(frm, 0), 0, NULL, NULL);
+                (size_t) vsapi->getStride(frm, 0), 0, vsapi->getReadPtr(frm, 0), 0, NULL, NULL);
             break;
         case YUV:
         case RGB: {
             int bsample = data->vi->format->bytesPerSample;         
-            int buffer_s = 4 * data->idmn[0];
+            int buffer_s = 4 * (int) data->idmn[0];
             int src0_s = vsapi->getStride(frm, 0) / bsample;
             int src1_s = vsapi->getStride(frm, 1) / bsample;
             int src2_s = vsapi->getStride(frm, 2) / bsample;
@@ -333,9 +347,9 @@ inline cl_uint writeBufferImage(KNLMeansData *data, const VSAPI *vsapi, const VS
                     #pragma omp parallel for
                     for (int y = 0; y < (int) data->idmn[1]; y++) {                      
                         for (int x = 0; x < (int) data->idmn[0]; x++) {
-                            bufferp[y * buffer_s + 4 * x + 0] = srcp0_16[y * src0_s + x] << bshift;
-                            bufferp[y * buffer_s + 4 * x + 1] = srcp1_16[y * src1_s + x] << bshift;
-                            bufferp[y * buffer_s + 4 * x + 2] = srcp2_16[y * src2_s + x] << bshift;
+                            bufferp[y * buffer_s + 4 * x + 0] = (uint16_t) (srcp0_16[y * src0_s + x] << bshift);
+                            bufferp[y * buffer_s + 4 * x + 1] = (uint16_t) (srcp1_16[y * src1_s + x] << bshift);
+                            bufferp[y * buffer_s + 4 * x + 2] = (uint16_t) (srcp2_16[y * src2_s + x] << bshift);
                             bufferp[y * buffer_s + 4 * x + 3] = 0;
                         }                      
                     }
@@ -359,7 +373,7 @@ inline cl_uint writeBufferImage(KNLMeansData *data, const VSAPI *vsapi, const VS
                 }
             }
             ret = clEnqueueWriteImage(command_queue, image, CL_TRUE, origin, region,
-                buffer_s * bsample, 0, data->hostBuffer, 0, NULL, NULL);
+                (size_t) buffer_s * bsample, 0, data->hostBuffer, 0, NULL, NULL);
             break;
         }
     }
@@ -381,18 +395,18 @@ KNLMeansClass::KNLMeansClass(PClip _child, const int _d, const int _a, const int
     baby->SetCacheHints(CACHE_WINDOW, d);
 
     // Checks source clip and rclip.
-    cl_channel_order corder = NULL;
-    cl_channel_type ctype = NULL;
+    cl_channel_order corder = 0;
+    cl_channel_type ctype = 0;
     if (cmode && !vi.IsYV24() && !vi.IsRGB32())
         env->ThrowError("KNLMeansCL: cmode requires YV24 image format!");
     if (vi.IsPlanar() && (vi.IsY8() || vi.IsYV411() || vi.IsYV12() || vi.IsYV16())) {
         color = Gray;
         corder = CL_LUMINANCE;
-        ctype = lsb ? CL_UNORM_INT16 : CL_UNORM_INT8;
+        ctype = (cl_channel_type) (lsb ? CL_UNORM_INT16 : CL_UNORM_INT8);
     } else if (vi.IsPlanar() && vi.IsYV24()) {
         color = cmode ? YUV : Gray;
-        corder = cmode ? CL_RGBA: CL_LUMINANCE;
-        ctype = lsb ? CL_UNORM_INT16 : CL_UNORM_INT8;
+        corder = (cl_channel_order) (cmode ? CL_RGBA : CL_LUMINANCE);
+        ctype = (cl_channel_type) (lsb ? CL_UNORM_INT16 : CL_UNORM_INT8);
     } else if (vi.IsRGB() && vi.IsRGB32()) {
         color = RGB;
         corder = CL_RGBA;
@@ -468,8 +482,8 @@ KNLMeansClass::KNLMeansClass(PClip _child, const int _d, const int _a, const int
     // Creates an OpenCL context, 2D images and buffers object.
     context = clCreateContext(NULL, 1, &deviceID, NULL, NULL, NULL);
     const cl_image_format image_format = { corder, ctype };
-    idmn[0] = vi.width;
-    idmn[1] = lsb ? (vi.height / 2) : (vi.height);
+    idmn[0] = (cl_uint) vi.width;
+    idmn[1] = (cl_uint) (lsb ? (vi.height / 2) : (vi.height));
     const size_t size = sizeof(float) * idmn[0] * idmn[1];
     mem_in[0] = clCreateImage2D(context, CL_MEM_READ_ONLY, &image_format, idmn[0], idmn[1], 0, NULL, &ret);
     if (ret == CL_IMAGE_FORMAT_NOT_SUPPORTED) 
@@ -725,7 +739,7 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
         const size_t local_vert[2] = { V_BLOCK_X, V_BLOCK_Y };
 
         //Copy chroma.
-        VSFrameRef *dst = vsapi->newVideoFrame(fi, d->idmn[0], d->idmn[1], NULL, core);
+        VSFrameRef *dst = vsapi->newVideoFrame(fi, (int) d->idmn[0], (int) d->idmn[1], NULL, core);
         if (fi->colorFamily == cmYUV && d->color == Gray) {
             vs_bitblt(vsapi->getWritePtr(dst, 1), vsapi->getStride(dst, 1), vsapi->getReadPtr(src, 1),
                 vsapi->getStride(src, 1), vsapi->getFrameWidth(src, 1) * fi->bytesPerSample,
@@ -980,24 +994,24 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out,
                 break;
             case VSPresetFormat::pfYUV444P8:
                 d.color = d.cmode ? YUV : Gray;
-                corder = d.cmode ? CL_RGBA : CL_LUMINANCE;
+                corder = (cl_channel_order) (d.cmode ? CL_RGBA : CL_LUMINANCE);
                 ctype = CL_UNORM_INT8;
                 break;
             case VSPresetFormat::pfYUV444P9:
             case VSPresetFormat::pfYUV444P10:
             case VSPresetFormat::pfYUV444P16:
                 d.color = d.cmode ? YUV : Gray;
-                corder = d.cmode ? CL_RGBA : CL_LUMINANCE;
+                corder = (cl_channel_order) (d.cmode ? CL_RGBA : CL_LUMINANCE);
                 ctype = CL_UNORM_INT16;
                 break;
             case VSPresetFormat::pfYUV444PH:
                 d.color = d.cmode ? YUV : Gray;
-                corder = d.cmode ? CL_RGBA : CL_LUMINANCE;
+                corder = (cl_channel_order) (d.cmode ? CL_RGBA : CL_LUMINANCE);
                 ctype = CL_HALF_FLOAT;
                 break;
             case VSPresetFormat::pfYUV444PS:
                 d.color = d.cmode ? YUV : Gray;
-                corder = d.cmode ? CL_RGBA : CL_LUMINANCE;
+                corder = (cl_channel_order) (d.cmode ? CL_RGBA : CL_LUMINANCE);
                 ctype = CL_FLOAT;
                 break;
             case VSPresetFormat::pfRGB24:
@@ -1158,8 +1172,8 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out,
     // Creates an OpenCL context, 2D images and buffers object.
     d.context = clCreateContext(NULL, 1, &d.deviceID, NULL, NULL, NULL);
     const cl_image_format image_format = { corder, ctype };
-    d.idmn[0] = d.vi->width;
-    d.idmn[1] = d.vi->height;
+    d.idmn[0] = (cl_uint) d.vi->width;
+    d.idmn[1] = (cl_uint) d.vi->height;
     const size_t size = sizeof(float) * d.idmn[0] * d.idmn[1];
     d.mem_in[0] = clCreateImage2D(d.context, CL_MEM_READ_ONLY, &image_format,
         d.idmn[0], d.idmn[1], 0, NULL, &ret);

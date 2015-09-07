@@ -1563,7 +1563,7 @@ static unsigned short font[][20] = {
 		}
 };
 
-void DrawDigit(uint8_t* dst, int pitch, int x, int y, int num) {
+inline void DrawDigit(uint8_t* dst, int pitch, int x, int y, int num) {
 	uint8_t *dp; x = x * 10; y = y * 20;
 	for (int tx = 0; tx < 10; tx++) {
 		for (int ty = 0; ty < 20; ty++) {

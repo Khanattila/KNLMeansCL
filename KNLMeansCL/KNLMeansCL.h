@@ -19,9 +19,7 @@
 #define VERSION "0.6.2"
 
 #ifdef _MSC_VER
-    #define _stdcall __stdcall
-    #define strcasecmp _stricmp
-    #define snprintf sprintf_s
+    #pragma warning (disable : 4514 4710 4820)
 #endif
 
 #include <cstdint>
@@ -37,16 +35,11 @@
     #include <CL/cl.h>
 #endif
 
-#if defined(_MSC_VER) && defined(CL_VERSION_1_2)
-    #pragma warning(disable : 4996)
-#elif defined(__GNUC__) && defined(CL_VERSION_1_2)
-    #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#endif
-
 #include "kernel.h"
 #include "startchar.h"
 
 #ifdef _WIN32
+    #define _stdcall __stdcall
     #include <avisynth.h>
 #endif
 
@@ -73,9 +66,9 @@ private:
     cl_kernel kernel[6];
     cl_mem mem_in[4], mem_out, mem_U[4];
     bool avs_equals(VideoInfo *v, VideoInfo *w);
-    cl_uint readBufferImage(PVideoFrame &frm, cl_command_queue command_queue,
+    cl_int readBufferImage(PVideoFrame &frm, cl_command_queue command_queue,
         cl_mem image, const size_t origin[3], const size_t region[3]);
-    cl_uint writeBufferImage(PVideoFrame &frm, cl_command_queue command_queue,
+    cl_int writeBufferImage(PVideoFrame &frm, cl_command_queue command_queue,
         cl_mem image, const size_t origin[3], const size_t region[3]);
 public:
     KNLMeansClass(PClip _child, const int _d, const int _a, const int _s, const bool _cmode, const int _wmode, 
@@ -109,10 +102,10 @@ inline size_t mrounds(const size_t num, const size_t mul) {
     return (size_t) ceil((double) num / (double) mul) * mul;
 }
 
-template <typename T>T fastmax(const T& left, const T& right) {
+template <typename T>T inline fastmax(const T& left, const T& right) {
     return left > right ? left : right;
 }
 
-template <typename T>T clamp(const T& value, const T& low, const T& high) {
+template <typename T>T inline clamp(const T& value, const T& low, const T& high) {
     return value < low ? low : (value > high ? high : value);
 }
