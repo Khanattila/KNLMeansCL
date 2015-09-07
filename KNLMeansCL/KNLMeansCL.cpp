@@ -1141,6 +1141,8 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out,
         device = CL_DEVICE_TYPE_GPU;
     } else if (!strcasecmp(d.ocl_device, "ACCELERATOR")) {
         device = CL_DEVICE_TYPE_ACCELERATOR;
+    } else if (!strcasecmp(d.ocl_device, "ALL")) {
+        device = CL_DEVICE_TYPE_ALL;
     } else if (!strcasecmp(d.ocl_device, "DEFAULT")) {
         device = CL_DEVICE_TYPE_DEFAULT;
     } else {
