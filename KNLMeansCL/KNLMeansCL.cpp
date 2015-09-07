@@ -23,6 +23,7 @@
 #define DFT_wmode 1
 #define DFT_h 1.2f
 #define DFT_ocl_device "DEFAULT"
+#define DFT_ocl_id 0
 #define DFT_lsb false
 #define DFT_info false
 
@@ -385,9 +386,9 @@ inline cl_int writeBufferImage(KNLMeansData *data, const VSAPI *vsapi, const VSF
 // AviSynthInit
 #ifdef __AVISYNTH_6_H__
 KNLMeansClass::KNLMeansClass(PClip _child, const int _d, const int _a, const int _s, const bool _cmode, 
-    const int _wmode, const double _h, PClip _baby, const char* _ocl_device, const bool _lsb, const bool _info, 
-    IScriptEnvironment* env) : GenericVideoFilter(_child), d(_d), a(_a), s(_s), cmode(_cmode), wmode(_wmode), h(_h), 
-    baby(_baby), ocl_device(_ocl_device), lsb(_lsb), info(_info) {
+    const int _wmode, const double _h, PClip _baby, const char* _ocl_device, const int _ocl_id, const bool _lsb, 
+    const bool _info, IScriptEnvironment* env) : GenericVideoFilter(_child), d(_d), a(_a), s(_s), cmode(_cmode), 
+    wmode(_wmode), h(_h), baby(_baby), ocl_device(_ocl_device), ocl_id(_ocl_id), lsb(_lsb), info(_info) {
 
     // Checks AviSynth Version.
     env->CheckVersion(6);
@@ -440,45 +441,62 @@ KNLMeansClass::KNLMeansClass(PClip _child, const int _d, const int _a, const int
         device = CL_DEVICE_TYPE_GPU;
     } else if (!strcasecmp(ocl_device, "ACCELERATOR")) {
         device = CL_DEVICE_TYPE_ACCELERATOR;
+    } else if (!strcasecmp(ocl_device, "ALL")) {
+        device = CL_DEVICE_TYPE_ALL;
     } else if (!strcasecmp(ocl_device, "DEFAULT")) {
         device = CL_DEVICE_TYPE_DEFAULT;
     } else {
         env->ThrowError("KNLMeansCL: device_type must be cpu, gpu, accelerator or default!");
     }
+    if (ocl_id < 0) 
+        env->ThrowError("KNLMeansCL: device_id must be greater than or equal to 0!");
 
     // Gets PlatformID and DeviceID.
-    cl_uint num_platforms = 0, num_devices = 0;
-    cl_bool img_support = CL_FALSE, device_aviable = CL_FALSE;
+    cl_uint num_platforms = 0;
     cl_int ret = clGetPlatformIDs(0, NULL, &num_platforms);
-    if (num_platforms == 0) {
+    if (num_platforms == 0) 
         env->ThrowError("KNLMeansCL: no opencl platforms available!");
-    }
     cl_platform_id *temp_platforms = (cl_platform_id*) malloc(sizeof(cl_platform_id) * num_platforms);
     ret |= clGetPlatformIDs(num_platforms, temp_platforms, NULL);
-    if (ret != CL_SUCCESS) {
-        env->ThrowError("KNLMeansCL: AviSynthCreate error (clGetPlatformIDs)!");
-    }
+    if (ret != CL_SUCCESS) 
+        env->ThrowError("KNLMeansCL: AviSynthCreate error (clGetPlatformID)!");
+    sum_devices = 0;
     for (cl_uint i = 0; i < num_platforms; i++) {
-        ret |= clGetDeviceIDs(temp_platforms[i], device, 0, 0, &num_devices);
-        cl_device_id *temp_devices = (cl_device_id*) malloc(sizeof(cl_device_id) * num_devices);
-        ret |= clGetDeviceIDs(temp_platforms[i], device, num_devices, temp_devices, NULL);
+        cl_uint num_devices = 0;
+        clGetDeviceIDs(temp_platforms[i], device, NULL, NULL, &num_devices);
+        sum_devices += num_devices;
+    }
+    if (sum_devices == 0)   
+        env->ThrowError("KNLMeansCL: no opencl device available of type device_type!");
+    if ((cl_uint) ocl_id >= sum_devices)
+        env->ThrowError("KNLMeansCL: selected device is not available!");
+    device_list *list = (device_list*) malloc(sizeof(device_list) * sum_devices);
+    if (list == nullptr) 
+        env->ThrowError("KNLMeansCL: malloc fails!");
+    cl_uint index = 0;
+    for (cl_uint i = 0; i < num_platforms; i++) {
+        cl_uint num_devices = 0;
+        clGetDeviceIDs(temp_platforms[i], device, NULL, NULL, &num_devices);
         for (cl_uint j = 0; j < num_devices; j++) {
-            ret |= clGetDeviceInfo(temp_devices[j], CL_DEVICE_IMAGE_SUPPORT, sizeof(cl_bool), &img_support, NULL);
-            if (device_aviable == CL_FALSE && img_support == CL_TRUE) {
-                platformID = temp_platforms[i];
-                deviceID = temp_devices[j];
-                device_aviable = CL_TRUE;
-            }
+            cl_device_id device_id = 0;
+            clGetDeviceIDs(temp_platforms[i], device, 1, &device_id, NULL);
+            if (index < sum_devices)
+                list[index++] = { temp_platforms[i], device_id };
+            else
+                env->ThrowError("KNLMeansCL: AviSynthCreate error (device_list)!");
         }
-        free(temp_devices);
     }
+    cl_bool img_support = CL_FALSE;
+    ret |= clGetDeviceInfo(list[ocl_id].device, CL_DEVICE_IMAGE_SUPPORT, sizeof(cl_bool), &img_support, NULL);
+    if (ret != CL_SUCCESS)
+        env->ThrowError("KNLMeansCL: AviSynthCreate error (clGetDeviceInfo)!");
+    else if (img_support == CL_FALSE)
+        env->ThrowError("KNLMeansCL: selected device does not support image!");
+    platformID = list[ocl_id].platform;
+    deviceID = list[ocl_id].device;
     free(temp_platforms);
-    if (ret != CL_SUCCESS && ret != CL_DEVICE_NOT_FOUND) {
-        env->ThrowError("KNLMeansCL: AviSynthCreate error (clGetDeviceIDs)!");
-    } else if (device_aviable == CL_FALSE) {
-        env->ThrowError("KNLMeansCL: opencl device not available!");
-    }
-
+    free(list);
+    
     // Creates an OpenCL context, 2D images and buffers object.
     context = clCreateContext(NULL, 1, &deviceID, NULL, NULL, NULL);
     const cl_image_format image_format = { corder, ctype };
@@ -487,7 +505,7 @@ KNLMeansClass::KNLMeansClass(PClip _child, const int _d, const int _a, const int
     const size_t size = sizeof(float) * idmn[0] * idmn[1];
     mem_in[0] = clCreateImage2D(context, CL_MEM_READ_ONLY, &image_format, idmn[0], idmn[1], 0, NULL, &ret);
     if (ret == CL_IMAGE_FORMAT_NOT_SUPPORTED) 
-        env->ThrowError("KNLMeansCL: image format is not supported by your device!");
+        env->ThrowError("KNLMeansCL: this image format is not supported by your device!");
     mem_in[2] = clCreateImage2D(context, CL_MEM_READ_ONLY, &image_format, idmn[0], idmn[1], 0, NULL, NULL);
     if (d) {
         mem_in[1] = clCreateImage2D(context, CL_MEM_READ_ONLY, &image_format, idmn[0], idmn[1], 0, NULL, NULL);
@@ -609,11 +627,11 @@ PVideoFrame __stdcall KNLMeansClass::GetFrame(int n, IScriptEnvironment* env) {
             src->GetPitch(PLANAR_U), src->GetRowSize(PLANAR_U), src->GetHeight(PLANAR_U));
         env->BitBlt(dst->GetWritePtr(PLANAR_V), dst->GetPitch(PLANAR_V), src->GetReadPtr(PLANAR_V),
             src->GetPitch(PLANAR_V), src->GetRowSize(PLANAR_V), src->GetHeight(PLANAR_V));
-    }
-    cl_command_queue command_queue = clCreateCommandQueue(context, deviceID, 0, NULL);
+    } 
 
     // Processing.
     cl_int ret = CL_SUCCESS;
+    cl_command_queue command_queue = clCreateCommandQueue(context, deviceID, 0, NULL);
     ret |= writeBufferImage(src, command_queue, mem_in[0], origin, region);
     ret |= writeBufferImage(ref, command_queue, mem_in[2], origin, region);
     ret |= clEnqueueNDRangeKernel(command_queue, kernel[0], 2, NULL, global_work, NULL, 0, NULL, NULL);
@@ -684,6 +702,8 @@ PVideoFrame __stdcall KNLMeansClass::GetFrame(int n, IScriptEnvironment* env) {
         snprintf(buffer, 2048, " Global work size: %lux%lu",
             (unsigned long) global_work[0], (unsigned long) global_work[1]);
         DrawString(frm, pitch, 0, y++, buffer);
+        snprintf(buffer, 2048, " Number of devices: %u", sum_devices);
+        DrawString(frm, pitch, 0, y++, buffer);
         DrawString(frm, pitch, 0, y++, "Platform info");
         ret |= clGetPlatformInfo(platformID, CL_PLATFORM_NAME, sizeof(char) * 2048, str, NULL);
         snprintf(buffer, 2048, " Name: %s", str);
@@ -747,11 +767,11 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
             vs_bitblt(vsapi->getWritePtr(dst, 2), vsapi->getStride(dst, 2), vsapi->getReadPtr(src, 2),
                 vsapi->getStride(src, 2), vsapi->getFrameWidth(src, 2) * fi->bytesPerSample,
                 vsapi->getFrameHeight(src, 2));
-        }
-        cl_command_queue command_queue = clCreateCommandQueue(d->context, d->deviceID, 0, NULL);
+        }       
 
         // Processing.
         cl_int ret = CL_SUCCESS;
+        cl_command_queue command_queue = clCreateCommandQueue(d->context, d->deviceID, 0, NULL);
         ret |= writeBufferImage(d, vsapi, src, command_queue, d->mem_in[0], origin, region);
         ret |= writeBufferImage(d, vsapi, ref, command_queue, d->mem_in[2], origin, region);
         vsapi->freeFrame(src);
@@ -832,6 +852,8 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
             DrawString(frm, pitch, 0, y++, buffer);
             snprintf(buffer, 2048, " Global work size: %lux%lu",
                 (unsigned long) global_work[0], (unsigned long) global_work[1]);
+            DrawString(frm, pitch, 0, y++, buffer);
+            snprintf(buffer, 2048, " Number of devices: %u", d->sum_devices);
             DrawString(frm, pitch, 0, y++, buffer);
             DrawString(frm, pitch, 0, y++, "Platform info");
             ret |= clGetPlatformInfo(d->platformID, CL_PLATFORM_NAME, sizeof(char) * 2048, str, NULL);
@@ -931,8 +953,8 @@ static void VS_CC VapourSynthPluginFree(void *instanceData, VSCore *core, const 
 AVSValue __cdecl AviSynthPluginCreate(AVSValue args, void* user_data, IScriptEnvironment* env) {
     return new KNLMeansClass(args[0].AsClip(), args[1].AsInt(DFT_D), args[2].AsInt(DFT_A), args[3].AsInt(DFT_S),
         args[4].AsBool(DFT_cmode), args[5].AsInt(DFT_wmode), args[6].AsFloat(DFT_h), args[7].Defined() ? 
-        args[7].AsClip() : args[0].AsClip(), args[8].AsString(DFT_ocl_device), args[9].AsBool(DFT_lsb), 
-        args[10].AsBool(DFT_info), env);
+        args[7].AsClip() : args[0].AsClip(), args[8].AsString(DFT_ocl_device), args[9].AsInt(DFT_ocl_id), 
+        args[10].AsBool(DFT_lsb), args[11].AsBool(DFT_info), env);
 }
 #endif //__AVISYNTH_6_H__
 
@@ -1068,6 +1090,8 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out,
     if (err) d.h = DFT_h;
     d.ocl_device = vsapi->propGetData(in, "device_type", 0, &err);
     if (err) d.ocl_device = DFT_ocl_device;
+    d.ocl_id = vsapi->propGetInt(in, "device_id", 0, &err);
+    if (err) d.d = DFT_ocl_id;
     d.info = vsapi->propGetInt(in, "info", 0, &err);
     if (err) d.info = DFT_info;
 
@@ -1123,10 +1147,15 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out,
         vsapi->freeNode(d.knot);
         return;
     }
+    if (d.ocl_id < 0) {
+        vsapi->setError(out, "knlm.KNLMeansCL: device_id must be greater than or equal to 0!");
+        vsapi->freeNode(d.node);
+        vsapi->freeNode(d.knot);
+        return;
+    }
 
     // Gets PlatformID and DeviceID.
-    cl_uint num_platforms = 0, num_devices = 0;
-    cl_bool img_support = CL_FALSE, device_aviable = CL_FALSE;
+    cl_uint num_platforms = 0;
     cl_int ret = clGetPlatformIDs(0, NULL, &num_platforms);
     if (num_platforms == 0) {
         vsapi->setError(out, "knlm.KNLMeansCL: no opencl platforms available!");
@@ -1137,37 +1166,70 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out,
     cl_platform_id *temp_platforms = (cl_platform_id*) malloc(sizeof(cl_platform_id) * num_platforms);
     ret |= clGetPlatformIDs(num_platforms, temp_platforms, NULL);
     if (ret != CL_SUCCESS) {
-        vsapi->setError(out, "knlm.KNLMeansCL: VapourSynthCreate error (clGetPlatformIDs)!");
+        vsapi->setError(out, "knlm.KNLMeansCL: VapourSynthCreate error (clGetPlatformID)!");
         vsapi->freeNode(d.node);
         vsapi->freeNode(d.knot);
         return;
     }
+    d.sum_devices = 0;
     for (cl_uint i = 0; i < num_platforms; i++) {
-        ret |= clGetDeviceIDs(temp_platforms[i], device, 0, 0, &num_devices);
-        cl_device_id *temp_devices = (cl_device_id*) malloc(sizeof(cl_device_id) * num_devices);
-        ret |= clGetDeviceIDs(temp_platforms[i], device, num_devices, temp_devices, NULL);
+        cl_uint num_devices = 0;
+        clGetDeviceIDs(temp_platforms[i], device, NULL, NULL, &num_devices);
+        d.sum_devices += num_devices;
+    }
+    if (d.sum_devices == 0) {
+        vsapi->setError(out, "knlm.KNLMeansCL: no opencl device available of type device_type!");
+        vsapi->freeNode(d.node);
+        vsapi->freeNode(d.knot);
+        return;
+    }
+    if (d.ocl_id >= d.sum_devices) {
+        vsapi->setError(out, "knlm.KNLMeansCL: selected device is not available!");
+        vsapi->freeNode(d.node);
+        vsapi->freeNode(d.knot);
+        return;
+    }
+    device_list *list = (device_list*) malloc(sizeof(device_list) * d.sum_devices);
+    if (list == nullptr) {
+        vsapi->setError(out, "knlm.KNLMeansCL: malloc fails!");
+        vsapi->freeNode(d.node);
+        vsapi->freeNode(d.knot);
+        return;
+    }
+    cl_uint index = 0;
+    for (cl_uint i = 0; i < num_platforms; i++) {
+        cl_uint num_devices = 0;
+        clGetDeviceIDs(temp_platforms[i], device, NULL, NULL, &num_devices);
         for (cl_uint j = 0; j < num_devices; j++) {
-            ret |= clGetDeviceInfo(temp_devices[j], CL_DEVICE_IMAGE_SUPPORT, sizeof(cl_bool), &img_support, NULL);
-            if (device_aviable == CL_FALSE && img_support == CL_TRUE) {
-                d.platformID = temp_platforms[i];
-                d.deviceID = temp_devices[j];
-                device_aviable = CL_TRUE;
+            cl_device_id device_id = 0;
+            clGetDeviceIDs(temp_platforms[i], device, 1, &device_id, NULL);
+            if (index < d.sum_devices)
+                list[index++] = { temp_platforms[i], device_id };
+            else {
+                vsapi->setError(out, "knlm.KNLMeansCL: AviSynthCreate error (device_list)!");
+                vsapi->freeNode(d.node);
+                vsapi->freeNode(d.knot);
+                return;
             }
         }
-        free(temp_devices);
     }
+    cl_bool img_support = CL_FALSE;
+    ret |= clGetDeviceInfo(list[d.ocl_id].device, CL_DEVICE_IMAGE_SUPPORT, sizeof(cl_bool), &img_support, NULL);
+    if (ret != CL_SUCCESS) {
+        vsapi->setError(out, "knlm.KNLMeansCL: VapourSynthCreate error (clGetDeviceInfo)!");
+        vsapi->freeNode(d.node);
+        vsapi->freeNode(d.knot);
+        return;
+    } else if (img_support == CL_FALSE) {
+        vsapi->setError(out, "knlm.KNLMeansCL: selected device does not support image!");
+        vsapi->freeNode(d.node);
+        vsapi->freeNode(d.knot);
+        return;
+    }
+    d.platformID = list[d.ocl_id].platform;
+    d.deviceID = list[d.ocl_id].device;
     free(temp_platforms);
-    if (ret != CL_SUCCESS && ret != CL_DEVICE_NOT_FOUND) {
-        vsapi->setError(out, "knlm.KNLMeansCL: VapourSynthCreate error (clGetDeviceIDs)!");
-        vsapi->freeNode(d.node);
-        vsapi->freeNode(d.knot);
-        return;
-    } else if (device_aviable == CL_FALSE) {
-        vsapi->setError(out, "knlm.KNLMeansCL: opencl device not available!");
-        vsapi->freeNode(d.node);
-        vsapi->freeNode(d.knot);
-        return;
-    }
+    free(list);
 
     // Creates an OpenCL context, 2D images and buffers object.
     d.context = clCreateContext(NULL, 1, &d.deviceID, NULL, NULL, NULL);
@@ -1178,7 +1240,7 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out,
     d.mem_in[0] = clCreateImage2D(d.context, CL_MEM_READ_ONLY, &image_format,
         d.idmn[0], d.idmn[1], 0, NULL, &ret);
     if (ret == CL_IMAGE_FORMAT_NOT_SUPPORTED) {
-     vsapi->setError(out, "knlm.KNLMeansCL: image format is not supported by your device!");
+     vsapi->setError(out, "knlm.KNLMeansCL: this image format is not supported by your device!");
      vsapi->freeNode(d.node);
      vsapi->freeNode(d.knot);
      return;
@@ -1310,7 +1372,8 @@ extern "C" __declspec(dllexport) const char* __stdcall AvisynthPluginInit3(
     IScriptEnvironment* env, const AVS_Linkage* const vectors) {
 
     AVS_linkage = vectors;
-    env->AddFunction("KNLMeansCL", "c[d]i[a]i[s]i[cmode]b[wmode]i[h]f[rclip]c[device_type]s[lsb_inout]b[info]b",
+    env->AddFunction("KNLMeansCL", "c[d]i[a]i[s]i[cmode]b[wmode]i[h]f[rclip]c[device_type]s[device_id]i[lsb_inout]b\
+[info]b",
         AviSynthPluginCreate, 0);
     return "KNLMeansCL for AviSynth";
 }
@@ -1324,6 +1387,6 @@ VS_EXTERNAL_API(void) VapourSynthPluginInit(VSConfigPlugin configFunc,
 
     configFunc("com.Khanattila.KNLMeansCL", "knlm", "KNLMeansCL for VapourSynth", VAPOURSYNTH_API_VERSION, 1, plugin);
     registerFunc("KNLMeansCL", "clip:clip;d:int:opt;a:int:opt;s:int:opt;cmode:int:opt;wmode:int:opt;h:float:opt;\
-rclip:clip:opt;device_type:data:opt;info:int:opt", VapourSynthPluginCreate, nullptr, plugin);
+rclip:clip:opt;device_type:data:opt;device_id:int:opt;info:int:opt", VapourSynthPluginCreate, nullptr, plugin);
 }
 #endif //__VAPOURSYNTH_H__
