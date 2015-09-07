@@ -11,12 +11,13 @@ Every pixel is restored by the weighted average of all pixels in its search wind
 ```
 AviSynth:               KNLMeansCL (clip, int D (0), int A (2), int S (4), 
                                 bool cmode(false),  int wmode (1), float h (1.2), 
-                                string device_type ("default"), bool lsb_inout (false),
-                                bool info (false))
+                                string device_type ("default"), int device_id (0),
+                                bool lsb_inout (false), bool info (false))
 
 VapourSynth:            knlm.KNLMeansCL (clip clip, int d (0), int a (2), int s (4), 
                                 int cmode(0), int wmode (1), float h (1.2), 
-                                string device_type ("default"), int info (0)) 
+                                string device_type ("default"), int device_id (0), 
+                                int info (0)) 
 ```
 
 #### Supported image format ####
@@ -93,8 +94,16 @@ string device_type      CPU := An OpenCL device that is the host processor.
                         GPU := An OpenCL device that is a GPU. 
                         ACCELERATOR := Dedicated OpenCL accelerators.
                         DEFAULT := The default OpenCL device in the system.
+                        ALL := All OpenCL devices available in the system.
 	
                         Default: DEFAULT.
+                        
+
+int device_id		The 'device_id'º device of type 'device_type' in the system.
+			Example: [device_type = "GPU", device_id = 1] return the second 
+			GPU in the system.
+			
+			Default: 0.
 	
 	
 bool lsb_inout          AviSynth hack. Set 16-bit input and output clip.
