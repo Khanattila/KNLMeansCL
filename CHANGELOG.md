@@ -1,8 +1,12 @@
 ## Change Log ##
+**- v0.6.3 (2015-09-07)**
+  - Enhanced OpenCL device selection (device_id).
+  - VapourSynth linux: fixed wrong locate.
+  - Minor changes and bug fixes.
+
 **- v0.6.2 (2015-09-04)**
-  - Fixed warning use of logical '||' with constant operand.
-  - Fixed wrong snprintf format specifier.
   - Enhanced error log.
+  - Fixed warning use of logical '||' with constant operand.
 
 **- v0.6.1 (2015-09-01)**
   - Fixed 'h'strength in some situations.
