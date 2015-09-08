@@ -9,7 +9,7 @@ Every pixel is restored by the weighted average of all pixels in its search wind
 
 #### Syntax ####
 ```
-AviSynth:               KNLMeansCL (clip, int D (0), int A (2), int S (4), 
+AviSynth:               KNLMeansCL (clip, int d (0), int a (2), int s (4), 
                                 bool cmode(false),  int wmode (1), float h (1.2), 
                                 string device_type ("default"), int device_id (0),
                                 bool lsb_inout (false), bool info (false))
