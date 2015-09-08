@@ -1093,7 +1093,7 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out,
     d.ocl_device = vsapi->propGetData(in, "device_type", 0, &err);
     if (err) d.ocl_device = DFT_ocl_device;
     d.ocl_id = vsapi->propGetInt(in, "device_id", 0, &err);
-    if (err) d.d = DFT_ocl_id;
+    if (err) d.ocl_id = DFT_ocl_id;
     d.info = vsapi->propGetInt(in, "info", 0, &err);
     if (err) d.info = DFT_info;
 
@@ -1244,10 +1244,10 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out,
     d.mem_in[0] = clCreateImage2D(d.context, CL_MEM_READ_ONLY, &image_format,
         d.idmn[0], d.idmn[1], 0, NULL, &ret);
     if (ret == CL_IMAGE_FORMAT_NOT_SUPPORTED) {
-     vsapi->setError(out, "knlm.KNLMeansCL: this image format is not supported by your device!");
-     vsapi->freeNode(d.node);
-     vsapi->freeNode(d.knot);
-     return;
+        vsapi->setError(out, "knlm.KNLMeansCL: this image format is not supported by your device!");
+        vsapi->freeNode(d.node);
+        vsapi->freeNode(d.knot);
+        return;
     }
     d.mem_in[2] = clCreateImage2D(d.context, CL_MEM_READ_ONLY, &image_format,
         d.idmn[0], d.idmn[1], 0, NULL, NULL);
@@ -1266,7 +1266,7 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out,
 
     // Host buffer.
     if (d.color == YUV || d.color == RGB) {
-       d.hostBuffer = malloc(d.idmn[0] * d.idmn[1] * 4 * d.vi->format->bytesPerSample);
+        d.hostBuffer = malloc(d.idmn[0] * d.idmn[1] * 4 * d.vi->format->bytesPerSample);
     } else {
         d.hostBuffer = nullptr;
     }
