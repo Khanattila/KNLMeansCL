@@ -89,7 +89,7 @@ DEBUG=""
 LIBNAME=""
 
 CXXFLAGS="-std=c++11 -Wall -Wno-unused-local-typedefs -fopenmp -I. -I/shared -I$SRCDIR/include"
-LDFLAGS=""
+LDFLAGS="-fopenmp"
 SOFLAGS="-shared"
 DEPLIBS="OpenCL"
 TARGET=""
