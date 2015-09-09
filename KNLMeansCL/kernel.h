@@ -205,6 +205,41 @@ static const char* source_code =
 "		const float4 val = native_divide(num, den);												                  \n" \
 "		write_imagef(U1_out, (int2) (x, y), val);																  \n" \
 "	}       																									  \n" \
+"}																												  \n" \
+"																												  \n" \
+"__kernel																										  \n" \
+"void NLM_pack(__read_only image2d_t R, __read_only image2d_t G, __read_only image2d_t B,   					  \n" \
+"__write_only image2d_t U1, const int2 dim) { 																	  \n" \
+"																												  \n" \
+"	const int x = get_global_id(0);																				  \n" \
+"	const int y = get_global_id(1);																				  \n" \
+"	if(x >= dim.x || y >= dim.y) return;																		  \n" \
+"																												  \n" \
+"	const sampler_t smp = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_NONE | CLK_FILTER_NEAREST;		        	  \n" \
+"	const int2 coord2 = (int2) (x, y);		                            										  \n" \
+"																												  \n" \
+"	const float r = read_imagef(R, smp, coord2).x;          													  \n" \
+"	const float g = read_imagef(G, smp, coord2).x;															      \n" \
+"	const float b = read_imagef(B, smp, coord2).x;																  \n" \
+"	const float4 val = (float4) (r, g, b, 1.0f) * (float4) (NLMK_PACK);			                                  \n" \
+"	write_imagef(U1, coord2, val);															                      \n" \
+"}																												  \n" \
+"																												  \n" \
+"__kernel																										  \n" \
+"void NLM_unpack(__write_only image2d_t R, __write_only image2d_t G, __write_only image2d_t B,   				  \n" \
+"__read_only image2d_t U1, const int2 dim) { 		    														  \n" \
+"																												  \n" \
+"	const int x = get_global_id(0);																				  \n" \
+"	const int y = get_global_id(1);																				  \n" \
+"	if(x >= dim.x || y >= dim.y) return;																		  \n" \
+"																												  \n" \
+"	const sampler_t smp = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_NONE | CLK_FILTER_NEAREST;		        	  \n" \
+"	const int2 coord2 = (int2) (x, y);		                            										  \n" \
+"																												  \n" \
+"	const float4 val = read_imagef(U1, smp, coord2) * (float4) (NLMK_UNPACK);              	                      \n" \
+"	write_imagef(R, coord2, (float4) val.x);												                      \n" \
+"	write_imagef(G, coord2, (float4) val.y);												                      \n" \
+"	write_imagef(B, coord2, (float4) val.z);												                      \n" \
 "}																												  ";
 
 #endif //__KERNEL_H__

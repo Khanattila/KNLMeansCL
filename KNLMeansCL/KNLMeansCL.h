@@ -16,7 +16,7 @@
 *	along with KNLMeansCL. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#define VERSION "0.6.3-1"
+#define VERSION "0.6.4"
 
 #ifdef _MSC_VER
     #pragma warning (disable : 4514 4710 4820)
@@ -92,15 +92,14 @@ typedef struct {
     int64_t d, a, s, cmode, wmode, info, ocl_id;
     double h;
     const char* ocl_device;
-    void* hostBuffer;
     color_t color;
     cl_uint idmn[2], sum_devices;
     cl_platform_id platformID;
     cl_device_id deviceID;
     cl_context context;
     cl_program program;
-    cl_kernel kernel[6];
-    cl_mem mem_in[4], mem_out, mem_U[4];
+    cl_kernel kernel[8];
+    cl_mem mem_in[4], mem_out, mem_U[4], mem_P[3];
 } KNLMeansData;
 #endif //__VAPOURSYNTH_H__
 
