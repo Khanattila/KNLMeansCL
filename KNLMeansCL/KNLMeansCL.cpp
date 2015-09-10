@@ -382,9 +382,11 @@ KNLMeansClass::KNLMeansClass(PClip _child, const int _d, const int _a, const int
     setlocale(LC_ALL, "C");
     snprintf(options, 2048, "-cl-single-precision-constant -cl-denorms-are-zero -cl-fast-relaxed-math -Werror \
         -D H_BLOCK_X=%i -D H_BLOCK_Y=%i -D V_BLOCK_X=%i -D V_BLOCK_Y=%i \
-        -D NLMK_TCOLOR=%i -D NLMK_S=%i -D NLMK_WMODE=%i -D NLMK_TEMPORAL=%i -D NLMK_H2_INV_NORM=%f",
-         H_BLOCK_X, H_BLOCK_Y, V_BLOCK_X, V_BLOCK_Y,
-         color, s, wmode, d, 65025.0 / (3*h*h*(2 * s + 1) * (2 * s + 1)));
+        -D NLMK_TCOLOR=%i -D NLMK_S=%i -D NLMK_WMODE=%i -D NLMK_TEMPORAL=%i \
+        -D NLMK_H2_INV_NORM=%f -D NLMK_PACK=%f -D NLMK_UNPACK=%f",
+        H_BLOCK_X, H_BLOCK_Y, V_BLOCK_X, V_BLOCK_Y,
+        color, s, wmode, d, 
+        65025.0 / (3*h*h*(2 * s + 1) * (2 * s + 1)), 1.0, 1.0);
     setlocale(LC_ALL, "");
     ret = clBuildProgram(program, 1, &deviceID, options, NULL, NULL);
     if (ret != CL_SUCCESS) {
