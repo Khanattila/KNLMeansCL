@@ -1,4 +1,7 @@
 ## Change Log ##
+**- v0.6.4 (2015-09-10)**
+  - VapourSynth: removed OpenMP.
+
 **- v0.6.3 (2015-09-07)**
   - Enhanced OpenCL device selection (device_id).
   - VapourSynth linux: fixed wrong locate.
