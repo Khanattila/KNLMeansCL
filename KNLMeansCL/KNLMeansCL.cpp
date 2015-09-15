@@ -381,13 +381,12 @@ KNLMeansClass::KNLMeansClass(PClip _child, const int _d, const int _a, const int
     char options[2048];
     setlocale(LC_ALL, "C");
     snprintf(options, 2048, "-cl-single-precision-constant -cl-denorms-are-zero -cl-fast-relaxed-math -Werror \
-        -D H_BLOCK_X=%i -D H_BLOCK_Y=%i -D V_BLOCK_X=%i -D V_BLOCK_Y=%i \
-        -D NLMK_TCOLOR=%i -D NLMK_S=%i -D NLMK_WMODE=%i -D NLMK_TEMPORAL=%i \
-        -D NLMK_H2_INV_NORM=%f -D NLMK_PACK=%f -D NLMK_UNPACK=%f",
+-D H_BLOCK_X=%i -D H_BLOCK_Y=%i -D V_BLOCK_X=%i -D V_BLOCK_Y=%i \
+-D NLMK_TCOLOR=%i -D NLMK_S=%i -D NLMK_WMODE=%i -D NLMK_TEMPORAL=%i \
+-D NLMK_H2_INV_NORM=%f -D NLMK_BIT_SHIFT=%i",
         H_BLOCK_X, H_BLOCK_Y, V_BLOCK_X, V_BLOCK_Y,
         color, s, wmode, d, 
-        65025.0 / (3*h*h*(2 * s + 1) * (2 * s + 1)), 1.0, 1.0);
-    setlocale(LC_ALL, "");
+        65025.0 / (3*h*h*(2 * s + 1) * (2 * s + 1)), 0);
     ret = clBuildProgram(program, 1, &deviceID, options, NULL, NULL);
     if (ret != CL_SUCCESS) {
         size_t options_size, log_size;
@@ -409,6 +408,7 @@ KNLMeansClass::KNLMeansClass(PClip _child, const int _d, const int _a, const int
         free(log);
         env->ThrowError("KNLMeansCL: AviSynthCreate error (clBuildProgram)!\n Please report Log-KNLMeansCL.txt.");
     }
+    setlocale(LC_ALL, "");
 
     // Creates kernel objects.
     kernel[0] = clCreateKernel(program, "NLM_init", NULL);
@@ -466,10 +466,8 @@ PVideoFrame __stdcall KNLMeansClass::GetFrame(int n, IScriptEnvironment* env) {
     PVideoFrame ref = baby->GetFrame(n, env);
     const size_t origin[3] = { 0, 0, 0 };
     const size_t region[3] = { idmn[0], idmn[1], 1 };
-    const size_t global_work[2] = {
-        mrounds(idmn[0], fastmax(H_BLOCK_X, V_BLOCK_X)),
-        mrounds(idmn[1], fastmax(H_BLOCK_Y, V_BLOCK_Y))
-    };
+    const size_t global_work[2] = { mrounds(idmn[0], fastmax(H_BLOCK_X, V_BLOCK_X)),
+        mrounds(idmn[1], fastmax(H_BLOCK_Y, V_BLOCK_Y)) };
     const size_t local_horiz[2] = { H_BLOCK_X, H_BLOCK_Y };
     const size_t local_vert[2] = { V_BLOCK_X, V_BLOCK_Y };
 
@@ -605,21 +603,19 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
         VSFrameRef *dst = vsapi->newVideoFrame(fi, (int) d->idmn[0], (int) d->idmn[1], NULL, core);
         const size_t origin[3] = { 0, 0, 0 };
         const size_t region[3] = { d->idmn[0], d->idmn[1], 1 };
-        const size_t global_work[2] = {
-            mrounds(d->idmn[0], fastmax(H_BLOCK_X, V_BLOCK_X)),
-            mrounds(d->idmn[1], fastmax(H_BLOCK_Y, V_BLOCK_Y))
+        const size_t global_work[2] = { 
+            mrounds(d->idmn[0], fastmax(H_BLOCK_X, V_BLOCK_X)), 
+            mrounds(d->idmn[1], fastmax(H_BLOCK_Y, V_BLOCK_Y)) 
         };
         const size_t local_horiz[2] = { H_BLOCK_X, H_BLOCK_Y };
         const size_t local_vert[2] = { V_BLOCK_X, V_BLOCK_Y };
 
         //Copy chroma.  
         if (fi->colorFamily == cmYUV && d->color == Gray) {
-            vs_bitblt(vsapi->getWritePtr(dst, 1), vsapi->getStride(dst, 1), vsapi->getReadPtr(src, 1),
-                vsapi->getStride(src, 1), vsapi->getFrameWidth(src, 1) * fi->bytesPerSample,
-                vsapi->getFrameHeight(src, 1));
-            vs_bitblt(vsapi->getWritePtr(dst, 2), vsapi->getStride(dst, 2), vsapi->getReadPtr(src, 2),
-                vsapi->getStride(src, 2), vsapi->getFrameWidth(src, 2) * fi->bytesPerSample,
-                vsapi->getFrameHeight(src, 2));
+            vs_bitblt(vsapi->getWritePtr(dst, 1), vsapi->getStride(dst, 1), vsapi->getReadPtr(src, 1), vsapi->getStride(src, 1), 
+                vsapi->getFrameWidth(src, 1) * fi->bytesPerSample, vsapi->getFrameHeight(src, 1));
+            vs_bitblt(vsapi->getWritePtr(dst, 2), vsapi->getStride(dst, 2), vsapi->getReadPtr(src, 2), vsapi->getStride(src, 2),
+                vsapi->getFrameWidth(src, 2) * fi->bytesPerSample, vsapi->getFrameHeight(src, 2));
         }       
 
         // Processing.
@@ -627,10 +623,21 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
         cl_command_queue command_queue = clCreateCommandQueue(d->context, d->deviceID, 0, NULL);
         switch (d->color) {
             case Gray:
-                ret |= clEnqueueWriteImage(command_queue, d->mem_in[0], CL_TRUE, origin, region,
-                    (size_t) vsapi->getStride(src, 0), 0, vsapi->getReadPtr(src, 0), 0, NULL, NULL);
-                ret |= clEnqueueWriteImage(command_queue, d->mem_in[2], CL_TRUE, origin, region,
-                    (size_t) vsapi->getStride(ref, 0), 0, vsapi->getReadPtr(ref, 0), 0, NULL, NULL);
+                if (d->bit_shift) {
+                    ret |= clEnqueueWriteImage(command_queue, d->mem_P[0], CL_TRUE, origin, region,
+                        (size_t) vsapi->getStride(src, 0), 0, vsapi->getReadPtr(src, 0), 0, NULL, NULL);
+                    ret |= clSetKernelArg(d->kernel[6], 3, sizeof(cl_mem), &d->mem_in[0]);
+                    ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[6], 2, NULL, global_work, NULL, 0, NULL, NULL);
+                    ret |= clEnqueueWriteImage(command_queue, d->mem_P[0], CL_TRUE, origin, region,
+                        (size_t) vsapi->getStride(ref, 0), 0, vsapi->getReadPtr(ref, 0), 0, NULL, NULL);
+                    ret |= clSetKernelArg(d->kernel[6], 3, sizeof(cl_mem), &d->mem_in[2]);
+                    ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[6], 2, NULL, global_work, NULL, 0, NULL, NULL);
+                } else {
+                    ret |= clEnqueueWriteImage(command_queue, d->mem_in[0], CL_TRUE, origin, region,
+                        (size_t) vsapi->getStride(src, 0), 0, vsapi->getReadPtr(src, 0), 0, NULL, NULL);                  
+                    ret |= clEnqueueWriteImage(command_queue, d->mem_in[2], CL_TRUE, origin, region,
+                        (size_t) vsapi->getStride(ref, 0), 0, vsapi->getReadPtr(ref, 0), 0, NULL, NULL);                   
+                }              
                 break;
             case YUV:
             case RGB:
@@ -676,8 +683,7 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
                         ret |= clEnqueueWriteImage(command_queue, d->mem_P[2], CL_TRUE, origin, region,
                             (size_t) vsapi->getStride(src, 2), 0, vsapi->getReadPtr(src, 2), 0, NULL, NULL);
                         ret |= clSetKernelArg(d->kernel[6], 3, sizeof(cl_mem), &d->mem_in[1]);
-                        ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[6], 2, NULL, global_work,
-                            NULL, 0, NULL, NULL);
+                        ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[6], 2, NULL, global_work, NULL, 0, NULL, NULL);
                         ret |= clEnqueueWriteImage(command_queue, d->mem_P[0], CL_TRUE, origin, region,
                             (size_t) vsapi->getStride(ref, 0), 0, vsapi->getReadPtr(ref, 0), 0, NULL, NULL);
                         ret |= clEnqueueWriteImage(command_queue, d->mem_P[1], CL_TRUE, origin, region,
@@ -685,8 +691,7 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
                         ret |= clEnqueueWriteImage(command_queue, d->mem_P[2], CL_TRUE, origin, region,
                             (size_t) vsapi->getStride(ref, 2), 0, vsapi->getReadPtr(ref, 2), 0, NULL, NULL);
                         ret |= clSetKernelArg(d->kernel[6], 3, sizeof(cl_mem), &d->mem_in[3]);
-                        ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[6], 2, NULL, global_work,
-                            NULL, 0, NULL, NULL);
+                        ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[6], 2, NULL, global_work, NULL, 0, NULL, NULL);
                         break;
                 }
                 vsapi->freeFrame(src);
@@ -696,15 +701,11 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
                         if (k || j || i) {
                             const cl_int q[2] = { i, j };
                             ret |= clSetKernelArg(d->kernel[1], 4, 2 * sizeof(cl_int), &q);
-                            ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[1],
-                                2, NULL, global_work, NULL, 0, NULL, NULL);
-                            ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[2],
-                                2, NULL, global_work, local_horiz, 0, NULL, NULL);
-                            ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[3],
-                                2, NULL, global_work, local_vert, 0, NULL, NULL);
+                            ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[1], 2, NULL, global_work, NULL, 0, NULL, NULL);
+                            ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[2], 2, NULL, global_work, local_horiz, 0, NULL, NULL);  
+                            ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[3], 2, NULL, global_work, local_vert, 0, NULL, NULL);
                             ret |= clSetKernelArg(d->kernel[4], 5, 2 * sizeof(cl_int), &q);
-                            ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[4],
-                                2, NULL, global_work, NULL, 0, NULL, NULL);
+                            ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[4], 2, NULL, global_work, NULL, 0, NULL, NULL);
                         }
                     }
                 }
@@ -716,15 +717,11 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
                     if (j * (2 * d->a + 1) + i < 0) {
                         const cl_int q[2] = { i, j };
                         ret |= clSetKernelArg(d->kernel[1], 4, 2 * sizeof(cl_int), &q);
-                        ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[1],
-                            2, NULL, global_work, NULL, 0, NULL, NULL);
-                        ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[2],
-                            2, NULL, global_work, local_horiz, 0, NULL, NULL);
-                        ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[3],
-                            2, NULL, global_work, local_vert, 0, NULL, NULL);
+                        ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[1], 2, NULL, global_work, NULL, 0, NULL, NULL);
+                        ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[2], 2, NULL, global_work, local_horiz, 0, NULL, NULL);
+                        ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[3], 2, NULL, global_work, local_vert, 0, NULL, NULL);
                         ret |= clSetKernelArg(d->kernel[4], 5, 2 * sizeof(cl_int), &q);
-                        ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[4],
-                            2, NULL, global_work, NULL, 0, NULL, NULL);
+                        ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[4], 2, NULL, global_work, NULL, 0, NULL, NULL);
                     }
                 }
             }
@@ -732,8 +729,14 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
         ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[5], 2, NULL, global_work, NULL, 0, NULL, NULL);
         switch (d->color) {
             case Gray:
-                ret |= clEnqueueReadImage(command_queue, d->mem_out, CL_TRUE, origin, region,
-                    (size_t) vsapi->getStride(dst, 0), 0, vsapi->getWritePtr(dst, 0), 0, NULL, NULL);            
+                if (d->bit_shift) {
+                    ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[7], 2, NULL, global_work, NULL, 0, NULL, NULL);
+                    ret |= clEnqueueReadImage(command_queue, d->mem_P[0], CL_TRUE, origin, region,
+                        (size_t) vsapi->getStride(dst, 0), 0, vsapi->getWritePtr(dst, 0), 0, NULL, NULL);
+                } else {
+                    ret |= clEnqueueReadImage(command_queue, d->mem_out, CL_TRUE, origin, region,
+                        (size_t) vsapi->getStride(dst, 0), 0, vsapi->getWritePtr(dst, 0), 0, NULL, NULL);
+                }                     
                 break;
             case YUV:
             case RGB:
@@ -763,15 +766,13 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
             DrawString(frm, pitch, 0, y++, "KNLMeansCL");
             DrawString(frm, pitch, 0, y++, " Version " VERSION);
             DrawString(frm, pitch, 0, y++, " Copyright(C) Khanattila");
-            snprintf(buffer, 2048, " D:%i  A:%ix%i  S:%ix%i", 2 * int64ToIntS(d->d) + 1,
-                2 * int64ToIntS(d->a) + 1, 2 * int64ToIntS(d->a) + 1, 2 * int64ToIntS(d->s) + 1, 
-                2 * int64ToIntS(d->s) + 1);
+            snprintf(buffer, 2048, " D:%i  A:%ix%i  S:%ix%i", 2 * int64ToIntS(d->d) + 1, 2 * int64ToIntS(d->a) + 1,
+                2 * int64ToIntS(d->a) + 1, 2 * int64ToIntS(d->s) + 1, 2 * int64ToIntS(d->s) + 1);
             DrawString(frm, pitch, 0, y++, buffer);
             snprintf(buffer, 2048, " Iterations: %i", ((2 * int64ToIntS(d->d) + 1)*(2 * int64ToIntS(d->a) + 1)*
                 (2 * int64ToIntS(d->a) + 1) - 1) / (int64ToIntS(d->d) ? 1 : 2));
             DrawString(frm, pitch, 0, y++, buffer);
-            snprintf(buffer, 2048, " Global work size: %lux%lu",
-                (unsigned long) global_work[0], (unsigned long) global_work[1]);
+            snprintf(buffer, 2048, " Global work size: %lux%lu", (unsigned long) global_work[0], (unsigned long) global_work[1]);
             DrawString(frm, pitch, 0, y++, buffer);
             snprintf(buffer, 2048, " Number of devices: %u", d->sum_devices);
             DrawString(frm, pitch, 0, y++, buffer);
@@ -842,10 +843,10 @@ KNLMeansClass::~KNLMeansClass() {
 static void VS_CC VapourSynthPluginFree(void *instanceData, VSCore *core, const VSAPI *vsapi) {
     KNLMeansData *d = (KNLMeansData*) instanceData;
     vsapi->freeNode(d->node);
-    vsapi->freeNode(d->knot);
+    vsapi->freeNode(d->knot);   
     clReleaseMemObject(d->mem_P[2]);
     clReleaseMemObject(d->mem_P[1]);
-    clReleaseMemObject(d->mem_P[0]);
+    clReleaseMemObject(d->mem_P[0]);    
     clReleaseMemObject(d->mem_U[3]);
     clReleaseMemObject(d->mem_U[2]);
     clReleaseMemObject(d->mem_U[1]);
@@ -855,6 +856,8 @@ static void VS_CC VapourSynthPluginFree(void *instanceData, VSCore *core, const 
     clReleaseMemObject(d->mem_in[1]);
     clReleaseMemObject(d->mem_in[2]);
     clReleaseMemObject(d->mem_in[0]);
+    clReleaseKernel(d->kernel[7]);
+    clReleaseKernel(d->kernel[6]);
     clReleaseKernel(d->kernel[5]);
     clReleaseKernel(d->kernel[4]);
     clReleaseKernel(d->kernel[3]);
@@ -888,12 +891,12 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out,
     KNLMeansData d;
     cl_channel_order channel_order = 0;
     cl_channel_type channel_type = 0;
-    double pack = 1.0, unpack = 1.0;
     int err;
     d.node = vsapi->propGetNode(in, "clip", 0, 0);
     d.knot = vsapi->propGetNode(in, "rclip", 0, &err);
     if (err) d.knot = vsapi->propGetNode(in, "clip", 0, 0);
     d.vi = vsapi->getVideoInfo(d.node);
+    d.bit_shift = d.vi->format->bytesPerSample * 8 - d.vi->format->bitsPerSample;
     if (isConstantFormat(d.vi)) {
         d.cmode = vsapi->propGetInt(in, "cmode", 0, &err);
         if (err) d.cmode = DFT_cmode;
@@ -902,16 +905,6 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out,
             vsapi->freeNode(d.node);
             vsapi->freeNode(d.knot);
             return;
-        }
-        switch (d.vi->format->bitsPerSample) {
-            case 9:
-                pack = 65535.0 / 511.0;
-                unpack = 511.0 / 65535.0;
-                break;
-            case 10:
-                pack = 65535.0 / 1023.0;
-                unpack = 1023.0 / 65535.0;
-                break;
         }
         switch (d.vi->format->id) {
             case VSPresetFormat::pfGray8:
@@ -922,18 +915,18 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out,
             case VSPresetFormat::pfYUV440P8:
                 d.color = Gray;
                 channel_order = CL_LUMINANCE;
-                channel_type = CL_UNORM_INT8; 
-                break;
+                channel_type = CL_UNORM_INT8;
+                break;       
             case VSPresetFormat::pfGray16:
             case VSPresetFormat::pfYUV420P9:
             case VSPresetFormat::pfYUV422P9:
             case VSPresetFormat::pfYUV420P10:
-            case VSPresetFormat::pfYUV422P10:
+            case VSPresetFormat::pfYUV422P10:                                      
             case VSPresetFormat::pfYUV420P16:
             case VSPresetFormat::pfYUV422P16:
                 d.color = Gray;
                 channel_order = CL_LUMINANCE;
-                channel_type = CL_UNORM_INT16;               
+                channel_type = CL_UNORM_INT16;
                 break;
             case VSPresetFormat::pfGrayH:
                 d.color = Gray;
@@ -956,7 +949,7 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out,
                 d.color = d.cmode ? YUV : Gray;
                 channel_order = (cl_channel_order) (d.cmode ? CL_RGBA : CL_LUMINANCE);
                 channel_type = CL_UNORM_INT16;
-                break;
+                break;                         
             case VSPresetFormat::pfYUV444PH:
                 d.color = d.cmode ? YUV : Gray;
                 channel_order = (cl_channel_order) (d.cmode ? CL_RGBA : CL_LUMINANCE);
@@ -1165,47 +1158,50 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out,
     free(list);
 
     // Creates an OpenCL context, 2D images and buffers object.
-    d.context = clCreateContext(NULL, 1, &d.deviceID, NULL, NULL, NULL);
-    const cl_image_format image_format = { channel_order, channel_type };
-    const cl_image_format image_formatp = { CL_LUMINANCE, channel_type };
     d.idmn[0] = (cl_uint) d.vi->width;
     d.idmn[1] = (cl_uint) d.vi->height;
+    d.context = clCreateContext(NULL, 1, &d.deviceID, NULL, NULL, NULL);
+    const cl_image_format image_format = { channel_order, channel_type };  
+    if (d.color == Gray && !d.bit_shift) {
+        d.mem_in[0] = clCreateImage2D(d.context, CL_MEM_READ_ONLY, &image_format, d.idmn[0], d.idmn[1], 0, NULL, NULL);
+        d.mem_in[1] = clCreateImage2D(d.context, CL_MEM_READ_ONLY, &image_format, d.idmn[0], d.idmn[1], 0, NULL, NULL);
+        d.mem_in[2] = clCreateImage2D(d.context, CL_MEM_READ_ONLY, &image_format, d.idmn[0], d.idmn[1], 0, NULL, NULL);
+        d.mem_in[3] = clCreateImage2D(d.context, CL_MEM_READ_ONLY, &image_format, d.idmn[0], d.idmn[1], 0, NULL, NULL);
+        d.mem_out = clCreateImage2D(d.context, CL_MEM_WRITE_ONLY, &image_format, d.idmn[0], d.idmn[1], 0, NULL, NULL);       
+    } else {
+        d.mem_in[0] = clCreateImage2D(d.context, CL_MEM_READ_WRITE, &image_format, d.idmn[0], d.idmn[1], 0, NULL, NULL);
+        d.mem_in[1] = clCreateImage2D(d.context, CL_MEM_READ_WRITE, &image_format, d.idmn[0], d.idmn[1], 0, NULL, NULL);
+        d.mem_in[2] = clCreateImage2D(d.context, CL_MEM_READ_WRITE, &image_format, d.idmn[0], d.idmn[1], 0, NULL, NULL);
+        d.mem_in[3] = clCreateImage2D(d.context, CL_MEM_READ_WRITE, &image_format, d.idmn[0], d.idmn[1], 0, NULL, NULL);
+        d.mem_out = clCreateImage2D(d.context, CL_MEM_READ_WRITE, &image_format, d.idmn[0], d.idmn[1], 0, NULL, NULL);       
+    }
     const size_t size = sizeof(float) * d.idmn[0] * d.idmn[1];
-    d.mem_in[0] = clCreateImage2D(d.context, CL_MEM_READ_WRITE, &image_format, d.idmn[0], d.idmn[1], 0, NULL, NULL);
-    d.mem_in[1] = clCreateImage2D(d.context, CL_MEM_READ_WRITE, &image_format, d.idmn[0], d.idmn[1], 0, NULL, NULL);
-    d.mem_in[2] = clCreateImage2D(d.context, CL_MEM_READ_WRITE, &image_format, d.idmn[0], d.idmn[1], 0, NULL, NULL);     
-    d.mem_in[3] = clCreateImage2D(d.context, CL_MEM_READ_WRITE, &image_format, d.idmn[0], d.idmn[1], 0, NULL, NULL); 
-    d.mem_out = clCreateImage2D(d.context, CL_MEM_READ_WRITE, &image_format, d.idmn[0], d.idmn[1], 0, NULL, NULL);
     d.mem_U[0] = clCreateBuffer(d.context, CL_MEM_READ_WRITE, d.color ? 4 * size : 2 * size, NULL, NULL);
     d.mem_U[1] = clCreateBuffer(d.context, CL_MEM_READ_WRITE, size, NULL, NULL);
     d.mem_U[2] = clCreateBuffer(d.context, CL_MEM_READ_WRITE, size, NULL, NULL);
     d.mem_U[3] = clCreateBuffer(d.context, CL_MEM_READ_WRITE, size, NULL, NULL);
-    d.mem_P[0] = clCreateImage2D(d.context, CL_MEM_READ_WRITE, &image_formatp, d.idmn[0], d.idmn[1], 0, NULL, NULL);
-    d.mem_P[1] = clCreateImage2D(d.context, CL_MEM_READ_WRITE, &image_formatp, d.idmn[0], d.idmn[1], 0, NULL, NULL);
-    d.mem_P[2] = clCreateImage2D(d.context, CL_MEM_READ_WRITE, &image_formatp, d.idmn[0], d.idmn[1], 0, NULL, NULL);
+    if (d.bit_shift) {
+        const cl_image_format image_formatp = { CL_R, CL_UNSIGNED_INT16 };
+        d.mem_P[0] = clCreateImage2D(d.context, CL_MEM_READ_WRITE, &image_formatp, d.idmn[0], d.idmn[1], 0, NULL, NULL);
+        d.mem_P[1] = clCreateImage2D(d.context, CL_MEM_READ_WRITE, &image_formatp, d.idmn[0], d.idmn[1], 0, NULL, NULL);
+        d.mem_P[2] = clCreateImage2D(d.context, CL_MEM_READ_WRITE, &image_formatp, d.idmn[0], d.idmn[1], 0, NULL, NULL);
+    } else {
+        const cl_image_format image_formatp = {CL_LUMINANCE, channel_type };
+        d.mem_P[0] = clCreateImage2D(d.context, CL_MEM_READ_WRITE, &image_formatp, d.idmn[0], d.idmn[1], 0, NULL, NULL);
+        d.mem_P[1] = clCreateImage2D(d.context, CL_MEM_READ_WRITE, &image_formatp, d.idmn[0], d.idmn[1], 0, NULL, NULL);
+        d.mem_P[2] = clCreateImage2D(d.context, CL_MEM_READ_WRITE, &image_formatp, d.idmn[0], d.idmn[1], 0, NULL, NULL);
+    }
+    
 
     // Creates and Build a program executable from the program source.
     d.program = clCreateProgramWithSource(d.context, 1, &source_code, NULL, NULL);
     char options[2048];
-    setlocale(LC_ALL, "C");
-    if (channel_type == CL_FLOAT) {
-        snprintf(options, 2048, "-cl-single-precision-constant -Werror \
-            -D H_BLOCK_X=%i -D H_BLOCK_Y=%i -D V_BLOCK_X=%i -D V_BLOCK_Y=%i \
-            -D NLMK_TCOLOR=%i -D NLMK_S=%i -D NLMK_WMODE=%i -D NLMK_TEMPORAL=%i \
-            -D NLMK_H2_INV_NORM=%f -D NLMK_PACK=%f -D NLMK_UNPACK=%f",
-            H_BLOCK_X, H_BLOCK_Y, V_BLOCK_X, V_BLOCK_Y,
-            d.color, int64ToIntS(d.s), int64ToIntS(d.wmode), int64ToIntS(d.d), 
-            65025.0 / (3 * d.h*d.h*(2 * d.s + 1) * (2 * d.s + 1)), pack, unpack);
-    } else {
-        snprintf(options, 2048, "-cl-single-precision-constant -cl-denorms-are-zero -cl-fast-relaxed-math -Werror \
-           -D H_BLOCK_X=%i -D H_BLOCK_Y=%i -D V_BLOCK_X=%i -D V_BLOCK_Y=%i \
-           -D NLMK_TCOLOR=%i -D NLMK_S=%i -D NLMK_WMODE=%i -D NLMK_TEMPORAL=%i \
-           -D NLMK_H2_INV_NORM=%f -D NLMK_PACK=%f -D NLMK_UNPACK=%f",
-           H_BLOCK_X, H_BLOCK_Y, V_BLOCK_X, V_BLOCK_Y,
-           d.color, int64ToIntS(d.s), int64ToIntS(d.wmode), int64ToIntS(d.d),
-           65025.0 / (3 * d.h*d.h*(2 * d.s + 1) * (2 * d.s + 1)), pack, unpack);
-    }
-    setlocale(LC_ALL, "");
+    setlocale(LC_ALL, "C");  
+    snprintf(options, 2048, "-cl-single-precision-constant -cl-denorms-are-zero -cl-fast-relaxed-math -Werror "
+        "-D H_BLOCK_X=%i -D H_BLOCK_Y=%i -D V_BLOCK_X=%i -D V_BLOCK_Y=%i -D NLMK_TCOLOR=%i -D NLMK_S=%i " 
+        "-D NLMK_WMODE=%i -D NLMK_TEMPORAL=%i -D NLMK_H2_INV_NORM=%f -D NLMK_BIT_SHIFT=%i",
+        H_BLOCK_X, H_BLOCK_Y, V_BLOCK_X, V_BLOCK_Y, d.color, int64ToIntS(d.s),
+        int64ToIntS(d.wmode), int64ToIntS(d.d), 65025.0 / (3 * d.h*d.h*(2 * d.s + 1) * (2 * d.s + 1)), int64ToIntS(d.bit_shift)); 
     ret = clBuildProgram(d.program, 1, &d.deviceID, options, NULL, NULL);
     if (ret != CL_SUCCESS) {
         size_t options_size, log_size;
@@ -1225,12 +1221,12 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out,
         outfile << log << std::endl;
         outfile.close();
         free(log);
-        vsapi->setError(out, "knlm.KNLMeansCL: VapourSynthCreate error (clBuildProgram)!\n" 
-            "Please report Log-KNLMeansCL.txt.");
+        vsapi->setError(out, "knlm.KNLMeansCL: VapourSynthCreate error (clBuildProgram)!\n Please report Log-KNLMeansCL.txt.");
         vsapi->freeNode(d.node);
         vsapi->freeNode(d.knot);
         return;
     }
+    setlocale(LC_ALL, "");
 
     // Creates kernel objects.
     d.kernel[0] = clCreateKernel(d.program, "NLM_init", NULL);
@@ -1238,9 +1234,9 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out,
     d.kernel[2] = clCreateKernel(d.program, "NLM_horiz", NULL);
     d.kernel[3] = clCreateKernel(d.program, "NLM_vert", NULL);
     d.kernel[4] = clCreateKernel(d.program, "NLM_accu", NULL);
-    d.kernel[5] = clCreateKernel(d.program, "NLM_finish", NULL);
+    d.kernel[5] = clCreateKernel(d.program, "NLM_finish", NULL);   
     d.kernel[6] = clCreateKernel(d.program, "NLM_pack", NULL);
-    d.kernel[7] = clCreateKernel(d.program, "NLM_unpack", NULL);
+    d.kernel[7] = clCreateKernel(d.program, "NLM_unpack", NULL);   
 
     // Sets kernel arguments.
     ret = clSetKernelArg(d.kernel[0], 0, sizeof(cl_mem), &d.mem_U[0]);
@@ -1265,7 +1261,7 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out,
     ret |= clSetKernelArg(d.kernel[5], 1, sizeof(cl_mem), &d.mem_out);
     ret |= clSetKernelArg(d.kernel[5], 2, sizeof(cl_mem), &d.mem_U[0]);
     ret |= clSetKernelArg(d.kernel[5], 3, sizeof(cl_mem), &d.mem_U[3]);
-    ret |= clSetKernelArg(d.kernel[5], 4, 2 * sizeof(cl_uint), &d.idmn);
+    ret |= clSetKernelArg(d.kernel[5], 4, 2 * sizeof(cl_uint), &d.idmn);      
     ret |= clSetKernelArg(d.kernel[6], 0, sizeof(cl_mem), &d.mem_P[0]);
     ret |= clSetKernelArg(d.kernel[6], 1, sizeof(cl_mem), &d.mem_P[1]);
     ret |= clSetKernelArg(d.kernel[6], 2, sizeof(cl_mem), &d.mem_P[2]);
@@ -1274,7 +1270,7 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out,
     ret |= clSetKernelArg(d.kernel[7], 1, sizeof(cl_mem), &d.mem_P[1]);
     ret |= clSetKernelArg(d.kernel[7], 2, sizeof(cl_mem), &d.mem_P[2]);
     ret |= clSetKernelArg(d.kernel[7], 3, sizeof(cl_mem), &d.mem_out);
-    ret |= clSetKernelArg(d.kernel[7], 4, 2 * sizeof(cl_uint), &d.idmn);  
+    ret |= clSetKernelArg(d.kernel[7], 4, 2 * sizeof(cl_uint), &d.idmn);
     if (ret != CL_SUCCESS) {
         vsapi->setError(out, "knlm.KNLMeansCL: VapourSynthCreate error (clSetKernelArg)!");
         vsapi->freeNode(d.node);
@@ -1318,7 +1314,7 @@ VS_EXTERNAL_API(void) VapourSynthPluginInit(VSConfigPlugin configFunc,
     VSRegisterFunction registerFunc, VSPlugin *plugin) {
 
     configFunc("com.Khanattila.KNLMeansCL", "knlm", "KNLMeansCL for VapourSynth", VAPOURSYNTH_API_VERSION, 1, plugin);
-    registerFunc("KNLMeansCL", "clip:clip;d:int:opt;a:int:opt;s:int:opt;cmode:int:opt;wmode:int:opt;h:float:opt;\
-rclip:clip:opt;device_type:data:opt;device_id:int:opt;info:int:opt", VapourSynthPluginCreate, nullptr, plugin);
+    registerFunc("KNLMeansCL", "clip:clip;d:int:opt;a:int:opt;s:int:opt;cmode:int:opt;wmode:int:opt;h:float:opt;rclip:clip:opt;\
+device_type:data:opt;device_id:int:opt;info:int:opt", VapourSynthPluginCreate, nullptr, plugin);
 }
 #endif //__VAPOURSYNTH_H__

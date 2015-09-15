@@ -16,7 +16,7 @@
 *	along with KNLMeansCL. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#define VERSION "0.6.4"
+#define VERSION "0.6.5"
 
 #ifdef _MSC_VER
     #pragma warning (disable : 4514 4710 4820)
@@ -89,7 +89,7 @@ public:
 typedef struct {
     VSNodeRef *node, *knot;
     const VSVideoInfo *vi;
-    int64_t d, a, s, cmode, wmode, info, ocl_id;
+    int64_t d, a, s, cmode, wmode, info, ocl_id, bit_shift;
     double h;
     const char* ocl_device;
     color_t color;
