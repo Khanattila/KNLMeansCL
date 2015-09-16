@@ -46,7 +46,14 @@
 #include <VapourSynth.h>
 #include <VSHelper.h>
 
-enum color_t { Gray, YUV, RGB };
+enum clip_t { 
+    COLOR_GRAY    = 1 << 0, COLOR_YUV     = 1 << 1, COLOR_RGB     = 1 << 2,
+    COLOR_MASK    = 1 << 0                | 1 << 1                | 1 << 2,
+    CLIP_REGULAR  = 1 << 3, CLIP_STACKED  = 1 << 4,
+    CLIP_MASK     = 1 << 3                | 1 << 4,
+    EXTRA_NCLIP   = 1 << 5, EXTRA_YCLIP   = 1 << 6,
+    EXTRA_MASK    = 1 << 5                | 1 << 6
+};
 
 typedef struct _device_list {
     cl_platform_id platform;
@@ -61,7 +68,7 @@ private:
     PClip baby;
     const char* ocl_device;
     const bool cmode, lsb, info;
-    color_t color;
+    clip_t clip;
     cl_uint idmn[3], sum_devices;
     cl_platform_id platformID;
     cl_device_id deviceID;
@@ -86,7 +93,7 @@ typedef struct {
     int64_t d, a, s, cmode, wmode, info, ocl_id, bit_shift;
     double h;
     const char* ocl_device;
-    color_t color;
+    clip_t clip;
     cl_uint idmn[2], sum_devices;
     cl_platform_id platformID;
     cl_device_id deviceID;
