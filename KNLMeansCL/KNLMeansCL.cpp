@@ -47,7 +47,7 @@
 //////////////////////////////////////////
 // AviSynthEquals
 #ifdef __AVISYNTH_6_H__
-inline bool KNLMeansClass::avs_equals(VideoInfo *v, VideoInfo *w) {
+inline bool KNLMeansClass::equals(VideoInfo *v, VideoInfo *w) {
     return v->width == w->width && v->height == w->height && v->fps_numerator == w->fps_numerator
         && v->fps_denominator == w->fps_denominator && v->num_frames == w->num_frames;
 }
@@ -56,7 +56,7 @@ inline bool KNLMeansClass::avs_equals(VideoInfo *v, VideoInfo *w) {
 //////////////////////////////////////////
 // VapourSynthEquals
 #ifdef VAPOURSYNTH_H
-inline bool vs_equals(const VSVideoInfo *v, const VSVideoInfo *w) {
+inline bool KNLMeansData::equals(const VSVideoInfo *v, const VSVideoInfo *w) {
     return v->width == w->width && v->height == w->height && v->fpsNum == w->fpsNum && 
         v->fpsDen == w->fpsDen && v->numFrames == w->numFrames && v->format == w->format;
 }
@@ -96,7 +96,7 @@ KNLMeansClass::KNLMeansClass(PClip _child, const int _d, const int _a, const int
         env->ThrowError("KNLMeansCL: planar YUV or RGB32 data!");
     }
     VideoInfo rvi = baby->GetVideoInfo();
-    if (!avs_equals(&vi, &rvi))
+    if (!equals(&vi, &rvi))
         env->ThrowError("KNLMeansCL: rclip do not math source clip!");
      
     // Checks user value.
@@ -934,7 +934,7 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out,
         vsapi->freeNode(d.knot);
         return;
     }
-    if (!vs_equals(d.vi, vsapi->getVideoInfo(d.knot))) {
+    if (!d.equals(d.vi, vsapi->getVideoInfo(d.knot))) {
         vsapi->setError(out, "knlm.KNLMeansCL: rclip do not math source clip!");
         vsapi->freeNode(d.node);
         vsapi->freeNode(d.knot);

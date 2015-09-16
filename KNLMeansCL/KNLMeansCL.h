@@ -69,7 +69,7 @@ private:
     cl_program program;
     cl_kernel kernel[8];
     cl_mem mem_in[4], mem_out, mem_U[4], mem_P[3];
-    bool avs_equals(VideoInfo *v, VideoInfo *w);
+    bool equals(VideoInfo *v, VideoInfo *w);
 public:
     KNLMeansClass(PClip _child, const int _d, const int _a, const int _s, const bool _cmode, const int _wmode, 
         const double _h, PClip _baby, const char* _ocl_device, const int _ocl_id, const bool _lsb, const bool _info, 
@@ -94,6 +94,7 @@ typedef struct {
     cl_program program;
     cl_kernel kernel[8];
     cl_mem mem_in[4], mem_out, mem_U[4], mem_P[3];
+    bool equals(const VSVideoInfo *v, const VSVideoInfo *w);
 } KNLMeansData;
 #endif //__VAPOURSYNTH_H__
 
