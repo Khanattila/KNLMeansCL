@@ -30,6 +30,8 @@ static const char* source_code =
 "#define cfGRAY  0																								  \n" \
 "#define cfYUV   1																								  \n" \
 "#define cfRGB   2																								  \n" \
+"#define wMSB 	 256.0f / 257.0f        																		  \n" \
+"#define wLSB    1.0f / 257.0f      																			  \n" \
 "																												  \n" \
 "float norm(uint u) { 	                                                                                          \n" \
 "   return native_divide((float) (u << NLMK_BIT_SHIFT), (float) USHRT_MAX);		    							  \n" \
@@ -231,16 +233,36 @@ static const char* source_code =
 "	const int2 coord2 = (int2) (x, y);		                            										  \n" \
 "																												  \n" \
 "	if (NLMK_TCOLOR == cfGRAY) {																				  \n" \
-"	    if (NLMK_BIT_SHIFT != 0) {																		          \n" \
+"	    if (NLMK_LSB == 1) {																			          \n" \
+"	        const int2 coord2_lsb = (int2) (x, y + dim.y);	               										  \n" \
+"	        const float r_msb = read_imagef(R, smp, coord2).x;         											  \n" \
+"	        const float r_lsb = read_imagef(R, smp, coord2_lsb).x;      										  \n" \
+"	        const float r = wMSB * r_msb + wLSB * r_lsb;                 										  \n" \
+"	        write_imagef(U1, coord2, (float4) r);	            									              \n" \
+"	    } else if (NLMK_BIT_SHIFT != 0) {																          \n" \
 "	        const float r = norm(read_imageui(R, smp, coord2).x);      											  \n" \
 "	        write_imagef(U1, coord2, (float4) r);	            									              \n" \
 "	    }																										  \n" \
 "	} else if (NLMK_TCOLOR == cfYUV) {													                          \n" \
 "	    if (NLMK_BIT_SHIFT == 0) {																			      \n" \
-"	        const float r = read_imagef(R, smp, coord2).x;          											  \n" \
-"	        const float g = read_imagef(G, smp, coord2).x;														  \n" \
-"	        const float b = read_imagef(B, smp, coord2).x;													      \n" \
-"	        write_imagef(U1, coord2, (float4) (r, g, b, 1.0f));										              \n" \
+"	        if (NLMK_LSB == 0) {																			      \n" \
+"	            const float r = read_imagef(R, smp, coord2).x;          										  \n" \
+"	            const float g = read_imagef(G, smp, coord2).x;													  \n" \
+"	            const float b = read_imagef(B, smp, coord2).x;													  \n" \
+"	            write_imagef(U1, coord2, (float4) (r, g, b, 1.0f));										          \n" \
+"	        } else if (NLMK_LSB == 1) {																			  \n" \
+"	            const int2 coord2_lsb = (int2) (x, y + dim.y);	           										  \n" \
+"	            const float r_msb = read_imagef(R, smp, coord2).x;          									  \n" \
+"	            const float g_msb = read_imagef(G, smp, coord2).x;												  \n" \
+"	            const float b_msb = read_imagef(B, smp, coord2).x;												  \n" \
+"	            const float r_lsb = read_imagef(R, smp, coord2_lsb).x;          								  \n" \
+"	            const float g_lsb = read_imagef(G, smp, coord2_lsb).x;											  \n" \
+"	            const float b_lsb = read_imagef(B, smp, coord2_lsb).x;											  \n" \
+"	            const float r = wMSB * r_msb + wLSB * r_lsb;                 									  \n" \
+"	            const float g = wMSB * g_msb + wLSB * g_lsb;                 									  \n" \
+"	            const float b = wMSB * b_msb + wLSB * b_lsb;                 									  \n" \
+"	            write_imagef(U1, coord2, (float4) (r, g, b, 1.0f));										          \n" \
+"	        }																									  \n" \
 "	    } else if (NLMK_BIT_SHIFT != 0) {																		  \n" \
 "	        const float r = norm(read_imageui(R, smp, coord2).x);      											  \n" \
 "	        const float g = norm(read_imageui(G, smp, coord2).x);												  \n" \
@@ -274,16 +296,40 @@ static const char* source_code =
 "	const int2 coord2 = (int2) (x, y);		                            										  \n" \
 "																												  \n" \
 "	if (NLMK_TCOLOR == cfGRAY) {																				  \n" \
-"	    if (NLMK_BIT_SHIFT != 0) {																		          \n" \
+"	    if (NLMK_LSB == 1) {																			          \n" \
+"	        const int2 coord2_lsb = (int2) (x, y + dim.y);	               										  \n" \
+"		    const ushort in = convert_ushort_sat(read_imagef(U1, smp, coord2).x * (float) USHRT_MAX);             \n" \
+"		    const float in_msb = convert_float(in >> CHAR_BIT);                                                   \n" \
+"		    const float in_lsb = convert_float(in & 0xFF);                                                        \n" \
+"			const float val_msb = native_divide(in_msb, (float) UCHAR_MAX);			                    		  \n" \
+"			const float val_lsb = native_divide(in_lsb, (float) UCHAR_MAX);					                	  \n" \
+"	        write_imagef(R, coord2, (float4) val_msb);   		                                                  \n" \
+"	        write_imagef(R, coord2_lsb, (float4) val_lsb);		                                                  \n" \
+"	    } else if (NLMK_BIT_SHIFT != 0) {																          \n" \
 "		    const ushort val = denorm(read_imagef(U1, smp, coord2).x);                                            \n" \
 "	        write_imageui(R, coord2, (uint4) val);		                        								  \n" \
 "	    }																										  \n" \
 "	} else if (NLMK_TCOLOR == cfYUV) {													                          \n" \
 "	    if (NLMK_BIT_SHIFT == 0) {																			      \n" \
-"	        const float4 val = read_imagef(U1, smp, coord2);              	                                      \n" \
-"	        write_imagef(R, coord2, (float4) val.x);												              \n" \
-"	        write_imagef(G, coord2, (float4) val.y);												              \n" \
-"	        write_imagef(B, coord2, (float4) val.z);												              \n" \
+"	        if (NLMK_LSB == 0) {																			      \n" \
+"	            const float4 val = read_imagef(U1, smp, coord2);           	                                      \n" \
+"	            write_imagef(R, coord2, (float4) val.x);											              \n" \
+"	            write_imagef(G, coord2, (float4) val.y);											              \n" \
+"	            write_imagef(B, coord2, (float4) val.z);											              \n" \
+"	        } else if (NLMK_LSB == 1) {																		      \n" \
+"	            const int2 coord2_lsb = (int2) (x, y + dim.y);	               									  \n" \
+"		        const ushort4 in = convert_ushort4_sat(read_imagef(U1, smp, coord2) * (float4) USHRT_MAX);        \n" \
+"		        const float4 in_msb = convert_float4(in >> (ushort4) CHAR_BIT);                                   \n" \
+"		        const float4 in_lsb = convert_float4(in & (ushort4) 0xFF);                                        \n" \
+"		    	const float4 val_msb = native_divide(in_msb, (float4) UCHAR_MAX);	                              \n" \
+"			    const float4 val_lsb = native_divide(in_lsb, (float4) UCHAR_MAX);                       		  \n" \
+"	            write_imagef(R, coord2, (float4) val_msb.x);   	                                                  \n" \
+"	            write_imagef(G, coord2, (float4) val_msb.y);   	                                                  \n" \
+"	            write_imagef(B, coord2, (float4) val_msb.z);   	                                                  \n" \
+"	            write_imagef(R, coord2_lsb, (float4) val_lsb.x);	                                              \n" \
+"	            write_imagef(G, coord2_lsb, (float4) val_lsb.y);	                                              \n" \
+"	            write_imagef(B, coord2_lsb, (float4) val_lsb.z);	                                              \n" \
+"	        }										                    									      \n" \
 "	    } else if (NLMK_BIT_SHIFT != 0) {																		  \n" \
 "		    const ushort4 val = denorm4(read_imagef(U1, smp, coord2));                                            \n" \
 "	        write_imageui(R, coord2, (uint4) val.x);		                    								  \n" \

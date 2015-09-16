@@ -16,7 +16,7 @@
 *	along with KNLMeansCL. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#define VERSION "0.6.5"
+#define VERSION "0.6.6"
 
 #ifdef _MSC_VER
     #pragma warning (disable : 4514 4710 4820)
@@ -40,7 +40,6 @@
 #include "shared/startchar.h"
 
 #ifdef _WIN32
-    #define _stdcall __stdcall
     #include <avisynth.h>
 #endif
 
@@ -62,20 +61,15 @@ private:
     PClip baby;
     const char* ocl_device;
     const bool cmode, lsb, info;
-    void* hostBuffer;
     color_t color;
-    cl_uint idmn[2], sum_devices;
+    cl_uint idmn[3], sum_devices;
     cl_platform_id platformID;
     cl_device_id deviceID;
     cl_context context;
     cl_program program;
-    cl_kernel kernel[6];
-    cl_mem mem_in[4], mem_out, mem_U[4];
+    cl_kernel kernel[8];
+    cl_mem mem_in[4], mem_out, mem_U[4], mem_P[3];
     bool avs_equals(VideoInfo *v, VideoInfo *w);
-    cl_int readBufferImage(PVideoFrame &frm, cl_command_queue command_queue,
-        cl_mem image, const size_t origin[3], const size_t region[3]);
-    cl_int writeBufferImage(PVideoFrame &frm, cl_command_queue command_queue,
-        cl_mem image, const size_t origin[3], const size_t region[3]);
 public:
     KNLMeansClass(PClip _child, const int _d, const int _a, const int _s, const bool _cmode, const int _wmode, 
         const double _h, PClip _baby, const char* _ocl_device, const int _ocl_id, const bool _lsb, const bool _info, 
