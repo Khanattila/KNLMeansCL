@@ -196,10 +196,11 @@ KNLMeansClass::KNLMeansClass(PClip _child, const int _d, const int _a, const int
         mem_in[3] = clCreateImage2D(context, CL_MEM_READ_WRITE, &image_format, idmn[0], idmn[1], 0, NULL, NULL);
         mem_out = clCreateImage2D(context, CL_MEM_READ_WRITE, &image_format, idmn[0], idmn[1], 0, NULL, NULL);
     }
+    const cl_image_format image_formatu = { CL_LUMINANCE, CL_HALF_FLOAT };
     const size_t size = sizeof(float) * idmn[0] * idmn[1];
     mem_U[0] = clCreateBuffer(context, CL_MEM_READ_WRITE, (clip & COLOR_GRAY) ? 2 * size : 4 * size, NULL, NULL);
-    mem_U[1] = clCreateBuffer(context, CL_MEM_READ_WRITE, size, NULL, NULL);
-    mem_U[2] = clCreateBuffer(context, CL_MEM_READ_WRITE, size, NULL, NULL);
+    mem_U[1] = clCreateImage2D(context, CL_MEM_READ_WRITE, &image_formatu, idmn[0], idmn[1], 0, NULL, NULL);
+    mem_U[2] = clCreateImage2D(context, CL_MEM_READ_WRITE, &image_formatu, idmn[0], idmn[1], 0, NULL, NULL);
     mem_U[3] = clCreateBuffer(context, CL_MEM_READ_WRITE, size, NULL, NULL);
     const cl_image_format image_formatp = { CL_LUMINANCE, CL_UNORM_INT8 };
     mem_P[0] = clCreateImage2D(context, CL_MEM_READ_WRITE, &image_formatp, idmn[0], idmn[2], 0, NULL, NULL);

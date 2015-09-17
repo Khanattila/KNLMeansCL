@@ -71,7 +71,7 @@ static const char* source_code =
 "}																												  \n" \
 "																												  \n" \
 "__kernel																										  \n" \
-"void NLM_dist(__read_only image2d_t U1, __read_only image2d_t U1_pq, __global float* U4, const int2 dim,		  \n" \
+"void NLM_dist(__read_only image2d_t U1, __read_only image2d_t U1_pq, __write_only image2d_t U4, const int2 dim,  \n" \
 "const int2 q) {																								  \n" \
 "																												  \n" \
 "	const int x = get_global_id(0);																				  \n" \
@@ -79,65 +79,68 @@ static const char* source_code =
 "	if(x >= dim.x || y >= dim.y) return;																		  \n" \
 "																												  \n" \
 "	const sampler_t smp = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP_TO_EDGE | CLK_FILTER_NEAREST;			  \n" \
-"	const int gidx = mad24(y, dim.x, x);																		  \n" \
+"	const int2 coord2 = (int2) (x, y);		                            										  \n" \
 "																												  \n" \
 "	if (NLMK_TCOLOR & COLOR_GRAY) {	                    														  \n" \
-"		const float u1 = read_imagef(U1, smp, (int2) (x, y)).x;			     							          \n" \
-"		const float u1_pq = read_imagef(U1_pq, smp, (int2) (x, y) + q).x;									      \n" \
-"		U4[gidx] = 3.0f * (u1 - u1_pq) * (u1 - u1_pq);                                                            \n" \
+"		const float u1 = read_imagef(U1, smp, coord2).x;			     							              \n" \
+"		const float u1_pq = read_imagef(U1_pq, smp, coord2 + q).x;									              \n" \
+"		const float val = 3.0f * (u1 - u1_pq) * (u1 - u1_pq);                                                     \n" \
+"		write_imagef(U4, coord2, (float4) val);								    								  \n" \
 "	} else if (NLMK_TCOLOR & COLOR_YUV) {																		  \n" \
-"		const float4 u1 = read_imagef(U1, smp, (int2) (x, y));			     								      \n" \
-"		const float4 u1_pq = read_imagef(U1_pq, smp, (int2) (x, y) + q);										  \n" \
+"		const float4 u1 = read_imagef(U1, smp, coord2);			     	        							      \n" \
+"		const float4 u1_pq = read_imagef(U1_pq, smp, coord2 + q);	        									  \n" \
 "		const float4 dist = (u1 - u1_pq) * (u1 - u1_pq);														  \n" \
-"		U4[gidx] = dist.x + dist.y + dist.z;                                                                      \n" \
+"		const float val = dist.x + dist.y + dist.z;                                                               \n" \
+"		write_imagef(U4, coord2, (float4) val);								    								  \n" \
 "	} else if (NLMK_TCOLOR & COLOR_RGB) {																		  \n" \
-"		const float4 u1 = read_imagef(U1, smp, (int2) (x, y));			     								      \n" \
-"		const float4 u1_pq = read_imagef(U1_pq, smp, (int2) (x, y) + q);										  \n" \
+"		const float4 u1 = read_imagef(U1, smp, coord2);			     		        						      \n" \
+"		const float4 u1_pq = read_imagef(U1_pq, smp, coord2 + q);		        								  \n" \
 "		const float4 wgh = (float4) (WGH_R, WGH_G, WGH_B, 0.0f);												  \n" \
 "		const float4 dist = wgh * (u1 - u1_pq) * (u1 - u1_pq);												      \n" \
-"		U4[gidx] = dist.x + dist.y + dist.z;                                                                      \n" \
+"		const float val = dist.x + dist.y + dist.z;                                                               \n" \
+"		write_imagef(U4, coord2, (float4) val);								    								  \n" \
 "	}																											  \n" \
 "}																												  \n" \
 "																												  \n" \
 "__kernel __attribute__((reqd_work_group_size(H_BLOCK_X, H_BLOCK_Y, 1)))										  \n" \
-"void NLM_horiz(__global float* U4_in, __global float* U4_out,	const int2 dim) {								  \n" \
+"void NLM_horiz(__read_only image2d_t U4_in, __write_only image2d_t U4_out,	const int2 dim) {					  \n" \
 "																												  \n" \
 "	__local float buffer[H_BLOCK_Y][3*H_BLOCK_X];																  \n" \
 "	const int x = get_global_id(0);																				  \n" \
 "	const int y = get_global_id(1);																				  \n" \
 "	const int lx = get_local_id(0);																				  \n" \
 "	const int ly = get_local_id(1);																				  \n" \
-"	const int mdata = mad24(clamp(y, 0, dim.y - 1), dim.x, clamp(x,             0, dim.x - 1));					  \n" \
-"	const int lhalo = mad24(clamp(y, 0, dim.y - 1), dim.x, clamp(x - H_BLOCK_X, 0, dim.x - 1));					  \n" \
-"	const int rhalo = mad24(clamp(y, 0, dim.y - 1), dim.x, clamp(x + H_BLOCK_X, 0, dim.x - 1));					  \n" \
 "																												  \n" \
-"	buffer[ly][lx + H_BLOCK_X]	 = U4_in[mdata];																  \n" \
-"	buffer[ly][lx]		         = U4_in[lhalo];																  \n" \
-"	buffer[ly][lx + 2*H_BLOCK_X] = U4_in[rhalo];																  \n" \
+"	const sampler_t smp = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP_TO_EDGE | CLK_FILTER_NEAREST;			  \n" \
+"	const int2 coord2 = (int2) (x, y);		                            										  \n" \
+"																												  \n" \
+"	buffer[ly][lx + H_BLOCK_X]	 = read_imagef(U4_in, smp, coord2);                      						  \n" \
+"	buffer[ly][lx]		         = read_imagef(U4_in, smp, coord2 - (int2) (H_BLOCK_X, 0));						  \n" \
+"	buffer[ly][lx + 2*H_BLOCK_X] = read_imagef(U4_in, smp, coord2 + (int2) (H_BLOCK_X, 0));						  \n" \
 "	barrier(CLK_LOCAL_MEM_FENCE);																				  \n" \
 "																												  \n" \
 "	if(x >= dim.x || y >= dim.y) return;																		  \n" \
 "	float sum = 0.0f;																							  \n" \
 "	for(int i = -NLMK_S; i <= NLMK_S; i++)																		  \n" \
 "		sum += buffer[ly][lx + H_BLOCK_X + i];																	  \n" \
-"	U4_out[mdata] = sum;																						  \n" \
+"	write_imagef(U4_out, coord2, (float4) sum);																	  \n" \
 "}																												  \n" \
 "																												  \n" \
 "__kernel __attribute__((reqd_work_group_size(V_BLOCK_X, V_BLOCK_Y, 1)))										  \n" \
-"void NLM_vert(__global float* U4_in, __global float* U4_out, const int2 dim) {									  \n" \
+"void NLM_vert(__read_only image2d_t U4_in, __write_only image2d_t U4_out,	const int2 dim) {					  \n" \
 "																												  \n" \
 "	__local float buffer[3*V_BLOCK_Y][V_BLOCK_X];																  \n" \
 "	const int x = get_global_id(0);																				  \n" \
 "	const int y = get_global_id(1);																				  \n" \
 "	const int lx = get_local_id(0);																				  \n" \
 "	const int ly = get_local_id(1);																				  \n" \
-"	const int mdata = mad24(clamp(y,             0, dim.y - 1), dim.x, clamp(x, 0, dim.x - 1));					  \n" \
-"	const int uhalo = mad24(clamp(y - V_BLOCK_Y, 0, dim.y - 1), dim.x, clamp(x, 0, dim.x - 1));					  \n" \
-"	const int lhalo = mad24(clamp(y + V_BLOCK_Y, 0, dim.y - 1), dim.x, clamp(x, 0, dim.x - 1));					  \n" \
 "																												  \n" \
-"	buffer[ly + V_BLOCK_Y][lx]	 = U4_in[mdata];																  \n" \
-"	buffer[ly][lx]		         = U4_in[uhalo];																  \n" \
-"	buffer[ly + 2*V_BLOCK_Y][lx] = U4_in[lhalo];																  \n" \
+"	const sampler_t smp = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP_TO_EDGE | CLK_FILTER_NEAREST;			  \n" \
+"	const int2 coord2 = (int2) (x, y);		                            										  \n" \
+"																												  \n" \
+"	buffer[ly + V_BLOCK_Y][lx]	 = read_imagef(U4_in, smp, coord2);												  \n" \
+"	buffer[ly][lx]		         = read_imagef(U4_in, smp, coord2 - (int2) (0, V_BLOCK_Y));						  \n" \
+"	buffer[ly + 2*V_BLOCK_Y][lx] = read_imagef(U4_in, smp, coord2 + (int2) (0, V_BLOCK_Y));	    				  \n" \
 "	barrier(CLK_LOCAL_MEM_FENCE);																				  \n" \
 "																												  \n" \
 "	if(x >= dim.x || y >= dim.y) return;																		  \n" \
@@ -146,11 +149,14 @@ static const char* source_code =
 "		sum += buffer[ly + V_BLOCK_Y + j][lx];																	  \n" \
 "																												  \n" \
 "	if(NLMK_WMODE == 0) {																						  \n" \
-"	    U4_out[mdata] =	native_recip(1.0f + sum * NLMK_H2_INV_NORM);                                              \n" \
+"		const float val = native_recip(1.0f + sum * NLMK_H2_INV_NORM); 											  \n" \
+"	    write_imagef(U4_out, coord2, (float4) val);                                                               \n" \
 "	} else if (NLMK_WMODE == 1) {																				  \n" \
-"		U4_out[mdata] =	native_exp(- sum * NLMK_H2_INV_NORM);	    								              \n" \
+"		const float val = native_exp(- sum * NLMK_H2_INV_NORM);													  \n" \
+"	    write_imagef(U4_out, coord2, (float4) val);                                                               \n" \
 "	} else if (NLMK_WMODE == 2) {																				  \n" \
-"	    U4_out[mdata] =	pown(fdim(1.0f, sum * NLMK_H2_INV_NORM), 2);	                                          \n" \
+"		const float val = pown(fdim(1.0f, sum * NLMK_H2_INV_NORM), 2); 											  \n" \
+"	    write_imagef(U4_out, coord2, (float4) val);                                                               \n" \
 "	}	                                                                										  \n" \
 "}																												  \n" \
 "																												  \n" \
