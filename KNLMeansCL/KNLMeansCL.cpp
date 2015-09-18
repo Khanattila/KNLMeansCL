@@ -1116,10 +1116,11 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out,
         d.mem_in[3] = clCreateImage2D(d.context, CL_MEM_READ_WRITE, &image_format, d.idmn[0], d.idmn[1], 0, NULL, NULL);
         d.mem_out = clCreateImage2D(d.context, CL_MEM_READ_WRITE, &image_format, d.idmn[0], d.idmn[1], 0, NULL, NULL);       
     }
+    const cl_image_format image_formatu = { CL_LUMINANCE, CL_HALF_FLOAT };
     const size_t size = sizeof(float) * d.idmn[0] * d.idmn[1];
     d.mem_U[0] = clCreateBuffer(d.context, CL_MEM_READ_WRITE, (d.clip & COLOR_GRAY) ? 2 * size : 4 * size, NULL, NULL);
-    d.mem_U[1] = clCreateBuffer(d.context, CL_MEM_READ_WRITE, size, NULL, NULL);
-    d.mem_U[2] = clCreateBuffer(d.context, CL_MEM_READ_WRITE, size, NULL, NULL);
+    d.mem_U[1] = clCreateImage2D(d.context, CL_MEM_READ_WRITE, &image_formatu, d.idmn[0], d.idmn[1], 0, NULL, NULL);
+    d.mem_U[2] = clCreateImage2D(d.context, CL_MEM_READ_WRITE, &image_formatu, d.idmn[0], d.idmn[1], 0, NULL, NULL);
     d.mem_U[3] = clCreateBuffer(d.context, CL_MEM_READ_WRITE, size, NULL, NULL);
     if (d.bit_shift) {
         const cl_image_format image_formatp = { CL_R, CL_UNSIGNED_INT16 };
@@ -1131,8 +1132,7 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out,
         d.mem_P[0] = clCreateImage2D(d.context, CL_MEM_READ_WRITE, &image_formatp, d.idmn[0], d.idmn[1], 0, NULL, NULL);
         d.mem_P[1] = clCreateImage2D(d.context, CL_MEM_READ_WRITE, &image_formatp, d.idmn[0], d.idmn[1], 0, NULL, NULL);
         d.mem_P[2] = clCreateImage2D(d.context, CL_MEM_READ_WRITE, &image_formatp, d.idmn[0], d.idmn[1], 0, NULL, NULL);
-    }
-    
+    } 
 
     // Creates and Build a program executable from the program source.
     d.program = clCreateProgramWithSource(d.context, 1, &source_code, NULL, NULL);

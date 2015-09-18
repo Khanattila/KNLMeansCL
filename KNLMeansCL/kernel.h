@@ -114,9 +114,9 @@ static const char* source_code =
 "	const sampler_t smp = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP_TO_EDGE | CLK_FILTER_NEAREST;			  \n" \
 "	const int2 coord2 = (int2) (x, y);		                            										  \n" \
 "																												  \n" \
-"	buffer[ly][lx + H_BLOCK_X]	 = read_imagef(U4_in, smp, coord2);                      						  \n" \
-"	buffer[ly][lx]		         = read_imagef(U4_in, smp, coord2 - (int2) (H_BLOCK_X, 0));						  \n" \
-"	buffer[ly][lx + 2*H_BLOCK_X] = read_imagef(U4_in, smp, coord2 + (int2) (H_BLOCK_X, 0));						  \n" \
+"	buffer[ly][lx + H_BLOCK_X]	 = read_imagef(U4_in, smp, coord2).x;                      						  \n" \
+"	buffer[ly][lx]		         = read_imagef(U4_in, smp, coord2 - (int2) (H_BLOCK_X, 0)).x;					  \n" \
+"	buffer[ly][lx + 2*H_BLOCK_X] = read_imagef(U4_in, smp, coord2 + (int2) (H_BLOCK_X, 0)).x;					  \n" \
 "	barrier(CLK_LOCAL_MEM_FENCE);																				  \n" \
 "																												  \n" \
 "	if(x >= dim.x || y >= dim.y) return;																		  \n" \
@@ -138,9 +138,9 @@ static const char* source_code =
 "	const sampler_t smp = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP_TO_EDGE | CLK_FILTER_NEAREST;			  \n" \
 "	const int2 coord2 = (int2) (x, y);		                            										  \n" \
 "																												  \n" \
-"	buffer[ly + V_BLOCK_Y][lx]	 = read_imagef(U4_in, smp, coord2);												  \n" \
-"	buffer[ly][lx]		         = read_imagef(U4_in, smp, coord2 - (int2) (0, V_BLOCK_Y));						  \n" \
-"	buffer[ly + 2*V_BLOCK_Y][lx] = read_imagef(U4_in, smp, coord2 + (int2) (0, V_BLOCK_Y));	    				  \n" \
+"	buffer[ly + V_BLOCK_Y][lx]	 = read_imagef(U4_in, smp, coord2).x;											  \n" \
+"	buffer[ly][lx]		         = read_imagef(U4_in, smp, coord2 - (int2) (0, V_BLOCK_Y)).x;					  \n" \
+"	buffer[ly + 2*V_BLOCK_Y][lx] = read_imagef(U4_in, smp, coord2 + (int2) (0, V_BLOCK_Y)).x;    				  \n" \
 "	barrier(CLK_LOCAL_MEM_FENCE);																				  \n" \
 "																												  \n" \
 "	if(x >= dim.x || y >= dim.y) return;																		  \n" \
@@ -161,7 +161,7 @@ static const char* source_code =
 "}																												  \n" \
 "																												  \n" \
 "__kernel																										  \n" \
-"void NLM_accu(__read_only image2d_t U1, __global void* U2, __global float* U4, __global float* M,				  \n" \
+"void NLM_accu(__read_only image2d_t U1, __global void* U2, __read_only image2d_t U4, __global float* M,		  \n" \
 "const int2 dim, const int2 q) {																				  \n" \
 "																												  \n" \
 "	const int x = get_global_id(0);																				  \n" \
@@ -169,29 +169,30 @@ static const char* source_code =
 "	if(x >= dim.x || y >= dim.y) return;																		  \n" \
 "																												  \n" \
 "	const sampler_t smp = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP_TO_EDGE | CLK_FILTER_NEAREST;			  \n" \
+"	const int2 coord2 = (int2) (x, y);		                            										  \n" \
 "	const int gidx = mad24(y, dim.x, x);																		  \n" \
-"	const int qidx = mad24(clamp(y - q.y, 0, dim.y - 1), dim.x, clamp(x - q.x, 0, dim.x - 1));					  \n" \
-"	const float u4 = U4[gidx];																					  \n" \
-"	const float u4_mq = U4[qidx];																				  \n" \
+"																												  \n" \
+"	const float u4 = read_imagef(U4, smp, coord2).x;  															  \n" \
+"	const float u4_mq = read_imagef(U4, smp, coord2 - q).x;														  \n" \
 "	M[gidx] = fmax(M[gidx], fmax(u4, u4_mq));																	  \n" \
 "																												  \n" \
 "	if (NLMK_TCOLOR & COLOR_GRAY) {																				  \n" \
 "		__global float2* U2c = (__global float2*) U2;													          \n" \
-"		const float u1_pq = read_imagef(U1, smp, (int2) (x, y) + q).x;										      \n" \
-"		const float u1_mq = read_imagef(U1, smp, (int2) (x, y) - q).x;									          \n" \
+"		const float u1_pq = read_imagef(U1, smp, coord2 + q).x;										              \n" \
+"		const float u1_mq = read_imagef(U1, smp, coord2 - q).x;									                  \n" \
 "		U2c[gidx].x += NLMK_TEMPORAL ? (u4 * u1_pq) : (u4 * u1_pq) + (u4_mq * u1_mq);						      \n" \
 "		U2c[gidx].y += NLMK_TEMPORAL ? (u4) : (u4 + u4_mq);													      \n" \
 "	} else if (NLMK_TCOLOR & COLOR_YUV) {								                                          \n" \
 "		__global float4* U2c = (__global float4*) U2;															  \n" \
-"		const float4 u1_pq = read_imagef(U1, smp, (int2) (x, y) + q);											  \n" \
-"		const float4 u1_mq = read_imagef(U1, smp, (int2) (x, y) - q);											  \n" \
+"		const float4 u1_pq = read_imagef(U1, smp, coord2 + q);											          \n" \
+"		const float4 u1_mq = read_imagef(U1, smp, coord2 - q);											          \n" \
 "		float4 accu = NLMK_TEMPORAL ? (u4 * u1_pq) : (u4 * u1_pq) + (u4_mq * u1_mq);							  \n" \
 "		accu.w = NLMK_TEMPORAL ? (u4) : (u4 + u4_mq);															  \n" \
 "		U2c[gidx] += accu;																						  \n" \
 "	} else if (NLMK_TCOLOR & COLOR_RGB) {								                                          \n" \
 "		__global float4* U2c = (__global float4*) U2;															  \n" \
-"		const float4 u1_pq = read_imagef(U1, smp, (int2) (x, y) + q);											  \n" \
-"		const float4 u1_mq = read_imagef(U1, smp, (int2) (x, y) - q);											  \n" \
+"		const float4 u1_pq = read_imagef(U1, smp, coord2 + q);								        			  \n" \
+"		const float4 u1_mq = read_imagef(U1, smp, coord2 - q);									        		  \n" \
 "		float4 accu = NLMK_TEMPORAL ? (u4 * u1_pq) : (u4 * u1_pq) + (u4_mq * u1_mq);							  \n" \
 "		accu.w = NLMK_TEMPORAL ? (u4) : (u4 + u4_mq);															  \n" \
 "		U2c[gidx] += accu;																						  \n" \
