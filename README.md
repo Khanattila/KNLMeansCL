@@ -34,16 +34,16 @@ clip clip               Video source.
 	
 
 int d                   Set the number of past and future frame that the filter uses for 
-                        denoising the current frame. D=0 uses 1 frame, while D=1 uses 3
+                        denoising the current frame. d=0 uses 1 frame, while d=1 uses 3
                         frames and so on. Usually, larger it the better the result of the
-                        denoising. Temporal size = (2 * D + 1).
+                        denoising. Temporal size = (2 * d + 1).
 
                         Default: 0.
 
 
-int a                   Set the radius of the search window. A=0 uses 1 pixel, while D=1 
+int a                   Set the radius of the search window. a=0 uses 1 pixel, while a=1 
                         use 9 pixels and son on. Usually, larger it the better the result
-                        of the denoising. Spatial size = (2 * A + 1)^2.
+                        of the denoising. Spatial size = (2 * a + 1)^2.
                         Total search window size = temporal size * spatial size.
 	
                         Default: 2.
@@ -51,7 +51,7 @@ int a                   Set the radius of the search window. A=0 uses 1 pixel, w
 
 int s                   Set the radius of the similarity neighborhood window. The impact 
                         on performance is low, therefore it depends on the nature of the 
-                        noise. Similarity neighborhood size = (2 * S + 1)^2.
+                        noise. Similarity neighborhood size = (2 * s + 1)^2.
 	
                         Default: 4.
 
