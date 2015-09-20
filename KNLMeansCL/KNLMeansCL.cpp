@@ -76,34 +76,44 @@ KNLMeansClass::KNLMeansClass(PClip _child, const int _d, const int _a, const int
     baby->SetCacheHints(CACHE_WINDOW, d);
 
     // Checks source clip and rclip.
+    VideoInfo rvi = baby->GetVideoInfo();
     cl_channel_order channel_order = 0;
     cl_channel_type channel_type = 0;
-    if (cmode && !vi.IsYV24() && !vi.IsRGB32())
-        env->ThrowError("KNLMeansCL: cmode requires YV24 image format!");
-    if (vi.IsPlanar() && (vi.IsY8() || vi.IsYV411() || vi.IsYV12() || vi.IsYV16())) {
-        clip = COLOR_GRAY;
-        channel_order = CL_LUMINANCE;
-        channel_type = (cl_channel_type) (lsb ? CL_UNORM_INT16 : CL_UNORM_INT8);
-    } else if (vi.IsPlanar() && vi.IsYV24()) {
-        clip = cmode ? COLOR_YUV : COLOR_GRAY;
-        channel_order = (cl_channel_order) (cmode ? CL_RGBA : CL_LUMINANCE);
-        channel_type = (cl_channel_type) (lsb ? CL_UNORM_INT16 : CL_UNORM_INT8);
-    } else if (vi.IsRGB() && vi.IsRGB32()) {
-        clip = COLOR_RGB;
-        channel_order = CL_RGBA;
-        channel_type = CL_UNORM_INT8;
-    } else {
+    if (!vi.IsPlanar() && !vi.IsRGB32())
         env->ThrowError("KNLMeansCL: planar YUV or RGB32 data!");
-    }
-    VideoInfo rvi = baby->GetVideoInfo();
+    if (cmode && !vi.IsYV24() && !vi.IsRGB32())
+        env->ThrowError("KNLMeansCL: cmode requires 4:4:4 subsampling!");
+    if (vi.IsRGB() && lsb)
+        env->ThrowError("KNLMeansCL: RGB48y is not supported!"); 
     if (!equals(&vi, &rvi))
         env->ThrowError("KNLMeansCL: rclip do not math source clip!");
-     
+    if (lsb) {
+        if (cmode) {
+            clip = CLIP_STACKED | COLOR_YUV;
+            channel_order = CL_RGBA;
+            channel_type = CL_UNORM_INT16;
+        } else {
+            clip = CLIP_STACKED | COLOR_GRAY;
+            channel_order = CL_LUMINANCE;
+            channel_type = CL_UNORM_INT16;
+        }
+    } else {
+        if (vi.IsRGB32()) {
+            clip = CLIP_REGULAR | COLOR_RGB;
+            channel_order = CL_RGBA;
+            channel_type = CL_UNORM_INT8;
+        } else if (cmode) {           
+            clip = CLIP_REGULAR | COLOR_YUV;
+            channel_order = CL_RGBA;
+            channel_type = CL_UNORM_INT8;
+        } else {
+            clip = CLIP_REGULAR | COLOR_GRAY;
+            channel_order = CL_LUMINANCE;
+            channel_type = CL_UNORM_INT8;
+        }
+    }
+
     // Checks user value.
-    if (vi.IsRGB() && lsb)
-        env->ThrowError("KNLMeansCL: RGB48y is not supported!");
-    if (vi.IsRGB() && info)
-        env->ThrowError("KNLMeansCL: info requires YUV color space!");
     if (d < 0)
         env->ThrowError("KNLMeansCL: d must be greater than or equal to 0!");
     if (a < 0)
@@ -130,6 +140,8 @@ KNLMeansClass::KNLMeansClass(PClip _child, const int _d, const int _a, const int
     }
     if (ocl_id < 0) 
         env->ThrowError("KNLMeansCL: device_id must be greater than or equal to 0!");
+    if (info && vi.IsRGB())
+        env->ThrowError("KNLMeansCL: info requires YUV color space!");
 
     // Gets PlatformID and DeviceID.
     cl_uint num_platforms = 0;
@@ -1142,7 +1154,7 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out,
         "-D H_BLOCK_X=%i -D H_BLOCK_Y=%i -D V_BLOCK_X=%i -D V_BLOCK_Y=%i -D NLMK_TCOLOR=%i -D NLMK_S=%i " 
         "-D NLMK_WMODE=%i -D NLMK_TEMPORAL=%i -D NLMK_H2_INV_NORM=%f -D NLMK_BIT_SHIFT=%i -D NLMK_LSB=%d",
         H_BLOCK_X, H_BLOCK_Y, V_BLOCK_X, V_BLOCK_Y, d.clip, int64ToIntS(d.s),
-        int64ToIntS(d.wmode), int64ToIntS(d.d), 65025.0 / (3*d.h*d.h*(2*d.s+1)*(2*d.s+1)), int64ToIntS(d.bit_shift), 0); 
+        int64ToIntS(d.wmode), int64ToIntS(d.d), 65025.0 / (3*d.h*d.h*(2*d.s+1)*(2*d.s+1)), d.bit_shift, 0); 
     ret = clBuildProgram(d.program, 1, &d.deviceID, options, NULL, NULL);
     if (ret != CL_SUCCESS) {
         size_t options_size, log_size;

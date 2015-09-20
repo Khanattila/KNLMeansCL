@@ -46,7 +46,7 @@
 #include <VapourSynth.h>
 #include <VSHelper.h>
 
-enum clip_t { 
+enum { 
     COLOR_GRAY    = 1 << 0, COLOR_YUV     = 1 << 1, COLOR_RGB     = 1 << 2,
     COLOR_MASK    = 1 << 0                | 1 << 1                | 1 << 2,
     CLIP_REGULAR  = 1 << 3, CLIP_STACKED  = 1 << 4,
@@ -68,7 +68,7 @@ private:
     PClip baby;
     const char* ocl_device;
     const bool cmode, lsb, info;
-    clip_t clip;
+    int clip;
     cl_uint idmn[3], sum_devices;
     cl_platform_id platformID;
     cl_device_id deviceID;
@@ -90,10 +90,10 @@ public:
 typedef struct {
     VSNodeRef *node, *knot;
     const VSVideoInfo *vi;
-    int64_t d, a, s, cmode, wmode, info, ocl_id, bit_shift;
+    int64_t d, a, s, cmode, wmode, ocl_id, info;
     double h;
     const char* ocl_device;
-    clip_t clip;
+    int bit_shift, clip;
     cl_uint idmn[2], sum_devices;
     cl_platform_id platformID;
     cl_device_id deviceID;
