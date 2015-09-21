@@ -16,7 +16,7 @@
 *	along with KNLMeansCL. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#define VERSION "0.6.7"
+#define VERSION "0.6.8"
 
 #ifdef _MSC_VER
     #pragma warning (disable : 4514 4710 4820)
@@ -49,9 +49,9 @@
 enum { 
     COLOR_GRAY    = 1 << 0, COLOR_YUV     = 1 << 1, COLOR_RGB     = 1 << 2,
     COLOR_MASK    = 1 << 0                | 1 << 1                | 1 << 2,
-    CLIP_REGULAR  = 1 << 3, CLIP_STACKED  = 1 << 4,
+    CLIP_PLANAR   = 1 << 3, CLIP_STACKED  = 1 << 4,
     CLIP_MASK     = 1 << 3                | 1 << 4,
-    EXTRA_NCLIP   = 1 << 5, EXTRA_YCLIP   = 1 << 6,
+    EXTRA_NONE    = 1 << 5, EXTRA_CLIP    = 1 << 6,
     EXTRA_MASK    = 1 << 5                | 1 << 6
 };
 
