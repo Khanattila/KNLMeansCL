@@ -1,10 +1,10 @@
 ## KNLMeansCL ##
 
-**KNLMeansCL** is an optimized OpenCL implementation of the Non-local means denoising algorithm. 
-Every pixel is restored by the weighted average of all pixels in its search window. The level of averaging is determined by the filtering parameter h. 
+**KNLMeansCL** is an optimized OpenCL implementation of the Non-local means de-noising algorithm. Every pixel is restored by the weighted average of all pixels in its search window. The level of averaging is determined by the filtering parameter h. 
 
 #### Requirements ####
 - OpenCL driver. AMD: [link](http://support.amd.com), NVIDIA: [link](http://www.nvidia.com/download/find.aspx), Intel: [link](https://software.intel.com/en-us/articles/opencl-drivers).
+- [Intel Supported Graphics APIs and Features](http://www.intel.com/support/graphics/sb/CS-033757.htm).
 - [Visual C++ Redistributable Package for Visual Studio 2013](http://www.microsoft.com/en-US/download/details.aspx?id=40784).
 
 #### Syntax ####
