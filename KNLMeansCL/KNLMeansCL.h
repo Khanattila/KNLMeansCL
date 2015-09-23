@@ -16,7 +16,7 @@
 *	along with KNLMeansCL. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#define VERSION "0.6.10"
+#define VERSION "0.6.11"
 
 #ifdef _MSC_VER
     #pragma warning (disable : 4514 4710 4820)
@@ -90,7 +90,7 @@ typedef struct {
     int64_t d, a, s, cmode, wmode, ocl_id, info;
     double h;
     const char* ocl_device;
-    int bit_shift, clip;
+    unsigned int bit_shift, clip_t;
     cl_uint idmn[2], sum_devices;
     cl_platform_id platformID;
     cl_device_id deviceID;
