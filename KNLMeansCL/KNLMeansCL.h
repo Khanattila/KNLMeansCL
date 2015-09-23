@@ -16,7 +16,7 @@
 *	along with KNLMeansCL. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#define VERSION "0.6.9"
+#define VERSION "0.6.10"
 
 #ifdef _MSC_VER
     #pragma warning (disable : 4514 4710 4820)
@@ -65,7 +65,7 @@ private:
     PClip baby;
     const char* ocl_device;
     const bool cmode, lsb, info;
-    int clip;
+    unsigned int clip_t;
     cl_uint idmn[3], sum_devices;
     cl_platform_id platformID;
     cl_device_id deviceID;

@@ -29,6 +29,7 @@ static const char* source_code =
 "#define wBLUE	 1.0468591696f        						            										  \n" \
 "#define wMSB 	 256.0f / 257.0f        																		  \n" \
 "#define wLSB    1.0f / 257.0f      																			  \n" \
+"#define CHECK_FLAG(flag) ((NLMK_TCLIP & (flag)) == (flag))    													  \n" \
 "																												  \n" \
 "enum {                                                                                                           \n" \
 "    COLOR_GRAY    = 1 << 0, COLOR_YUV     = 1 << 1, COLOR_RGB     = 1 << 2,                                      \n" \
@@ -48,13 +49,13 @@ static const char* source_code =
 "																												  \n" \
 "	const int gidx = mad24(y, dim.x, x);																		  \n" \
 "																												  \n" \
-"	if (NLMK_TCLIP & COLOR_GRAY) {	                    														  \n" \
+"	if (CHECK_FLAG(COLOR_GRAY)) {	                    														  \n" \
 "		__global float2* U2c = (__global float2*) U2;															  \n" \
 "		U2c[gidx] = (float2) 0.0f;																				  \n" \
-"	} else if (NLMK_TCLIP & COLOR_YUV) {	               														  \n" \
+"	} else if (CHECK_FLAG(COLOR_YUV)) {	                														  \n" \
 "		__global float4* U2c = (__global float4*) U2;															  \n" \
 "		U2c[gidx] = (float4) 0.0f;																				  \n" \
-"	} else if (NLMK_TCLIP & COLOR_RGB) {	               														  \n" \
+"	} else if (CHECK_FLAG(COLOR_RGB)) {	                   														  \n" \
 "		__global float4* U2c = (__global float4*) U2;															  \n" \
 "		U2c[gidx] = (float4) 0.0f;																				  \n" \
 "	}																											  \n" \
@@ -72,18 +73,18 @@ static const char* source_code =
 "	const sampler_t smp = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP | CLK_FILTER_NEAREST;		        	  \n" \
 "	const int2 coord2 = (int2) (x, y);		                            										  \n" \
 "																												  \n" \
-"	if (NLMK_TCLIP & COLOR_GRAY) {	                    														  \n" \
+"	if (CHECK_FLAG(COLOR_GRAY)) {	                    														  \n" \
 "		const float u1 = read_imagef(U1, smp, coord2).x;			     							              \n" \
 "		const float u1_pq = read_imagef(U1_pq, smp, coord2 + q).x;									              \n" \
 "		const float val = 3.0f * (u1 - u1_pq) * (u1 - u1_pq);                                                     \n" \
 "		write_imagef(U4, coord2, (float4) val);								    								  \n" \
-"	} else if (NLMK_TCLIP & COLOR_YUV) {																		  \n" \
+"	} else if (CHECK_FLAG(COLOR_YUV)) {			    															  \n" \
 "		const float4 u1 = read_imagef(U1, smp, coord2);			     	        							      \n" \
 "		const float4 u1_pq = read_imagef(U1_pq, smp, coord2 + q);	        									  \n" \
 "		const float4 dist = (u1 - u1_pq) * (u1 - u1_pq);														  \n" \
 "		const float val = dist.x + dist.y + dist.z;                                                               \n" \
 "		write_imagef(U4, coord2, (float4) val);								    								  \n" \
-"	} else if (NLMK_TCLIP & COLOR_RGB) {																		  \n" \
+"	} else if (CHECK_FLAG(COLOR_RGB)) {	    																	  \n" \
 "		const float4 u1 = read_imagef(U1, smp, coord2);			     		        						      \n" \
 "		const float4 u1_pq = read_imagef(U1_pq, smp, coord2 + q);		        								  \n" \
 "		const float4 wgh = (float4) (wRED, wGREEN, wBLUE, 0.0f);												  \n" \
@@ -167,7 +168,7 @@ static const char* source_code =
 "	const float u4_mq = read_imagef(U4, smp, coord2 - q).x;														  \n" \
 "	M[gidx] = fmax(M[gidx], fmax(u4, u4_mq));																	  \n" \
 "																												  \n" \
-"	if (NLMK_TCLIP & COLOR_GRAY) {																				  \n" \
+"	if (CHECK_FLAG(COLOR_GRAY)) {																				  \n" \
 "		__global float2* U2c = (__global float2*) U2;													          \n" \
 "		const float u1_pq = read_imagef(U1, smp, coord2 + q).x;										              \n" \
 "		const float u1_mq = read_imagef(U1, smp, coord2 - q).x;									                  \n" \
@@ -175,14 +176,14 @@ static const char* source_code =
 "		accu.x = NLMK_TEMPORAL ? (u4 * u1_pq) : (u4 * u1_pq) + (u4_mq * u1_mq);			    		        	  \n" \
 "		accu.y = NLMK_TEMPORAL ? (u4) : (u4 + u4_mq);			    								        	  \n" \
 "		U2c[gidx] += accu;																						  \n" \
-"	} else if (NLMK_TCLIP & COLOR_YUV) {								                                          \n" \
+"	} else if (CHECK_FLAG(COLOR_YUV)) {					    			                                          \n" \
 "		__global float4* U2c = (__global float4*) U2;															  \n" \
 "		const float4 u1_pq = read_imagef(U1, smp, coord2 + q);											          \n" \
 "		const float4 u1_mq = read_imagef(U1, smp, coord2 - q);											          \n" \
 "		float4 accu   = NLMK_TEMPORAL ? (u4 * u1_pq) : (u4 * u1_pq) + (u4_mq * u1_mq);							  \n" \
 "		       accu.w = NLMK_TEMPORAL ? (u4) : (u4 + u4_mq);													  \n" \
 "		U2c[gidx] += accu;																						  \n" \
-"	} else if (NLMK_TCLIP & COLOR_RGB) {								                                          \n" \
+"	} else if (CHECK_FLAG(COLOR_RGB)) {	    							                                          \n" \
 "		__global float4* U2c = (__global float4*) U2;															  \n" \
 "		const float4 u1_pq = read_imagef(U1, smp, coord2 + q);								        			  \n" \
 "		const float4 u1_mq = read_imagef(U1, smp, coord2 - q);									        		  \n" \
@@ -204,21 +205,21 @@ static const char* source_code =
 "	const int2 coord2 = (int2) (x, y);		                            										  \n" \
 "	const int gidx = mad24(y, dim.x, x);            															  \n" \
 "       																										  \n" \
-"	if (NLMK_TCLIP & COLOR_GRAY) {																				  \n" \
+"	if (CHECK_FLAG(COLOR_GRAY)) {																				  \n" \
 "		__global float2* U2c = (__global float2*) U2;														      \n" \
 "		const float u1 = read_imagef(U1_in, smp, coord2).x;		        									      \n" \
 "		const float num = U2c[gidx].x + M[gidx] * u1;	    												      \n" \
 "		const float den = U2c[gidx].y + M[gidx];															      \n" \
 "		const float val = native_divide(num, den);															      \n" \
 "		write_imagef(U1_out, coord2, (float4) val);		        					                    	      \n" \
-"	} else if (NLMK_TCLIP & COLOR_YUV) {												                          \n" \
+"	} else if (CHECK_FLAG(COLOR_YUV)) {		    										                          \n" \
 "		__global float4* U2c = (__global float4*) U2;															  \n" \
 "		const float4 u1 = read_imagef(U1_in, smp, coord2);		        										  \n" \
 "		const float4 num = U2c[gidx] + (float4) M[gidx] * u1;					            					  \n" \
 "		const float  den = U2c[gidx].w + M[gidx];			            										  \n" \
 "		const float4 val = native_divide(num, (float4) den);									                  \n" \
 "		write_imagef(U1_out, coord2, val);			        													  \n" \
-"	} else if (NLMK_TCLIP & COLOR_RGB) {												                          \n" \
+"	} else if (CHECK_FLAG(COLOR_RGB)) {	    											                          \n" \
 "		__global float4* U2c = (__global float4*) U2;															  \n" \
 "		const float4 u1 = read_imagef(U1_in, smp, coord2);		        										  \n" \
 "		const float4 num = U2c[gidx] + (float4) M[gidx] * u1;					            					  \n" \
@@ -239,26 +240,26 @@ static const char* source_code =
 "	const sampler_t smp = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_NONE | CLK_FILTER_NEAREST;		        	  \n" \
 "	const int2 coord2 = (int2) (x, y);		                            										  \n" \
 "																												  \n" \
-"   if (NLMK_TCLIP & (CLIP_UNSIGNED | COLOR_GRAY)) {													          \n" \
+"   if (CHECK_FLAG(CLIP_UNSIGNED | COLOR_GRAY)) {			            								          \n" \
 "	    const float r = norm(read_imageui(R, smp, coord2).x);      	    										  \n" \
 "	    write_imagef(U1, coord2, (float4) r);	            			    						              \n" \
-"	} else if (NLMK_TCLIP & (CLIP_STACKED | COLOR_GRAY)) {     													  \n" \
+"	} else if (CHECK_FLAG(CLIP_STACKED | COLOR_GRAY)) {     													  \n" \
 "	    const int2 coord2_lsb = (int2) (x, y + dim.y);	               		    								  \n" \
 "	    const float r_msb = read_imagef(R, smp, coord2).x;         				    							  \n" \
 "	    const float r_lsb = read_imagef(R, smp, coord2_lsb).x;      				    						  \n" \
 "	    const float r = wMSB * r_msb + wLSB * r_lsb;                 					    					  \n" \
 "	    write_imagef(U1, coord2, (float4) r);	            								    	              \n" \
-"	} else if (NLMK_TCLIP & (CLIP_UNORM | COLOR_YUV)) {			    									          \n" \
+"	} else if (CHECK_FLAG(CLIP_UNORM | COLOR_YUV)) {			    									          \n" \
 "	    const float r = read_imagef(R, smp, coord2).x;          				        						  \n" \
 "	    const float g = read_imagef(G, smp, coord2).x;									    				      \n" \
 "	    const float b = read_imagef(B, smp, coord2).x;										    		    	  \n" \
 "	    write_imagef(U1, coord2, (float4) (r, g, b, 1.0f));										                  \n" \
-"	} else if (NLMK_TCLIP & (CLIP_UNSIGNED | COLOR_YUV)) {		    									          \n" \
+"	} else if (CHECK_FLAG(CLIP_UNSIGNED | COLOR_YUV)) {		    			    						          \n" \
 "	    const float r = norm(read_imageui(R, smp, coord2).x);      				    							  \n" \
 "	    const float g = norm(read_imageui(G, smp, coord2).x);						    						  \n" \
 "	    const float b = norm(read_imageui(B, smp, coord2).x);							    					  \n" \
 "	    write_imagef(U1, coord2, (float4) (r, g, b, 1.0f));									    	              \n" \
-"	} else if (NLMK_TCLIP & (CLIP_STACKED | COLOR_YUV)) {	           									          \n" \
+"	} else if (CHECK_FLAG(CLIP_STACKED | COLOR_YUV)) {	           				    					          \n" \
 "	    const int2 coord2_lsb = (int2) (x, y + dim.y);	           										          \n" \
 "	    const float r_msb = read_imagef(R, smp, coord2).x;          									          \n" \
 "	    const float g_msb = read_imagef(G, smp, coord2).x;												          \n" \
@@ -270,12 +271,12 @@ static const char* source_code =
 "	    const float g = wMSB * g_msb + wLSB * g_lsb;                 								        	  \n" \
 "	    const float b = wMSB * b_msb + wLSB * b_lsb;                 								        	  \n" \
 "	    write_imagef(U1, coord2, (float4) (r, g, b, 1.0f));										                  \n" \
-"	} else if (NLMK_TCLIP & (CLIP_UNORM | COLOR_RGB)) {	               									          \n" \
+"	} else if (CHECK_FLAG(CLIP_UNORM | COLOR_RGB)) {	               									          \n" \
 "	    const float r = read_imagef(R, smp, coord2).x;          		    									  \n" \
 "	    const float g = read_imagef(G, smp, coord2).x;						        							  \n" \
 "	    const float b = read_imagef(B, smp, coord2).x;								    						  \n" \
 "	    write_imagef(U1, coord2, (float4) (r, g, b, 1.0f));								    		              \n" \
-"	} else if (NLMK_TCLIP & (CLIP_UNSIGNED | COLOR_RGB)) {	              									      \n" \
+"	} else if (CHECK_FLAG(CLIP_UNSIGNED | COLOR_RGB)) {	                 									      \n" \
 "	    const float r = norm(read_imageui(R, smp, coord2).x);          											  \n" \
 "	    const float g = norm(read_imageui(G, smp, coord2).x);		    										  \n" \
 "	    const float b = norm(read_imageui(B, smp, coord2).x);			    									  \n" \
@@ -294,10 +295,10 @@ static const char* source_code =
 "	const sampler_t smp = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_NONE | CLK_FILTER_NEAREST;		        	  \n" \
 "	const int2 coord2 = (int2) (x, y);		                            										  \n" \
 "																												  \n" \
-"   if (NLMK_TCLIP & (CLIP_UNSIGNED | COLOR_GRAY)) {													          \n" \
+"   if (CHECK_FLAG(CLIP_UNSIGNED | COLOR_GRAY)) {			            								          \n" \
 "       const ushort val = denorm(read_imagef(U1, smp, coord2).x);                                                \n" \
 "	    write_imageui(R, coord2, (uint4) val);		                        								      \n" \
-"	} else if (NLMK_TCLIP & (CLIP_STACKED | COLOR_GRAY)) {     													  \n" \
+"	} else if (CHECK_FLAG(CLIP_STACKED | COLOR_GRAY)) {		                									  \n" \
 "	    const int2 coord2_lsb = (int2) (x, y + dim.y);	               										      \n" \
 "		const ushort in = convert_ushort_sat(read_imagef(U1, smp, coord2).x * (float) USHRT_MAX);                 \n" \
 "		const float in_msb = convert_float(in >> CHAR_BIT);                                                       \n" \
@@ -306,17 +307,17 @@ static const char* source_code =
 "		const float val_lsb = native_divide(in_lsb, (float) UCHAR_MAX);					                	      \n" \
 "	    write_imagef(R, coord2, (float4) val_msb);   		                                                      \n" \
 "	    write_imagef(R, coord2_lsb, (float4) val_lsb);		                                                      \n" \
-"	} else if (NLMK_TCLIP & (CLIP_UNORM | COLOR_YUV)) {			    									          \n" \
+"	} else if (CHECK_FLAG(CLIP_UNORM | COLOR_YUV)) {	               									          \n" \
 "	    const float4 val = read_imagef(U1, smp, coord2);           	                                              \n" \
 "	    write_imagef(R, coord2, (float4) val.x);											                      \n" \
 "	    write_imagef(G, coord2, (float4) val.y);											                      \n" \
 "	    write_imagef(B, coord2, (float4) val.z);											                      \n" \
-"	} else if (NLMK_TCLIP & (CLIP_UNSIGNED | COLOR_YUV)) {		    									          \n" \
+"	} else if (CHECK_FLAG(CLIP_UNSIGNED | COLOR_YUV)) {		                							          \n" \
 "		const ushort4 val = denorm4(read_imagef(U1, smp, coord2));                                                \n" \
 "	    write_imageui(R, coord2, (uint4) val.x);		                    								      \n" \
 "	    write_imageui(G, coord2, (uint4) val.y);							                    	              \n" \
 "	    write_imageui(B, coord2, (uint4) val.z);							                                      \n" \
-"	} else if (NLMK_TCLIP & (CLIP_STACKED | COLOR_YUV)) {	           									          \n" \
+"	} else if (CHECK_FLAG(CLIP_STACKED | COLOR_YUV)) {	                								          \n" \
 "	    const int2 coord2_lsb = (int2) (x, y + dim.y);	               									          \n" \
 "		const ushort4 in = convert_ushort4_sat(read_imagef(U1, smp, coord2) * (float4) USHRT_MAX);                \n" \
 "		const float4 in_msb = convert_float4(in >> (ushort4) CHAR_BIT);                                           \n" \
@@ -329,12 +330,12 @@ static const char* source_code =
 "	    write_imagef(R, coord2_lsb, (float4) val_lsb.x);	                                                      \n" \
 "	    write_imagef(G, coord2_lsb, (float4) val_lsb.y);	                                                      \n" \
 "	    write_imagef(B, coord2_lsb, (float4) val_lsb.z);	                                                      \n" \
-"	} else if (NLMK_TCLIP & (CLIP_UNORM | COLOR_RGB)) {	               									          \n" \
+"	} else if (CHECK_FLAG(CLIP_UNORM | COLOR_RGB)) {	               									          \n" \
 "	    const float4 val = read_imagef(U1, smp, coord2);              	                                          \n" \
 "	    write_imagef(R, coord2, (float4) val.x);												                  \n" \
 "	    write_imagef(G, coord2, (float4) val.y);												                  \n" \
 "	    write_imagef(B, coord2, (float4) val.z);												                  \n" \
-"	} else if (NLMK_TCLIP & (CLIP_UNSIGNED | COLOR_RGB)) {	              									      \n" \
+"	} else if (CHECK_FLAG(CLIP_UNSIGNED | COLOR_RGB)) {	                   									      \n" \
 "		const ushort4 val = denorm4(read_imagef(U1, smp, coord2));                                                \n" \
 "	    write_imageui(R, coord2, (uint4) val.x);		                    								      \n" \
 "	    write_imageui(G, coord2, (uint4) val.y);							                    	              \n" \
