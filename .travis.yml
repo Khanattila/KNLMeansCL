@@ -1,14 +1,25 @@
 language: cpp
 
+branches:
+  only: 
+  - master
+  
 before_install:
-        - sudo add-apt-repository ppa:djcj/vapoursynth -y
-        - sudo apt-get update -qq
-        - sudo apt-get install -y --install-suggests pkg-config  vapoursynth opencl-headers
-
-install: true
+- sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
+- sudo apt-get update -qq
+- sudo apt-get install -qq build-essential g++-4.8 git pkg-config
+- export CXX="g++-4.8" CC="gcc-4.8"
+  
+install:
+- sudo add-apt-repository "deb http://archive.ubuntu.com/ubuntu/ trusty main restricted universe multiverse" -y
+- sudo add-apt-repository "deb http://ppa.launchpad.net/djcj/vapoursynth/ubuntu trusty main" -y
+- sudo apt-get update -qq
+- sudo apt-get install -t trusty opencl-headers ocl-icd-* libvapoursynth-dev libvapoursynth libpango-1.0-0 libpangocairo-1.0-0
 
 script: 
-         - ./configure
-         - make
-         - sudo make install
+- ./configure --install=/usr/lib/x86_64-linux-gnu/vapoursynth --cxx=$CXX && make && sudo make install
 
+notifications:
+  email:
+    - on_success: never
+    - on_failure: never
