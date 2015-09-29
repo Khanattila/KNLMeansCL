@@ -37,6 +37,7 @@
 #endif
 
 #include "kernel.h"
+#include "shared/oclUtils.h"
 #include "shared/startchar.h"
 
 #ifdef _WIN32
@@ -51,11 +52,6 @@ enum {
     CLIP_UNORM    = 1 << 3, CLIP_UNSIGNED = 1 << 4, CLIP_STACKED  = 1 << 5,
     EXTRA_NONE    = 1 << 6, EXTRA_CLIP    = 1 << 7
 };
-
-typedef struct _device_list {
-    cl_platform_id platform;
-    cl_device_id device;
-} device_list;
 
 #ifdef __AVISYNTH_6_H__
 class KNLMeansClass : public GenericVideoFilter {
