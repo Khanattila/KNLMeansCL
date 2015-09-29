@@ -3,7 +3,7 @@
 *	Copyright(C) 2002		thejam79,
 *	Copyright(C) 2003		minamina,
 *	Copyright(C) 2007		Donald A. Graft,
-*	Copyright(C) 2014-2015	Khanattila.
+*	Copyright(C) 2014-2015  Edoardo Brunetti.
 *
 *	KNLMeansCL is free software: you can redistribute it and/or modify
 *	it under the terms of the GNU Lesser General Public License as published by
@@ -1577,4 +1577,5 @@ inline void DrawDigit(uint8_t* dst, int pitch, int x, int y, int num) {
 void DrawString(uint8_t* dst, int pitch, int x, int y, const char *s) {
 	for (int xx = 0; *s; ++s, ++xx) DrawDigit(dst, pitch, x + xx, y, *s - ' ');
 }
+
 #endif //__STARTCHAR_H__
