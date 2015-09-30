@@ -67,6 +67,7 @@ static const char* source_code_temporal =
 "		const float val    = dist.x + dist.y + dist.z;                                                            \n" \
 "		write_imagef(U4, p, (float4) val);	           					    								      \n" \
 "	}																											  \n" \
+"}																												  \n" \
 "																												  \n" \
 "__kernel																										  \n" \
 "void nlmDistanceSymmetry(__read_only image2d_array_t U1, __write_only image2d_array_t U4, const int2 dim,        \n" \
@@ -98,6 +99,30 @@ static const char* source_code_temporal =
 "		const float val    = dist.x + dist.y + dist.z;                                                            \n" \
 "		write_imagef(U4, p - q, (float4) val);							    								      \n" \
 "	}																											  \n" \
+"}																												  \n" \
+"																												  \n" \
+"__kernel __attribute__((reqd_work_group_size(H_BLOCK_X, H_BLOCK_Y, 1)))										  \n" \
+"void nlmHorizontal(__read_only image2d_array_t U4_in, __write_only image2d_array_t U4_out,	                      \n" \
+"const int t, const int2 dim) {																	    			  \n" \
+"	__local float buffer[H_BLOCK_Y][3*H_BLOCK_X];																  \n" \
+"	const int x = get_global_id(0);																				  \n" \
+"	const int y = get_global_id(1);																				  \n" \
+"	const int lx = get_local_id(0);																				  \n" \
+"	const int ly = get_local_id(1);																				  \n" \
+"																												  \n" \
+"	const sampler_t smp = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP | CLK_FILTER_NEAREST;		        	  \n" \
+"	const int4 p = (int4) (x, y, t, 0);                            		        								  \n" \
+"																												  \n" \
+"	buffer[ly][lx + H_BLOCK_X]	 = read_imagef(U4_in, smp, p).x;                      						      \n" \
+"	buffer[ly][lx]		         = read_imagef(U4_in, smp, p - (int4) (H_BLOCK_X, 0, 0, 0)).x;				      \n" \
+"	buffer[ly][lx + 2*H_BLOCK_X] = read_imagef(U4_in, smp, p + (int4) (H_BLOCK_X, 0, 0, 0)).x;				      \n" \
+"	barrier(CLK_LOCAL_MEM_FENCE);																				  \n" \
+"																												  \n" \
+"	if(x >= dim.x || y >= dim.y) return;																		  \n" \
+"	float sum = 0.0f;																							  \n" \
+"	for(int i = -NLMK_S; i <= NLMK_S; i++)																		  \n" \
+"		sum += buffer[ly][lx + H_BLOCK_X + i];																	  \n" \
+"	write_imagef(U4_out, p, (float4) sum);		    															  \n" \
 "}																												  ";
 static const char* source_code_spatial =
 "																												  \n" \
