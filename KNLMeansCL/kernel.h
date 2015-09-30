@@ -22,7 +22,84 @@
 //////////////////////////////////////////
 // OpenCL
 static const cl_uint H_BLOCK_X = 32, H_BLOCK_Y = 4, V_BLOCK_X = 32, V_BLOCK_Y = 4;
-static const char* source_code =
+static const char* source_code_temporal =
+"																												  \n" \
+"#define wRED    0.6664827524f        	                   														  \n" \
+"#define wGREEN	 1.2866580779f        	        																  \n" \
+"#define wBLUE	 1.0468591696f        						            										  \n" \
+"#define wALPHA	 0.0f                  						            										  \n" \
+"#define wMSB 	 256.0f / 257.0f        																		  \n" \
+"#define wLSB      1.0f / 257.0f      																			  \n" \
+"#define CHECK_FLAG(flag) ((NLMK_TCLIP & (flag)) == (flag))    													  \n" \
+"																												  \n" \
+"enum {                                                                                                           \n" \
+"    COLOR_GRAY    = 1 << 0, COLOR_YUV     = 1 << 1, COLOR_RGB     = 1 << 2,                                      \n" \
+"    CLIP_UNORM    = 1 << 3, CLIP_UNSIGNED = 1 << 4, CLIP_STACKED  = 1 << 5                                       \n" \
+"};                                                                                                               \n" \
+"																												  \n" \
+"__kernel																										  \n" \
+"void nlmDistance(__read_only image2d_array_t U1, __write_only image2d_array_t U4, const int2 dim,                \n" \
+"const int4 q) {				            																	  \n" \
+"																												  \n" \
+"	const int x = get_global_id(0);																				  \n" \
+"	const int y = get_global_id(1);																				  \n" \
+"	if(x >= dim.x || y >= dim.y) return;																		  \n" \
+"																												  \n" \
+"	const sampler_t smp = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP | CLK_FILTER_NEAREST;		        	  \n" \
+"	const int4 p = (int4) (x, y, 0, 0);                            		        								  \n" \
+"																												  \n" \
+"	if (CHECK_FLAG(COLOR_GRAY)) {	                    														  \n" \
+"		const float u1    = read_imagef(U1, smp, p    ).x;		    	   							              \n" \
+"		const float u1_pq = read_imagef(U1, smp, p + q).x;		    							                  \n" \
+"		const float val  = 3.0f * (u1 - u1_pq) * (u1 - u1_pq);                                                    \n" \
+"		write_imagef(U4, p, (float4) val);		             				    								  \n" \
+"	} else if (CHECK_FLAG(COLOR_YUV)) {			    															  \n" \
+"		const float4 u1    = read_imagef(U1, smp, p    );	     	        							          \n" \
+"		const float4 u1_pq = read_imagef(U1, smp, p + q);  	        									          \n" \
+"		const float4 dist  = (u1 - u1_pq) * (u1 - u1_pq);														  \n" \
+"		const float val    = dist.x + dist.y + dist.z;                                                            \n" \
+"		write_imagef(U4, p, (float4) val);					    		    								      \n" \
+"	} else if (CHECK_FLAG(COLOR_RGB)) {	    																	  \n" \
+"		const float4 u1    = read_imagef(U1, smp, p    );	         		        						      \n" \
+"		const float4 u1_pq = read_imagef(U1, smp, p + q);	        	        								  \n" \
+"		const float4 wgh   = (float4) (wRED, wGREEN, wBLUE, wALPHA);											  \n" \
+"		const float4 dist  = wgh * (u1 - u1_pq) * (u1 - u1_pq);												      \n" \
+"		const float val    = dist.x + dist.y + dist.z;                                                            \n" \
+"		write_imagef(U4, p, (float4) val);	           					    								      \n" \
+"	}																											  \n" \
+"																												  \n" \
+"__kernel																										  \n" \
+"void nlmDistanceSymmetry(__read_only image2d_array_t U1, __write_only image2d_array_t U4, const int2 dim,        \n" \
+"const int4 q) {				            																	  \n" \
+"																												  \n" \
+"	const int x = get_global_id(0);																				  \n" \
+"	const int y = get_global_id(1);																				  \n" \
+"	if((x - q.x) >= dim.x || (y - q.y) >= dim.y) return;	            	           							  \n" \
+"																												  \n" \
+"	const sampler_t smp = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP | CLK_FILTER_NEAREST;		        	  \n" \
+"	const int4 p = (int4) (x, y, 0, 0);                            		        								  \n" \
+"																												  \n" \
+"	if (CHECK_FLAG(COLOR_GRAY)) {	                    														  \n" \
+"		const float u1    = read_imagef(U1, smp, p    ).x;		    	   							              \n" \
+"		const float u1_mq = read_imagef(U1, smp, p - q).x;		    							                  \n" \
+"		const float val   = 3.0f * (u1 - u1_mq) * (u1 - u1_mq);                                                   \n" \
+"		write_imagef(U4, p - q, (float4) val);				    			    								  \n" \
+"	} else if (CHECK_FLAG(COLOR_YUV)) {			    															  \n" \
+"		const float4 u1    = read_imagef(U1, smp, p    );	     	        							          \n" \
+"		const float4 u1_mq = read_imagef(U1, smp, p - q);  	        									          \n" \
+"		const float4 dist  = (u1 - u1_mq) * (u1 - u1_mq);														  \n" \
+"		const float val    = dist.x + dist.y + dist.z;                                                            \n" \
+"		write_imagef(U4, p - q, (float4) val);							    								      \n" \
+"	} else if (CHECK_FLAG(COLOR_RGB)) {	    																	  \n" \
+"		const float4 u1    = read_imagef(U1, smp, p    );	         		        						      \n" \
+"		const float4 u1_mq = read_imagef(U1, smp, p - q);  	        									          \n" \
+"		const float4 wgh   = (float4) (wRED, wGREEN, wBLUE, wALPHA);											  \n" \
+"		const float4 dist  = wgh * (u1 - u1_mq) * (u1 - u1_mq);												      \n" \
+"		const float val    = dist.x + dist.y + dist.z;                                                            \n" \
+"		write_imagef(U4, p - q, (float4) val);							    								      \n" \
+"	}																											  \n" \
+"}																												  ";
+static const char* source_code_spatial =
 "																												  \n" \
 "#define wRED    0.6664827524f        	                   														  \n" \
 "#define wGREEN	 1.2866580779f        	        																  \n" \

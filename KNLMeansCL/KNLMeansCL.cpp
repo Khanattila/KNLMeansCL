@@ -179,7 +179,7 @@ KNLMeansClass::KNLMeansClass(PClip _child, const int _d, const int _a, const int
     mem_P[2] = clCreateImage2D(context, CL_MEM_READ_WRITE, &image_format_p, idmn[0], idmn[2], 0, NULL, NULL);
         
     // Creates and Build a program executable from the program source.
-    program = clCreateProgramWithSource(context, 1, &source_code, NULL, NULL);
+    program = clCreateProgramWithSource(context, 1, &source_code_spatial, NULL, NULL);
     char options[2048];
     setlocale(LC_ALL, "C");
     snprintf(options, 2048, "-cl-single-precision-constant -cl-denorms-are-zero -cl-fast-relaxed-math -Werror "
@@ -1216,7 +1216,7 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out,
     } 
 
     // Creates and Build a program executable from the program source.
-    d.program = clCreateProgramWithSource(d.context, 1, &source_code, NULL, NULL);
+    d.program = clCreateProgramWithSource(d.context, 1, &source_code_spatial, NULL, NULL);
     char options[2048];
     setlocale(LC_ALL, "C");  
     snprintf(options, 2048, "-cl-single-precision-constant -cl-denorms-are-zero -cl-fast-relaxed-math -Werror "
