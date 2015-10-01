@@ -104,6 +104,7 @@ static const char* source_code_temporal =
 "__kernel __attribute__((reqd_work_group_size(H_BLOCK_X, H_BLOCK_Y, 1)))										  \n" \
 "void nlmHorizontal(__read_only image2d_array_t U4_in, __write_only image2d_array_t U4_out,	                      \n" \
 "const int t, const int2 dim) {																	    			  \n" \
+"																												  \n" \
 "	__local float buffer[H_BLOCK_Y][3*H_BLOCK_X];																  \n" \
 "	const int x = get_global_id(0);																				  \n" \
 "	const int y = get_global_id(1);																				  \n" \
@@ -111,7 +112,7 @@ static const char* source_code_temporal =
 "	const int ly = get_local_id(1);																				  \n" \
 "																												  \n" \
 "	const sampler_t smp = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP | CLK_FILTER_NEAREST;		        	  \n" \
-"	const int4 p = (int4) (x, y, t, 0);                            		        								  \n" \
+"	const int4 p = (int4) (x, y, -t, 0);                            		        							  \n" \
 "																												  \n" \
 "	buffer[ly][lx + H_BLOCK_X]	 = read_imagef(U4_in, smp, p).x;                      						      \n" \
 "	buffer[ly][lx]		         = read_imagef(U4_in, smp, p - (int4) (H_BLOCK_X, 0, 0, 0)).x;				      \n" \
@@ -123,6 +124,41 @@ static const char* source_code_temporal =
 "	for(int i = -NLMK_S; i <= NLMK_S; i++)																		  \n" \
 "		sum += buffer[ly][lx + H_BLOCK_X + i];																	  \n" \
 "	write_imagef(U4_out, p, (float4) sum);		    															  \n" \
+"}																												  \n" \
+"																												  \n" \
+"__kernel __attribute__((reqd_work_group_size(V_BLOCK_X, V_BLOCK_Y, 1)))										  \n" \
+"void nlmVertical(__read_only image2d_array_t U4_in, __write_only image2d_array_t U4_out,       				  \n" \
+"const int t, const int2 dim) {																	    			  \n" \
+"																												  \n" \
+"	__local float buffer[3*V_BLOCK_Y][V_BLOCK_X];																  \n" \
+"	const int x = get_global_id(0);																				  \n" \
+"	const int y = get_global_id(1);																				  \n" \
+"	const int lx = get_local_id(0);																				  \n" \
+"	const int ly = get_local_id(1);																				  \n" \
+"																												  \n" \
+"	const sampler_t smp = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP | CLK_FILTER_NEAREST;		        	  \n" \
+"	const int4 p = (int4) (x, y, -t, 0);                            		        							  \n" \
+"																												  \n" \
+"	buffer[ly + V_BLOCK_Y][lx]	 = read_imagef(U4_in, smp, p).x;						    					  \n" \
+"	buffer[ly][lx]		         = read_imagef(U4_in, smp, p - (int4) (0, V_BLOCK_Y, 0, 0)).x;					  \n" \
+"	buffer[ly + 2*V_BLOCK_Y][lx] = read_imagef(U4_in, smp, p + (int4) (0, V_BLOCK_Y, 0, 0)).x;    				  \n" \
+"	barrier(CLK_LOCAL_MEM_FENCE);																				  \n" \
+"																												  \n" \
+"	if(x >= dim.x || y >= dim.y) return;																		  \n" \
+"	float sum = 0.0f;																							  \n" \
+"	for(int j = -NLMK_S; j <= NLMK_S; j++)																		  \n" \
+"		sum += buffer[ly + V_BLOCK_Y + j][lx];																	  \n" \
+"																												  \n" \
+"	if(NLMK_WMODE == 0) {																						  \n" \
+"		const float val = native_recip(1.0f + sum * NLMK_H2_INV_NORM); 											  \n" \
+"	    write_imagef(U4_out, p, (float4) val);                                                                    \n" \
+"	} else if (NLMK_WMODE == 1) {																				  \n" \
+"		const float val = native_exp(- sum * NLMK_H2_INV_NORM);													  \n" \
+"	    write_imagef(U4_out, p, (float4) val);                                                                    \n" \
+"	} else if (NLMK_WMODE == 2) {																				  \n" \
+"		const float val = pown(fdim(1.0f, sum * NLMK_H2_INV_NORM), 2); 											  \n" \
+"	    write_imagef(U4_out, p, (float4) val);                                                                    \n" \
+"	}	                                                                										  \n" \
 "}																												  ";
 static const char* source_code_spatial =
 "																												  \n" \
