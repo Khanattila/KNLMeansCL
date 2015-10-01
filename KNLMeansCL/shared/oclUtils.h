@@ -44,7 +44,7 @@ cl_int oclGetDevicesList(cl_device_type device_type, ocl_device_packed* devices,
         *num_devices = tmp_devices;
         return CL_SUCCESS;
     } else if (devices != NULL && num_devices == NULL) {
-        cl_uint tmp_platforms = 0, tmp_devices = 0, index = 0, prt_devices, num_devices_platform, tmp_ms;
+        cl_uint tmp_platforms = 0, tmp_devices = 0, index = 0, prt_devices, num_devices_platform;
         cl_device_id tmp_device = 0;
         cl_int ret = clGetPlatformIDs(0, NULL, &tmp_platforms);
         if (ret != CL_SUCCESS) return ret;
@@ -62,8 +62,7 @@ cl_int oclGetDevicesList(cl_device_type device_type, ocl_device_packed* devices,
             ret = clGetDeviceIDs(temp_platforms[i], device_type, 0, 0, &num_devices_platform);
             if (ret != CL_SUCCESS && ret != CL_DEVICE_NOT_FOUND) return ret;
             for (cl_uint j = 0; j < num_devices_platform; j++) {
-                tmp_device = 0;
-                tmp_ms = 0;
+                tmp_device = 0;              
                 ret = clGetDeviceIDs(temp_platforms[i], device_type, 1, &tmp_device, NULL);
                 if (ret != CL_SUCCESS && ret != CL_DEVICE_NOT_FOUND) return ret;                
                 devices[index++] = { temp_platforms[i], tmp_device };
