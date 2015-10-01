@@ -38,12 +38,6 @@
 
 #include "KNLMeansCL.h"
 
-#if defined(_MSC_VER) && defined(CL_VERSION_1_2)
-    #pragma warning(disable : 4996)
-#elif defined(__GNUC__) && defined(CL_VERSION_1_2)
-    #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#endif
-
 //////////////////////////////////////////
 // AviSynthEquals
 #ifdef __AVISYNTH_6_H__
@@ -154,29 +148,32 @@ KNLMeansClass::KNLMeansClass(PClip _child, const int _d, const int _a, const int
     idmn[2] = (cl_uint) vi.height;
     context = clCreateContext(NULL, 1, &deviceID, NULL, NULL, NULL);
     const cl_image_format image_format = { channel_order, channel_type };
+    const cl_image_desc image_desc = { CL_MEM_OBJECT_IMAGE2D, idmn[0], idmn[1], 1, 1, 0, 0, 0, 0, NULL };
     if (!(clip_t & COLOR_YUV) && !lsb) {
-        mem_in[0] = clCreateImage2D(context, CL_MEM_READ_ONLY, &image_format, idmn[0], idmn[1], 0, NULL, NULL);
-        mem_in[1] = clCreateImage2D(context, CL_MEM_READ_ONLY, &image_format, idmn[0], idmn[1], 0, NULL, NULL);
-        mem_in[2] = clCreateImage2D(context, CL_MEM_READ_ONLY, &image_format, idmn[0], idmn[1], 0, NULL, NULL);
-        mem_in[3] = clCreateImage2D(context, CL_MEM_READ_ONLY, &image_format, idmn[0], idmn[1], 0, NULL, NULL);
-        mem_out = clCreateImage2D(context, CL_MEM_WRITE_ONLY, &image_format, idmn[0], idmn[1], 0, NULL, NULL);
+        mem_in[0] = clCreateImage(context, CL_MEM_READ_ONLY | CL_MEM_HOST_WRITE_ONLY, &image_format, &image_desc, NULL, NULL);
+        mem_in[1] = clCreateImage(context, CL_MEM_READ_ONLY | CL_MEM_HOST_WRITE_ONLY, &image_format, &image_desc, NULL, NULL);
+        mem_in[2] = clCreateImage(context, CL_MEM_READ_ONLY | CL_MEM_HOST_WRITE_ONLY, &image_format, &image_desc, NULL, NULL);
+        mem_in[3] = clCreateImage(context, CL_MEM_READ_ONLY | CL_MEM_HOST_WRITE_ONLY, &image_format, &image_desc, NULL, NULL);
+        mem_out = clCreateImage(context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY, &image_format, &image_desc, NULL, NULL);
     } else {
-        mem_in[0] = clCreateImage2D(context, CL_MEM_READ_WRITE, &image_format, idmn[0], idmn[1], 0, NULL, NULL);
-        mem_in[1] = clCreateImage2D(context, CL_MEM_READ_WRITE, &image_format, idmn[0], idmn[1], 0, NULL, NULL);
-        mem_in[2] = clCreateImage2D(context, CL_MEM_READ_WRITE, &image_format, idmn[0], idmn[1], 0, NULL, NULL);
-        mem_in[3] = clCreateImage2D(context, CL_MEM_READ_WRITE, &image_format, idmn[0], idmn[1], 0, NULL, NULL);
-        mem_out = clCreateImage2D(context, CL_MEM_READ_WRITE, &image_format, idmn[0], idmn[1], 0, NULL, NULL);
+        mem_in[0] = clCreateImage(context, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, &image_format, &image_desc, NULL, NULL);
+        mem_in[1] = clCreateImage(context, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, &image_format, &image_desc, NULL, NULL);
+        mem_in[2] = clCreateImage(context, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, &image_format, &image_desc, NULL, NULL);
+        mem_in[3] = clCreateImage(context, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, &image_format, &image_desc, NULL, NULL);
+        mem_out = clCreateImage(context, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, &image_format, &image_desc, NULL, NULL);
     }
     const cl_image_format image_format_u = { CL_LUMINANCE, CL_HALF_FLOAT };
-    const size_t size_b = sizeof(cl_float) * idmn[0] * idmn[1];
-    mem_U[0] = clCreateBuffer(context, CL_MEM_READ_WRITE, (clip_t & COLOR_GRAY) ? 2 * size_b : 4 * size_b, NULL, NULL);
-    mem_U[1] = clCreateImage2D(context, CL_MEM_READ_WRITE, &image_format_u, idmn[0], idmn[1], 0, NULL, NULL);
-    mem_U[2] = clCreateImage2D(context, CL_MEM_READ_WRITE, &image_format_u, idmn[0], idmn[1], 0, NULL, NULL);
-    mem_U[3] = clCreateBuffer(context, CL_MEM_READ_WRITE, size_b, NULL, NULL);
+    const size_t size_u0 = sizeof(cl_float) * idmn[0] * idmn[1] * ((clip_t & COLOR_GRAY) ? 2 : 4);
+    const size_t size_u3 = sizeof(cl_float) * idmn[0] * idmn[1];
+    mem_U[0] = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, size_u0, NULL, NULL);
+    mem_U[1] = clCreateImage(context, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, &image_format_u, &image_desc, NULL, NULL);
+    mem_U[2] = clCreateImage(context, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, &image_format_u, &image_desc, NULL, NULL);
+    mem_U[3] = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, size_u3, NULL, NULL);
     const cl_image_format image_format_p = { CL_LUMINANCE, CL_UNORM_INT8 };
-    mem_P[0] = clCreateImage2D(context, CL_MEM_READ_WRITE, &image_format_p, idmn[0], idmn[2], 0, NULL, NULL);
-    mem_P[1] = clCreateImage2D(context, CL_MEM_READ_WRITE, &image_format_p, idmn[0], idmn[2], 0, NULL, NULL);
-    mem_P[2] = clCreateImage2D(context, CL_MEM_READ_WRITE, &image_format_p, idmn[0], idmn[2], 0, NULL, NULL);
+    const cl_image_desc image_desc_p = { CL_MEM_OBJECT_IMAGE2D, idmn[0], idmn[2], 1, 1, 0, 0, 0, 0, NULL };
+    mem_P[0] = clCreateImage(context, CL_MEM_READ_WRITE, &image_format_p, &image_desc_p, NULL, NULL);
+    mem_P[1] = clCreateImage(context, CL_MEM_READ_WRITE, &image_format_p, &image_desc_p, NULL, NULL);
+    mem_P[2] = clCreateImage(context, CL_MEM_READ_WRITE, &image_format_p, &image_desc_p, NULL, NULL);
         
     // Creates and Build a program executable from the program source.
     program = clCreateProgramWithSource(context, 1, &source_code_spatial, NULL, NULL);
@@ -1183,36 +1180,38 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out,
     d.idmn[0] = (cl_uint) d.vi->width;
     d.idmn[1] = (cl_uint) d.vi->height;
     d.context = clCreateContext(NULL, 1, &d.deviceID, NULL, NULL, NULL);
-    const cl_image_format image_format = { channel_order, channel_type };  
+    const cl_image_format image_format = { channel_order, channel_type };
+    const cl_image_desc image_desc = { CL_MEM_OBJECT_IMAGE2D, d.idmn[0], d.idmn[1], 1, 1, 0, 0, 0, 0, NULL };
     if ((d.clip_t & COLOR_GRAY) && !d.bit_shift) {
-        d.mem_in[0] = clCreateImage2D(d.context, CL_MEM_READ_ONLY, &image_format, d.idmn[0], d.idmn[1], 0, NULL, NULL);
-        d.mem_in[1] = clCreateImage2D(d.context, CL_MEM_READ_ONLY, &image_format, d.idmn[0], d.idmn[1], 0, NULL, NULL);
-        d.mem_in[2] = clCreateImage2D(d.context, CL_MEM_READ_ONLY, &image_format, d.idmn[0], d.idmn[1], 0, NULL, NULL);
-        d.mem_in[3] = clCreateImage2D(d.context, CL_MEM_READ_ONLY, &image_format, d.idmn[0], d.idmn[1], 0, NULL, NULL);
-        d.mem_out = clCreateImage2D(d.context, CL_MEM_WRITE_ONLY, &image_format, d.idmn[0], d.idmn[1], 0, NULL, NULL);       
+        d.mem_in[0] = clCreateImage(d.context, CL_MEM_READ_ONLY | CL_MEM_HOST_WRITE_ONLY, &image_format, &image_desc, NULL, NULL);
+        d.mem_in[1] = clCreateImage(d.context, CL_MEM_READ_ONLY | CL_MEM_HOST_WRITE_ONLY, &image_format, &image_desc, NULL, NULL);
+        d.mem_in[2] = clCreateImage(d.context, CL_MEM_READ_ONLY | CL_MEM_HOST_WRITE_ONLY, &image_format, &image_desc, NULL, NULL);
+        d.mem_in[3] = clCreateImage(d.context, CL_MEM_READ_ONLY | CL_MEM_HOST_WRITE_ONLY, &image_format, &image_desc, NULL, NULL);
+        d.mem_out = clCreateImage(d.context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY, &image_format, &image_desc, NULL, NULL);
     } else {
-        d.mem_in[0] = clCreateImage2D(d.context, CL_MEM_READ_WRITE, &image_format, d.idmn[0], d.idmn[1], 0, NULL, NULL);
-        d.mem_in[1] = clCreateImage2D(d.context, CL_MEM_READ_WRITE, &image_format, d.idmn[0], d.idmn[1], 0, NULL, NULL);
-        d.mem_in[2] = clCreateImage2D(d.context, CL_MEM_READ_WRITE, &image_format, d.idmn[0], d.idmn[1], 0, NULL, NULL);
-        d.mem_in[3] = clCreateImage2D(d.context, CL_MEM_READ_WRITE, &image_format, d.idmn[0], d.idmn[1], 0, NULL, NULL);
-        d.mem_out = clCreateImage2D(d.context, CL_MEM_READ_WRITE, &image_format, d.idmn[0], d.idmn[1], 0, NULL, NULL);       
+        d.mem_in[0] = clCreateImage(d.context, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, &image_format, &image_desc, NULL, NULL);
+        d.mem_in[1] = clCreateImage(d.context, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, &image_format, &image_desc, NULL, NULL);
+        d.mem_in[2] = clCreateImage(d.context, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, &image_format, &image_desc, NULL, NULL);
+        d.mem_in[3] = clCreateImage(d.context, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, &image_format, &image_desc, NULL, NULL);
+        d.mem_out = clCreateImage(d.context, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, &image_format, &image_desc, NULL, NULL);
     }
     const cl_image_format image_format_u = { CL_LUMINANCE, CL_HALF_FLOAT };
-    const size_t size_b = sizeof(cl_float) * d.idmn[0] * d.idmn[1];
-    d.mem_U[0] = clCreateBuffer(d.context, CL_MEM_READ_WRITE, (d.clip_t & COLOR_GRAY) ? 2 * size_b : 4 * size_b, NULL, NULL);
-    d.mem_U[1] = clCreateImage2D(d.context, CL_MEM_READ_WRITE, &image_format_u, d.idmn[0], d.idmn[1], 0, NULL, NULL);
-    d.mem_U[2] = clCreateImage2D(d.context, CL_MEM_READ_WRITE, &image_format_u, d.idmn[0], d.idmn[1], 0, NULL, NULL);
-    d.mem_U[3] = clCreateBuffer(d.context, CL_MEM_READ_WRITE, size_b, NULL, NULL);
+    const size_t size_u0 = sizeof(cl_float) * d.idmn[0] * d.idmn[1] * ((d.clip_t & COLOR_GRAY) ? 2 : 4);
+    const size_t size_u3 = sizeof(cl_float) * d.idmn[0] * d.idmn[1];
+    d.mem_U[0] = clCreateBuffer(d.context, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, size_u0, NULL, NULL);
+    d.mem_U[1] = clCreateImage(d.context, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, &image_format_u, &image_desc, NULL, NULL);
+    d.mem_U[2] = clCreateImage(d.context, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, &image_format_u, &image_desc, NULL, NULL);
+    d.mem_U[3] = clCreateBuffer(d.context, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, size_u3, NULL, NULL);
     if (d.bit_shift) {
         const cl_image_format image_format_p = { CL_R, CL_UNSIGNED_INT16 };
-        d.mem_P[0] = clCreateImage2D(d.context, CL_MEM_READ_WRITE, &image_format_p, d.idmn[0], d.idmn[1], 0, NULL, NULL);
-        d.mem_P[1] = clCreateImage2D(d.context, CL_MEM_READ_WRITE, &image_format_p, d.idmn[0], d.idmn[1], 0, NULL, NULL);
-        d.mem_P[2] = clCreateImage2D(d.context, CL_MEM_READ_WRITE, &image_format_p, d.idmn[0], d.idmn[1], 0, NULL, NULL);
+        d.mem_P[0] = clCreateImage(d.context, CL_MEM_READ_WRITE, &image_format_p, &image_desc, NULL, NULL);
+        d.mem_P[1] = clCreateImage(d.context, CL_MEM_READ_WRITE, &image_format_p, &image_desc, NULL, NULL);
+        d.mem_P[2] = clCreateImage(d.context, CL_MEM_READ_WRITE, &image_format_p, &image_desc, NULL, NULL);
     } else {
         const cl_image_format image_format_p = {CL_LUMINANCE, channel_type };
-        d.mem_P[0] = clCreateImage2D(d.context, CL_MEM_READ_WRITE, &image_format_p, d.idmn[0], d.idmn[1], 0, NULL, NULL);
-        d.mem_P[1] = clCreateImage2D(d.context, CL_MEM_READ_WRITE, &image_format_p, d.idmn[0], d.idmn[1], 0, NULL, NULL);
-        d.mem_P[2] = clCreateImage2D(d.context, CL_MEM_READ_WRITE, &image_format_p, d.idmn[0], d.idmn[1], 0, NULL, NULL);
+        d.mem_P[0] = clCreateImage(d.context, CL_MEM_READ_WRITE, &image_format_p, &image_desc, NULL, NULL);
+        d.mem_P[1] = clCreateImage(d.context, CL_MEM_READ_WRITE, &image_format_p, &image_desc, NULL, NULL);
+        d.mem_P[2] = clCreateImage(d.context, CL_MEM_READ_WRITE, &image_format_p, &image_desc, NULL, NULL);
     } 
 
     // Creates and Build a program executable from the program source.
