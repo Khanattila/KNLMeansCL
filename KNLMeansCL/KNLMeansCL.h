@@ -67,7 +67,7 @@ private:
     cl_device_id deviceID;
     cl_context context;
     cl_program program;
-    cl_kernel kernel[8];
+    cl_kernel kernel[7];
     cl_mem mem_in[4], mem_out, mem_U[4], mem_P[3];
     bool equals(VideoInfo *v, VideoInfo *w);
 public:
@@ -92,7 +92,7 @@ typedef struct {
     cl_device_id deviceID;
     cl_context context;
     cl_program program;
-    cl_kernel kernel[8];
+    cl_kernel kernel[7];
     cl_mem mem_in[4], mem_out, mem_U[4], mem_P[3];
     bool equals(const VSVideoInfo *v, const VSVideoInfo *w);
 } KNLMeansData;
