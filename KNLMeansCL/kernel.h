@@ -38,6 +38,8 @@ static const char* source_code_temporal =
 "};                                                                                                               \n" \
 "																												  \n" \
 "float   norm(uint u)      { return native_divide((float) (u << NLMK_BIT_SHIFT), (float) USHRT_MAX); }            \n" \
+"ushort  denorm(float f)   { return convert_ushort_sat(f * (float) USHRT_MAX) >> (ushort) NLMK_BIT_SHIFT; }       \n" \
+"ushort4 denorm4(float4 f) { return convert_ushort4_sat(f * (float4) USHRT_MAX) >> (ushort4) NLMK_BIT_SHIFT; }    \n" \
 "																												  \n" \
 "__kernel																										  \n" \
 "void nlmDistance(__read_only image2d_array_t U1, __write_only image2d_array_t U4, const int2 dim,                \n" \
@@ -254,7 +256,7 @@ static const char* source_code_temporal =
 "	const int2 s = (int2) (x, y);		                                										  \n" \
 "																												  \n" \
 "   if (CHECK_FLAG(CLIP_UNSIGNED | COLOR_GRAY)) {			            								          \n" \
-"	    const float r = norm(read_imageui(R, smp, s).x);         	    										  \n" \
+"	    const float r     = norm(read_imageui(R, smp, s).x);         	    									  \n" \
 "	    write_imagef(U1, p, (float4) r);	                 			    						              \n" \
 "	} else if (CHECK_FLAG(CLIP_STACKED | COLOR_GRAY)) {     													  \n" \
 "	    const int2  s_lsb = (int2) (x, y + dim.y);	                		    								  \n" \
@@ -294,6 +296,65 @@ static const char* source_code_temporal =
 "	    const float g     = norm(read_imageui(G, smp, s).x);		    	    								  \n" \
 "	    const float b     = norm(read_imageui(B, smp, s).x);			       									  \n" \
 "	    write_imagef(U1, p, (float4) (r, g, b, 1.0f));					        					              \n" \
+"	}       																									  \n" \
+"}																												  \n" \
+"																												  \n" \
+"__kernel																										  \n" \
+"void nlmUnpack(__write_only image2d_t R, __write_only image2d_t G, __write_only image2d_t B,   				  \n" \
+"__read_only image2d_t U1, const int2 dim) { 	    	    													  \n" \
+"																												  \n" \
+"	const int x = get_global_id(0);																				  \n" \
+"	const int y = get_global_id(1);																				  \n" \
+"	if(x >= dim.x || y >= dim.y) return;																		  \n" \
+"																												  \n" \
+"	const sampler_t smp = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_NONE | CLK_FILTER_NEAREST;		        	  \n" \
+"	const int2 s = (int2) (x, y);	    	                            										  \n" \
+"																												  \n" \
+"   if (CHECK_FLAG(CLIP_UNSIGNED | COLOR_GRAY)) {			            								          \n" \
+"       const ushort  val     = denorm(read_imagef(U1, smp, s).x);                                                \n" \
+"	    write_imageui(R, s,    (uint4) val);		                        								      \n" \
+"	} else if (CHECK_FLAG(CLIP_STACKED | COLOR_GRAY)) {		                									  \n" \
+"	    const int2    s_lsb   = (int2) (x, y + dim.y);	               										      \n" \
+"		const ushort  in      = convert_ushort_sat(read_imagef(U1, smp, s).x * (float) USHRT_MAX);                \n" \
+"		const float   in_msb  = convert_float(in >> CHAR_BIT);                                                    \n" \
+"		const float   in_lsb  = convert_float(in & 0xFF);                                                         \n" \
+"		const float   val_msb = native_divide(in_msb, (float) UCHAR_MAX);			                    	      \n" \
+"		const float   val_lsb = native_divide(in_lsb, (float) UCHAR_MAX);					               	      \n" \
+"	    write_imagef(R, s,     (float4) val_msb);   		                                                      \n" \
+"	    write_imagef(R, s_lsb, (float4) val_lsb);		                                                          \n" \
+"	} else if (CHECK_FLAG(CLIP_UNORM | COLOR_YUV)) {	               									          \n" \
+"	    const float4  val     = read_imagef(U1, smp, s);                  	                                      \n" \
+"	    write_imagef(R, s,     (float4) val.x);										                              \n" \
+"	    write_imagef(G, s,     (float4) val.y);										                              \n" \
+"	    write_imagef(B, s,     (float4) val.z);										                              \n" \
+"	} else if (CHECK_FLAG(CLIP_UNSIGNED | COLOR_YUV)) {		                							          \n" \
+"		const ushort4 val     = denorm4(read_imagef(U1, smp, s));                                                 \n" \
+"	    write_imageui(R, s,    (uint4) val.x);	                    								              \n" \
+"	    write_imageui(G, s,    (uint4) val.y);						                    	                      \n" \
+"	    write_imageui(B, s,    (uint4) val.z);						                                              \n" \
+"	} else if (CHECK_FLAG(CLIP_STACKED | COLOR_YUV)) {	                								          \n" \
+"	    const int2    s_lsb   = (int2) (x, y + dim.y);	               									          \n" \
+"		const ushort4 in      = convert_ushort4_sat(read_imagef(U1, smp, s) * (float4) USHRT_MAX);                \n" \
+"		const float4  in_msb  = convert_float4(in >> (ushort4) CHAR_BIT);                                         \n" \
+"		const float4  in_lsb  = convert_float4(in & (ushort4) 0xFF);                                              \n" \
+"		const float4  val_msb = native_divide(in_msb, (float4) UCHAR_MAX);	                                      \n" \
+"		const float4  val_lsb = native_divide(in_lsb, (float4) UCHAR_MAX);                       		          \n" \
+"	    write_imagef(R, s,     (float4) val_msb.x);   	                                                          \n" \
+"	    write_imagef(G, s,     (float4) val_msb.y);   	                                                          \n" \
+"	    write_imagef(B, s,     (float4) val_msb.z);   	                                                          \n" \
+"	    write_imagef(R, s_lsb, (float4) val_lsb.x);	                                                              \n" \
+"	    write_imagef(G, s_lsb, (float4) val_lsb.y);	                                                              \n" \
+"	    write_imagef(B, s_lsb, (float4) val_lsb.z);	                                                              \n" \
+"	} else if (CHECK_FLAG(CLIP_UNORM | COLOR_RGB)) {	               									          \n" \
+"	    const float4  val     = read_imagef(U1, smp, s);                	                                      \n" \
+"	    write_imagef(R, s,     (float4) val.x);								        			                  \n" \
+"	    write_imagef(G, s,     (float4) val.y);									        		                  \n" \
+"	    write_imagef(B, s,     (float4) val.z);									        		                  \n" \
+"	} else if (CHECK_FLAG(CLIP_UNSIGNED | COLOR_RGB)) {	                   									      \n" \
+"		const ushort4 val     = denorm4(read_imagef(U1, smp, s));                                                 \n" \
+"	    write_imageui(R, s,    (uint4) val.x);		                   		        						      \n" \
+"	    write_imageui(G, s,    (uint4) val.y);						                             	              \n" \
+"	    write_imageui(B, s,    (uint4) val.z);						                                              \n" \
 "	}       																									  \n" \
 "}																												  ";
 static const char* source_code_spatial =
