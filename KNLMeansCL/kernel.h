@@ -118,7 +118,7 @@ static const char* source_code_temporal =
 "	const sampler_t smp = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP | CLK_FILTER_NEAREST;		        	  \n" \
 "	const int4 p = (int4) (x, y, NLMK_D-t, 0);                         		        							  \n" \
 "																												  \n" \
-"	buffer[ly][lx + H_BLOCK_X]	 = read_imagef(U4_in, smp, p).x;                      						      \n" \
+"	buffer[ly][lx + H_BLOCK_X]	 = read_imagef(U4_in, smp, p                              ).x;     			      \n" \
 "	buffer[ly][lx]		         = read_imagef(U4_in, smp, p - (int4) (H_BLOCK_X, 0, 0, 0)).x;				      \n" \
 "	buffer[ly][lx + 2*H_BLOCK_X] = read_imagef(U4_in, smp, p + (int4) (H_BLOCK_X, 0, 0, 0)).x;				      \n" \
 "	barrier(CLK_LOCAL_MEM_FENCE);																				  \n" \
@@ -143,7 +143,7 @@ static const char* source_code_temporal =
 "	const sampler_t smp = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP | CLK_FILTER_NEAREST;		        	  \n" \
 "	const int4 p = (int4) (x, y, NLMK_D-t, 0);                         		        							  \n" \
 "																												  \n" \
-"	buffer[ly + V_BLOCK_Y][lx]	 = read_imagef(U4_in, smp, p).x;						    					  \n" \
+"	buffer[ly + V_BLOCK_Y][lx]	 = read_imagef(U4_in, smp, p                              ).x;					  \n" \
 "	buffer[ly][lx]		         = read_imagef(U4_in, smp, p - (int4) (0, V_BLOCK_Y, 0, 0)).x;					  \n" \
 "	buffer[ly + 2*V_BLOCK_Y][lx] = read_imagef(U4_in, smp, p + (int4) (0, V_BLOCK_Y, 0, 0)).x;    				  \n" \
 "	barrier(CLK_LOCAL_MEM_FENCE);																				  \n" \
@@ -221,21 +221,21 @@ static const char* source_code_temporal =
 "       																										  \n" \
 "	if (CHECK_FLAG(COLOR_GRAY)) {																				  \n" \
 "		__global float2* U2c = (__global float2*) U2;														      \n" \
-"		const float u1 = read_imagef(U1_in, smp, p).x;		        			    						      \n" \
+"		const float u1  = read_imagef(U1_in, smp, p).x;		        			    						      \n" \
 "		const float num = U2c[gidx].x + M[gidx] * u1;	    												      \n" \
 "		const float den = U2c[gidx].y + M[gidx];															      \n" \
 "		const float val = native_divide(num, den);															      \n" \
 "		write_imagef(U1_out, s, (float4) val);		            					                    	      \n" \
 "	} else if (CHECK_FLAG(COLOR_YUV)) {		    										                          \n" \
 "		__global float4* U2c = (__global float4*) U2;															  \n" \
-"		const float4 u1 = read_imagef(U1_in, smp, p);		        				    						  \n" \
+"		const float4 u1  = read_imagef(U1_in, smp, p);		        				    						  \n" \
 "		const float4 num = U2c[gidx] + (float4) M[gidx] * u1;					            					  \n" \
 "		const float  den = U2c[gidx].w + M[gidx];			            										  \n" \
 "		const float4 val = native_divide(num, (float4) den);									                  \n" \
 "		write_imagef(U1_out, s, val);			        	    												  \n" \
 "	} else if (CHECK_FLAG(COLOR_RGB)) {	    											                          \n" \
 "		__global float4* U2c = (__global float4*) U2;															  \n" \
-"		const float4 u1 = read_imagef(U1_in, smp, p);		        					    					  \n" \
+"		const float4 u1  = read_imagef(U1_in, smp, p);		        					    					  \n" \
 "		const float4 num = U2c[gidx] + (float4) M[gidx] * u1;					            					  \n" \
 "		const float  den = U2c[gidx].w + M[gidx];			            										  \n" \
 "		const float4 val = native_divide(num, (float4) den);									                  \n" \
@@ -374,28 +374,6 @@ static const char* source_code_spatial =
 "float   norm(uint u)      { return native_divide((float) (u << NLMK_BIT_SHIFT), (float) USHRT_MAX); }            \n" \
 "ushort  denorm(float f)   { return convert_ushort_sat(f * (float) USHRT_MAX) >> (ushort) NLMK_BIT_SHIFT; }       \n" \
 "ushort4 denorm4(float4 f) { return convert_ushort4_sat(f * (float4) USHRT_MAX) >> (ushort4) NLMK_BIT_SHIFT; }    \n" \
-"																												  \n" \
-"__kernel																										  \n" \
-"void NLM_init(__global void* U2, __global float* M, const int2 dim) {											  \n" \
-"																												  \n" \
-"	const int x = get_global_id(0);																				  \n" \
-"	const int y = get_global_id(1);																				  \n" \
-"	if(x >= dim.x || y >= dim.y) return;																		  \n" \
-"																												  \n" \
-"	const int gidx = mad24(y, dim.x, x);																		  \n" \
-"																												  \n" \
-"	if (CHECK_FLAG(COLOR_GRAY)) {	                    														  \n" \
-"		__global float2* U2c = (__global float2*) U2;															  \n" \
-"		U2c[gidx] = (float2) 0.0f;																				  \n" \
-"	} else if (CHECK_FLAG(COLOR_YUV)) {	                														  \n" \
-"		__global float4* U2c = (__global float4*) U2;															  \n" \
-"		U2c[gidx] = (float4) 0.0f;																				  \n" \
-"	} else if (CHECK_FLAG(COLOR_RGB)) {	                   														  \n" \
-"		__global float4* U2c = (__global float4*) U2;															  \n" \
-"		U2c[gidx] = (float4) 0.0f;																				  \n" \
-"	}																											  \n" \
-"	M[gidx] = FLT_EPSILON;																						  \n" \
-"}																												  \n" \
 "																												  \n" \
 "__kernel																										  \n" \
 "void NLM_dist(__read_only image2d_t U1, __read_only image2d_t U1_pq, __write_only image2d_t U4, const int2 dim,  \n" \
