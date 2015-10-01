@@ -128,7 +128,6 @@ KNLMeansClass::KNLMeansClass(PClip _child, const int _d, const int _a, const int
         env->ThrowError("KNLMeansCL: info requires YUV color space!");
 
     // Gets PlatformID and DeviceID.
-    cl_uint num_devices = 0;
     cl_int ret = oclGetDevicesList(device_type, NULL, &num_devices);
     if (num_devices == 0)
         env->ThrowError("KNLMeansCL: no opencl devices available!");
@@ -165,10 +164,10 @@ KNLMeansClass::KNLMeansClass(PClip _child, const int _d, const int _a, const int
     const cl_image_format image_format_u = { CL_LUMINANCE, CL_HALF_FLOAT };
     const size_t size_u0 = sizeof(cl_float) * idmn[0] * idmn[1] * ((clip_t & COLOR_GRAY) ? 2 : 4);
     const size_t size_u3 = sizeof(cl_float) * idmn[0] * idmn[1];
-    mem_U[0] = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, size_u0, NULL, NULL);
+    mem_U[0] = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_HOST_WRITE_ONLY, size_u0, NULL, NULL);
     mem_U[1] = clCreateImage(context, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, &image_format_u, &image_desc, NULL, NULL);
     mem_U[2] = clCreateImage(context, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, &image_format_u, &image_desc, NULL, NULL);
-    mem_U[3] = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, size_u3, NULL, NULL);
+    mem_U[3] = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_HOST_WRITE_ONLY, size_u3, NULL, NULL);
     const cl_image_format image_format_p = { CL_LUMINANCE, CL_UNORM_INT8 };
     const cl_image_desc image_desc_p = { CL_MEM_OBJECT_IMAGE2D, idmn[0], idmn[2], 1, 1, 0, 0, 0, 0, NULL };
     mem_P[0] = clCreateImage(context, CL_MEM_READ_WRITE, &image_format_p, &image_desc_p, NULL, NULL);
@@ -525,7 +524,7 @@ PVideoFrame __stdcall KNLMeansClass::GetFrame(int n, IScriptEnvironment* env) {
         DrawString(frm, pitch, 0, y++, buffer);
         snprintf(buffer, 2048, " Global work size: %lux%lu", (unsigned long) global_work[0], (unsigned long) global_work[1]);
         DrawString(frm, pitch, 0, y++, buffer);
-        snprintf(buffer, 2048, " Number of devices: %u", sum_devices);
+        snprintf(buffer, 2048, " Number of devices: %u", num_devices);
         DrawString(frm, pitch, 0, y++, buffer);
         DrawString(frm, pitch, 0, y++, "Platform info");
         ret |= clGetPlatformInfo(platformID, CL_PLATFORM_NAME, sizeof(char) * 2048, str, NULL);
@@ -827,7 +826,7 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
             DrawString(frm, pitch, 0, y++, buffer);
             snprintf(buffer, 2048, " Global work size: %lux%lu", (unsigned long) global_work[0], (unsigned long) global_work[1]);
             DrawString(frm, pitch, 0, y++, buffer);
-            snprintf(buffer, 2048, " Number of devices: %u", d->sum_devices);
+            snprintf(buffer, 2048, " Number of devices: %u", d->num_devices);
             DrawString(frm, pitch, 0, y++, buffer);
             DrawString(frm, pitch, 0, y++, "Platform info");
             ret |= clGetPlatformInfo(d->platformID, CL_PLATFORM_NAME, sizeof(char) * 2048, str, NULL);
@@ -1150,21 +1149,20 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out,
     }
 
     // Gets PlatformID and DeviceID.
-    cl_uint num_devices = 0;
-    cl_int ret = oclGetDevicesList(device_type, NULL, &num_devices);
-    if (num_devices == 0) {
+    cl_int ret = oclGetDevicesList(device_type, NULL, &d.num_devices);
+    if (d.num_devices == 0) {
         vsapi->setError(out, "knlm.KNLMeansCL: no opencl platforms available!");
         vsapi->freeNode(d.node);
         vsapi->freeNode(d.knot);
         return;
     }
-    else if (d.ocl_id >= (int) num_devices) {
+    else if (d.ocl_id >= (int) d.num_devices) {
         vsapi->setError(out, "knlm.KNLMeansCL: selected device is not available!");
         vsapi->freeNode(d.node);
         vsapi->freeNode(d.knot);
         return;
     }
-    ocl_device_packed *devices = (ocl_device_packed*) malloc(sizeof(ocl_device_packed) * num_devices);
+    ocl_device_packed *devices = (ocl_device_packed*) malloc(sizeof(ocl_device_packed) * d.num_devices);
     ret |= oclGetDevicesList(device_type, devices, NULL);
     if (ret != CL_SUCCESS) {
         vsapi->setError(out, "knlm.KNLMeansCL: VapourSynthCreate error (clGetPlatformID)!");
@@ -1198,10 +1196,10 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out,
     const cl_image_format image_format_u = { CL_LUMINANCE, CL_HALF_FLOAT };
     const size_t size_u0 = sizeof(cl_float) * d.idmn[0] * d.idmn[1] * ((d.clip_t & COLOR_GRAY) ? 2 : 4);
     const size_t size_u3 = sizeof(cl_float) * d.idmn[0] * d.idmn[1];
-    d.mem_U[0] = clCreateBuffer(d.context, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, size_u0, NULL, NULL);
+    d.mem_U[0] = clCreateBuffer(d.context, CL_MEM_READ_WRITE | CL_MEM_HOST_WRITE_ONLY, size_u0, NULL, NULL);
     d.mem_U[1] = clCreateImage(d.context, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, &image_format_u, &image_desc, NULL, NULL);
     d.mem_U[2] = clCreateImage(d.context, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, &image_format_u, &image_desc, NULL, NULL);
-    d.mem_U[3] = clCreateBuffer(d.context, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, size_u3, NULL, NULL);
+    d.mem_U[3] = clCreateBuffer(d.context, CL_MEM_READ_WRITE | CL_MEM_HOST_WRITE_ONLY, size_u3, NULL, NULL);
     if (d.bit_shift) {
         const cl_image_format image_format_p = { CL_R, CL_UNSIGNED_INT16 };
         d.mem_P[0] = clCreateImage(d.context, CL_MEM_READ_WRITE, &image_format_p, &image_desc, NULL, NULL);
