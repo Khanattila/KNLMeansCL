@@ -46,25 +46,25 @@ static const char* source_code_temporal =
 "	if(x >= dim.x || y >= dim.y) return;																		  \n" \
 "																												  \n" \
 "	const sampler_t smp = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP | CLK_FILTER_NEAREST;		        	  \n" \
-"	const int4 p = (int4) (x, y, 0, 0);                            		        								  \n" \
+"	const int4 p = (int4) (x, y, NLMK_D, 0);                              		        						  \n" \
 "																												  \n" \
 "	if (CHECK_FLAG(COLOR_GRAY)) {	                    														  \n" \
-"		const float u1    = read_imagef(U1, smp, p    ).x;		    	   							              \n" \
-"		const float u1_pq = read_imagef(U1, smp, p + q).x;		    							                  \n" \
-"		const float val  = 3.0f * (u1 - u1_pq) * (u1 - u1_pq);                                                    \n" \
+"		const float  u1    = read_imagef(U1, smp, p    ).x;		    	   							              \n" \
+"		const float  u1_pq = read_imagef(U1, smp, p + q).x;		    							                  \n" \
+"		const float  val   = 3.0f * (u1 - u1_pq) * (u1 - u1_pq);                                                  \n" \
 "		write_imagef(U4, p, (float4) val);		             				    								  \n" \
 "	} else if (CHECK_FLAG(COLOR_YUV)) {			    															  \n" \
 "		const float4 u1    = read_imagef(U1, smp, p    );	     	        							          \n" \
 "		const float4 u1_pq = read_imagef(U1, smp, p + q);  	        									          \n" \
 "		const float4 dist  = (u1 - u1_pq) * (u1 - u1_pq);														  \n" \
-"		const float val    = dist.x + dist.y + dist.z;                                                            \n" \
+"		const float  val   = dist.x + dist.y + dist.z;                                                            \n" \
 "		write_imagef(U4, p, (float4) val);					    		    								      \n" \
 "	} else if (CHECK_FLAG(COLOR_RGB)) {	    																	  \n" \
 "		const float4 u1    = read_imagef(U1, smp, p    );	         		        						      \n" \
 "		const float4 u1_pq = read_imagef(U1, smp, p + q);	        	        								  \n" \
 "		const float4 wgh   = (float4) (wRED, wGREEN, wBLUE, wALPHA);											  \n" \
 "		const float4 dist  = wgh * (u1 - u1_pq) * (u1 - u1_pq);												      \n" \
-"		const float val    = dist.x + dist.y + dist.z;                                                            \n" \
+"		const float  val   = dist.x + dist.y + dist.z;                                                            \n" \
 "		write_imagef(U4, p, (float4) val);	           					    								      \n" \
 "	}																											  \n" \
 "}																												  \n" \
@@ -78,25 +78,25 @@ static const char* source_code_temporal =
 "	if((x - q.x) >= dim.x || (y - q.y) >= dim.y) return;	            	           							  \n" \
 "																												  \n" \
 "	const sampler_t smp = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP | CLK_FILTER_NEAREST;		        	  \n" \
-"	const int4 p = (int4) (x, y, 0, 0);                            		        								  \n" \
+"	const int4 p = (int4) (x, y, NLMK_D, 0);                    		        								  \n" \
 "																												  \n" \
 "	if (CHECK_FLAG(COLOR_GRAY)) {	                    														  \n" \
-"		const float u1    = read_imagef(U1, smp, p    ).x;		    	   							              \n" \
-"		const float u1_mq = read_imagef(U1, smp, p - q).x;		    							                  \n" \
-"		const float val   = 3.0f * (u1 - u1_mq) * (u1 - u1_mq);                                                   \n" \
+"		const float  u1    = read_imagef(U1, smp, p    ).x;		    	   							              \n" \
+"		const float  u1_mq = read_imagef(U1, smp, p - q).x;		    							                  \n" \
+"		const float  val   = 3.0f * (u1 - u1_mq) * (u1 - u1_mq);                                                  \n" \
 "		write_imagef(U4, p - q, (float4) val);				    			    								  \n" \
 "	} else if (CHECK_FLAG(COLOR_YUV)) {			    															  \n" \
 "		const float4 u1    = read_imagef(U1, smp, p    );	     	        							          \n" \
 "		const float4 u1_mq = read_imagef(U1, smp, p - q);  	        									          \n" \
 "		const float4 dist  = (u1 - u1_mq) * (u1 - u1_mq);														  \n" \
-"		const float val    = dist.x + dist.y + dist.z;                                                            \n" \
+"		const float  val   = dist.x + dist.y + dist.z;                                                            \n" \
 "		write_imagef(U4, p - q, (float4) val);							    								      \n" \
 "	} else if (CHECK_FLAG(COLOR_RGB)) {	    																	  \n" \
 "		const float4 u1    = read_imagef(U1, smp, p    );	         		        						      \n" \
 "		const float4 u1_mq = read_imagef(U1, smp, p - q);  	        									          \n" \
 "		const float4 wgh   = (float4) (wRED, wGREEN, wBLUE, wALPHA);											  \n" \
 "		const float4 dist  = wgh * (u1 - u1_mq) * (u1 - u1_mq);												      \n" \
-"		const float val    = dist.x + dist.y + dist.z;                                                            \n" \
+"		const float  val   = dist.x + dist.y + dist.z;                                                            \n" \
 "		write_imagef(U4, p - q, (float4) val);							    								      \n" \
 "	}																											  \n" \
 "}																												  \n" \
@@ -112,7 +112,7 @@ static const char* source_code_temporal =
 "	const int ly = get_local_id(1);																				  \n" \
 "																												  \n" \
 "	const sampler_t smp = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP | CLK_FILTER_NEAREST;		        	  \n" \
-"	const int4 p = (int4) (x, y, -t, 0);                            		        							  \n" \
+"	const int4 p = (int4) (x, y, NLMK_D-t, 0);                         		        							  \n" \
 "																												  \n" \
 "	buffer[ly][lx + H_BLOCK_X]	 = read_imagef(U4_in, smp, p).x;                      						      \n" \
 "	buffer[ly][lx]		         = read_imagef(U4_in, smp, p - (int4) (H_BLOCK_X, 0, 0, 0)).x;				      \n" \
@@ -137,7 +137,7 @@ static const char* source_code_temporal =
 "	const int ly = get_local_id(1);																				  \n" \
 "																												  \n" \
 "	const sampler_t smp = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP | CLK_FILTER_NEAREST;		        	  \n" \
-"	const int4 p = (int4) (x, y, -t, 0);                            		        							  \n" \
+"	const int4 p = (int4) (x, y, NLMK_D-t, 0);                         		        							  \n" \
 "																												  \n" \
 "	buffer[ly + V_BLOCK_Y][lx]	 = read_imagef(U4_in, smp, p).x;						    					  \n" \
 "	buffer[ly][lx]		         = read_imagef(U4_in, smp, p - (int4) (0, V_BLOCK_Y, 0, 0)).x;					  \n" \
@@ -170,7 +170,7 @@ static const char* source_code_temporal =
 "	if(x >= dim.x || y >= dim.y) return;																		  \n" \
 "																												  \n" \
 "	const sampler_t smp = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP | CLK_FILTER_NEAREST;	        		  \n" \
-"	const int4 p = (int4) (x, y, 0, 0);                               		        							  \n" \
+"	const int4 p = (int4) (x, y, NLMK_D, 0);                           		        							  \n" \
 "	const int gidx = mad24(y, dim.x, x);																		  \n" \
 "																												  \n" \
 "	const float u4    = read_imagef(U4, smp, p    ).x;  				    									  \n" \
@@ -211,7 +211,7 @@ static const char* source_code_temporal =
 "	if(x >= dim.x || y >= dim.y) return;																		  \n" \
 "																												  \n" \
 "	const sampler_t smp = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_NONE | CLK_FILTER_NEAREST;	        		  \n" \
-"	const int4 p = (int4) (x, y, 0, 0);                               		        							  \n" \
+"	const int4 p = (int4) (x, y, NLMK_D, 0);                           		        							  \n" \
 "	const int2 r = (int2) (x, y);                                      		        							  \n" \
 "	const int gidx = mad24(y, dim.x, x);            															  \n" \
 "       																										  \n" \
