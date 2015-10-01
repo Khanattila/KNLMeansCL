@@ -159,6 +159,47 @@ static const char* source_code_temporal =
 "		const float val = pown(fdim(1.0f, sum * NLMK_H2_INV_NORM), 2); 											  \n" \
 "	    write_imagef(U4_out, p, (float4) val);                                                                    \n" \
 "	}	                                                                										  \n" \
+"}																												  \n" \
+"																												  \n" \
+"__kernel																										  \n" \
+"void nlmAccumulation(__read_only image2d_array_t U1, __global void* U2, __read_only image2d_array_t U4,		  \n" \
+"__global float* M, const int2 dim, const int4 q) {																  \n" \
+"																												  \n" \
+"	const int x = get_global_id(0);																				  \n" \
+"	const int y = get_global_id(1);																				  \n" \
+"	if(x >= dim.x || y >= dim.y) return;																		  \n" \
+"																												  \n" \
+"	const sampler_t smp = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP | CLK_FILTER_NEAREST;	        		  \n" \
+"	const int4 p = (int4) (x, y, 0, 0);                               		        							  \n" \
+"	const int gidx = mad24(y, dim.x, x);																		  \n" \
+"																												  \n" \
+"	const float u4    = read_imagef(U4, smp, p    ).x;  				    									  \n" \
+"	const float u4_mq = read_imagef(U4, smp, p - q).x;					    									  \n" \
+"	M[gidx] = fmax(M[gidx], fmax(u4, u4_mq));																	  \n" \
+"																												  \n" \
+"	if (CHECK_FLAG(COLOR_GRAY)) {																				  \n" \
+"		__global float2* U2c = (__global float2*) U2;													          \n" \
+"		const float u1_pq = read_imagef(U1, smp, p + q).x;	    									              \n" \
+"		const float u1_mq = read_imagef(U1, smp, p - q).x;		    							                  \n" \
+"		float2 accu;   							                                                                  \n" \
+"		       accu.x = (u4 * u1_pq) + (u4_mq * u1_mq);                        			    		        	  \n" \
+"		       accu.y = (u4 + u4_mq);			    		                   						        	  \n" \
+"		U2c[gidx] += accu;																						  \n" \
+"	} else if (CHECK_FLAG(COLOR_YUV)) {					    			                                          \n" \
+"		__global float4* U2c = (__global float4*) U2;															  \n" \
+"		const float4 u1_pq = read_imagef(U1, smp, p + q);	    										          \n" \
+"		const float4 u1_mq = read_imagef(U1, smp, p - q);	    										          \n" \
+"		float4 accu   = (u4 * u1_pq) + (u4_mq * u1_mq);			                                				  \n" \
+"		       accu.w = (u4 + u4_mq);						                        							  \n" \
+"		U2c[gidx] += accu;																						  \n" \
+"	} else if (CHECK_FLAG(COLOR_RGB)) {	    							                                          \n" \
+"		__global float4* U2c = (__global float4*) U2;															  \n" \
+"		const float4 u1_pq = read_imagef(U1, smp, coord2 + q);								        			  \n" \
+"		const float4 u1_mq = read_imagef(U1, smp, coord2 - q);									        		  \n" \
+"		float4 accu   = (u4 * u1_pq) + (u4_mq * u1_mq);	                                						  \n" \
+"		       accu.w = (u4 + u4_mq);						                        							  \n" \
+"		U2c[gidx] += accu;																						  \n" \
+"	}																											  \n" \
 "}																												  ";
 static const char* source_code_spatial =
 "																												  \n" \
