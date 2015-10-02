@@ -35,6 +35,7 @@
 #else
     #include <CL/cl.h>
 #endif
+#define FLT_EPSILON (1.0f / 8388608.0f)
 
 #include "kernel.h"
 #include "shared/oclUtils.h"
