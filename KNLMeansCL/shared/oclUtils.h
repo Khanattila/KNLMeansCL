@@ -16,13 +16,81 @@
 *	along with KNLMeansCL. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef __PEAK_BENCHMARK_H__
-#define __PEAK_BENCHMARK_H__
+#ifndef __OCL_UTILS_H__
+#define __OCL_UTILS_H__
+
+#define STR(code) case code: return #code
 
 typedef struct _ocl_device_packed {
     cl_platform_id platform;
     cl_device_id device;
 } ocl_device_packed;
+
+//////////////////////////////////////////
+// oclErrorToString
+const char* oclErrorToString(cl_int err) {
+    switch (err) {
+        STR(CL_DEVICE_NOT_FOUND);
+        STR(CL_DEVICE_NOT_AVAILABLE);
+        STR(CL_COMPILER_NOT_AVAILABLE);
+        STR(CL_MEM_OBJECT_ALLOCATION_FAILURE);
+        STR(CL_OUT_OF_RESOURCES);
+        STR(CL_OUT_OF_HOST_MEMORY);
+        STR(CL_PROFILING_INFO_NOT_AVAILABLE);
+        STR(CL_MEM_COPY_OVERLAP);
+        STR(CL_IMAGE_FORMAT_MISMATCH);
+        STR(CL_IMAGE_FORMAT_NOT_SUPPORTED);
+        STR(CL_BUILD_PROGRAM_FAILURE);
+        STR(CL_MAP_FAILURE);
+        STR(CL_MISALIGNED_SUB_BUFFER_OFFSET);
+        STR(CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST);
+        STR(CL_COMPILE_PROGRAM_FAILURE);
+        STR(CL_LINKER_NOT_AVAILABLE);
+        STR(CL_LINK_PROGRAM_FAILURE);
+        STR(CL_DEVICE_PARTITION_FAILED);
+        STR(CL_KERNEL_ARG_INFO_NOT_AVAILABLE);       
+        STR(CL_INVALID_VALUE);
+        STR(CL_INVALID_DEVICE_TYPE);
+        STR(CL_INVALID_PLATFORM);
+        STR(CL_INVALID_DEVICE);
+        STR(CL_INVALID_CONTEXT);
+        STR(CL_INVALID_QUEUE_PROPERTIES);
+        STR(CL_INVALID_COMMAND_QUEUE);
+        STR(CL_INVALID_HOST_PTR);
+        STR(CL_INVALID_MEM_OBJECT);
+        STR(CL_INVALID_IMAGE_FORMAT_DESCRIPTOR);
+        STR(CL_INVALID_IMAGE_SIZE);
+        STR(CL_INVALID_SAMPLER);
+        STR(CL_INVALID_BINARY);
+        STR(CL_INVALID_BUILD_OPTIONS);
+        STR(CL_INVALID_PROGRAM);
+        STR(CL_INVALID_PROGRAM_EXECUTABLE);
+        STR(CL_INVALID_KERNEL_NAME);
+        STR(CL_INVALID_KERNEL_DEFINITION);
+        STR(CL_INVALID_KERNEL);
+        STR(CL_INVALID_ARG_INDEX);
+        STR(CL_INVALID_ARG_VALUE);
+        STR(CL_INVALID_ARG_SIZE);
+        STR(CL_INVALID_KERNEL_ARGS);
+        STR(CL_INVALID_WORK_DIMENSION);
+        STR(CL_INVALID_WORK_GROUP_SIZE);
+        STR(CL_INVALID_WORK_ITEM_SIZE);
+        STR(CL_INVALID_GLOBAL_OFFSET);
+        STR(CL_INVALID_EVENT_WAIT_LIST);
+        STR(CL_INVALID_EVENT);
+        STR(CL_INVALID_OPERATION);
+        STR(CL_INVALID_GL_OBJECT);
+        STR(CL_INVALID_BUFFER_SIZE);
+        STR(CL_INVALID_MIP_LEVEL);
+        STR(CL_INVALID_GLOBAL_WORK_SIZE);
+        STR(CL_INVALID_PROPERTY);
+        STR(CL_INVALID_IMAGE_DESCRIPTOR);
+        STR(CL_INVALID_COMPILER_OPTIONS);
+        STR(CL_INVALID_LINKER_OPTIONS);
+        STR(CL_INVALID_DEVICE_PARTITION_COUNT);
+        default: return "CL_ERROR";
+    }
+}
 
 //////////////////////////////////////////
 // oclGetDevicesList
@@ -74,4 +142,4 @@ cl_int oclGetDevicesList(cl_device_type device_type, ocl_device_packed* devices,
     }
 }
 
-#endif //__PEAK_BENCHMARK_H__
+#endif //__OCL_UTILS_H__
