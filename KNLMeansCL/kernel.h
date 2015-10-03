@@ -22,7 +22,7 @@
 //////////////////////////////////////////
 // OpenCL
 static const cl_uint H_BLOCK_X = 32, H_BLOCK_Y = 4, V_BLOCK_X = 32, V_BLOCK_Y = 4;
-static const char* source_code_temporal =
+static const char* kernel_source_code =
 "																												  \n" \
 "#define wRED    0.6664827524f        	                   														  \n" \
 "#define wGREEN	 1.2866580779f        	        																  \n" \
@@ -42,7 +42,7 @@ static const char* source_code_temporal =
 "ushort4 denorm4(float4 f) { return convert_ushort4_sat(f * (float4) USHRT_MAX) >> (ushort4) NLMK_BIT_SHIFT; }    \n" \
 "																												  \n" \
 "__kernel																										  \n" \
-"void nlmDistance(__read_only image2d_array_t U1, __write_only image2d_array_t U4, const int2 dim,                \n" \
+"void nlmDistanceLeft(__read_only image2d_array_t U1, __write_only image2d_array_t U4, const int2 dim,            \n" \
 "const int4 q) {				            																	  \n" \
 "																												  \n" \
 "	const int x = get_global_id(0);																				  \n" \
@@ -74,12 +74,12 @@ static const char* source_code_temporal =
 "}																												  \n" \
 "																												  \n" \
 "__kernel																										  \n" \
-"void nlmDistanceSymmetry(__read_only image2d_array_t U1, __write_only image2d_array_t U4, const int2 dim,        \n" \
+"void nlmDistanceRight(__read_only image2d_array_t U1, __write_only image2d_array_t U4, const int2 dim,           \n" \
 "const int4 q) {				            																	  \n" \
 "																												  \n" \
 "	const int x = get_global_id(0);																				  \n" \
 "	const int y = get_global_id(1);																				  \n" \
-"	if((x - q.x) >= dim.x || (y - q.y) >= dim.y) return;	            	           							  \n" \
+"	if((x - q.x) < 0 || (x - q.x) >= dim.x || (y - q.y) < 0 || (y - q.y) >= dim.y) return;	            	   	  \n" \
 "																												  \n" \
 "	const sampler_t smp = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP | CLK_FILTER_NEAREST;		        	  \n" \
 "	const int4 p = (int4) (x, y, NLMK_D, 0);                    		        								  \n" \
@@ -116,7 +116,7 @@ static const char* source_code_temporal =
 "	const int ly = get_local_id(1);																				  \n" \
 "																												  \n" \
 "	const sampler_t smp = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP | CLK_FILTER_NEAREST;		        	  \n" \
-"	const int4 p = (int4) (x, y, NLMK_D-t, 0);                         		        							  \n" \
+"	const int4 p = (int4) (x, y, t, 0);                                    		        						  \n" \
 "																												  \n" \
 "	buffer[ly][lx + H_BLOCK_X]	 = read_imagef(U4_in, smp, p                              ).x;     			      \n" \
 "	buffer[ly][lx]		         = read_imagef(U4_in, smp, p - (int4) (H_BLOCK_X, 0, 0, 0)).x;				      \n" \
@@ -141,7 +141,7 @@ static const char* source_code_temporal =
 "	const int ly = get_local_id(1);																				  \n" \
 "																												  \n" \
 "	const sampler_t smp = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP | CLK_FILTER_NEAREST;		        	  \n" \
-"	const int4 p = (int4) (x, y, NLMK_D-t, 0);                         		        							  \n" \
+"	const int4 p = (int4) (x, y, t, 0);                                   		        						  \n" \
 "																												  \n" \
 "	buffer[ly + V_BLOCK_Y][lx]	 = read_imagef(U4_in, smp, p                              ).x;					  \n" \
 "	buffer[ly][lx]		         = read_imagef(U4_in, smp, p - (int4) (0, V_BLOCK_Y, 0, 0)).x;					  \n" \
@@ -198,8 +198,8 @@ static const char* source_code_temporal =
 "		U2c[gidx] += accu;																						  \n" \
 "	} else if (CHECK_FLAG(COLOR_RGB)) {	    							                                          \n" \
 "		__global float4* U2c = (__global float4*) U2;															  \n" \
-"		const float4 u1_pq = read_imagef(U1, smp, coord2 + q);								        			  \n" \
-"		const float4 u1_mq = read_imagef(U1, smp, coord2 - q);									        		  \n" \
+"		const float4 u1_pq = read_imagef(U1, smp, p + q);		    						        			  \n" \
+"		const float4 u1_mq = read_imagef(U1, smp, p - q);			    						        		  \n" \
 "		float4 accu   = (u4 * u1_pq) + (u4_mq * u1_mq);	                                						  \n" \
 "		       accu.w = (u4 + u4_mq);						                        							  \n" \
 "		U2c[gidx] += accu;																						  \n" \
@@ -252,7 +252,7 @@ static const char* source_code_temporal =
 "	if(x >= dim.x || y >= dim.y) return;																		  \n" \
 "																												  \n" \
 "	const sampler_t smp = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_NONE | CLK_FILTER_NEAREST;		        	  \n" \
-"	const int4 p = (int4) (x, y, NLMK_D+t, 0);                       		        							  \n" \
+"	const int4 p = (int4) (x, y, t, 0);                                        		        					  \n" \
 "	const int2 s = (int2) (x, y);		                                										  \n" \
 "																												  \n" \
 "   if (CHECK_FLAG(CLIP_UNSIGNED | COLOR_GRAY)) {			            								          \n" \
@@ -357,6 +357,7 @@ static const char* source_code_temporal =
 "	    write_imageui(B, s,    (uint4) val.z);						                                              \n" \
 "	}       																									  \n" \
 "}																												  ";
+
 static const char* source_code_spatial =
 "																												  \n" \
 "#define wRED    0.6664827524f        	                   														  \n" \
@@ -654,6 +655,6 @@ static const char* source_code_spatial =
 "	    write_imageui(G, coord2, (uint4) val.y);							                    	              \n" \
 "	    write_imageui(B, coord2, (uint4) val.z);							                                      \n" \
 "	}       																									  \n" \
-"}																												  ";
+"}																							                      ";
 
 #endif //__KERNEL_H__
