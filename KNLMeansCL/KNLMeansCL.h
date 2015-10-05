@@ -88,13 +88,14 @@ typedef struct {
     double h;
     const char* ocl_device;
     unsigned int bit_shift, clip_t;
-    cl_uint idmn[2], num_devices;
+    cl_int idmn[2];
+    cl_uint num_devices;
     cl_platform_id platformID;
     cl_device_id deviceID;
     cl_context context;
     cl_program program;
-    cl_kernel kernel[7];
-    cl_mem mem_in[4], mem_out, mem_U[4], mem_P[3];
+    cl_kernel kernel[8];
+    cl_mem mem_in[2], mem_out, mem_U[4], mem_P[3];
     bool equals(const VSVideoInfo *v, const VSVideoInfo *w);
 } KNLMeansData;
 #endif //__VAPOURSYNTH_H__

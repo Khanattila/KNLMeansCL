@@ -1574,7 +1574,7 @@ inline void DrawDigit(uint8_t* dst, int pitch, int x, int y, int num) {
 	}
 }
 
-void DrawString(uint8_t* dst, int pitch, int x, int y, const char *s) {
+inline void DrawString(uint8_t* dst, int pitch, int x, int y, const char *s) {
 	for (int xx = 0; *s; ++s, ++xx) DrawDigit(dst, pitch, x + xx, y, *s - ' ');
 }
 

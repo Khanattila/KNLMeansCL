@@ -16,16 +16,16 @@
 *	along with KNLMeansCL. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#define DFT_D 0
-#define DFT_A 2
-#define DFT_S 4
-#define DFT_cmode false
-#define DFT_wmode 1
-#define DFT_h 1.2f
+#define DFT_D           0
+#define DFT_A           2
+#define DFT_S           4
+#define DFT_cmode       false
+#define DFT_wmode       1
+#define DFT_h           1.2f
 #define DFT_ocl_device "DEFAULT"
-#define DFT_ocl_id 0
-#define DFT_lsb false
-#define DFT_info false
+#define DFT_ocl_id      0
+#define DFT_lsb         false
+#define DFT_info        false
 
 #ifdef _WIN32
     #define _stdcall __stdcall
@@ -499,214 +499,149 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
     if (activationReason == arInitial) {
         for (int k = int64ToIntS(-d->d); k <= d->d; k++) {
             vsapi->requestFrameFilter(clamp(n + k, 0, maxframe), d->node, frameCtx);
-            if(d->knot) vsapi->requestFrameFilter(clamp(n + k, 0, maxframe), d->knot, frameCtx);
+            if (d->knot) vsapi->requestFrameFilter(clamp(n + k, 0, maxframe), d->knot, frameCtx);
         }
     } else if (activationReason == arAllFramesReady) {
         // Variables.
         const VSFrameRef *src = vsapi->getFrameFilter(n, d->node, frameCtx);
         const VSFrameRef *ref = (d->knot) ? vsapi->getFrameFilter(n, d->knot, frameCtx) : nullptr;
         const VSFormat *fi = d->vi->format;
-        VSFrameRef *dst = vsapi->newVideoFrame(fi, (int) d->idmn[0], (int) d->idmn[1], NULL, core);
+        VSFrameRef *dst = vsapi->newVideoFrame(fi, d->idmn[0], d->idmn[1], NULL, core);
+        const cl_int t = int64ToIntS(d->d);
+        const cl_float pattern_u0 = 0.0f;
+        const cl_float pattern_u3 = CL_FLT_EPSILON;
+        const size_t size_u0 = sizeof(cl_float) * d->idmn[0] * d->idmn[1] * ((d->clip_t & COLOR_GRAY) ? 2 : 4);
+        const size_t size_u3 = sizeof(cl_float) * d->idmn[0] * d->idmn[1];
         const size_t origin[3] = { 0, 0, 0 };
-        const size_t region[3] = { d->idmn[0], d->idmn[1], 1 };
-        const size_t global_work[2] = { 
-            mrounds(d->idmn[0], fastmax(H_BLOCK_X, V_BLOCK_X)), 
-            mrounds(d->idmn[1], fastmax(H_BLOCK_Y, V_BLOCK_Y)) 
+        const size_t region[3] = { (size_t) d->idmn[0], (size_t) d->idmn[1], 1 };
+        const size_t global_work[2] = {
+            mrounds((size_t) d->idmn[0], fastmax(H_BLOCK_X, V_BLOCK_X)),
+            mrounds((size_t) d->idmn[1], fastmax(H_BLOCK_Y, V_BLOCK_Y))
         };
         const size_t local_horiz[2] = { H_BLOCK_X, H_BLOCK_Y };
         const size_t local_vert[2] = { V_BLOCK_X, V_BLOCK_Y };
 
         //Copy chroma.  
         if (fi->colorFamily == cmYUV && (d->clip_t & COLOR_GRAY)) {
-            vs_bitblt(vsapi->getWritePtr(dst, 1), vsapi->getStride(dst, 1), vsapi->getReadPtr(src, 1), vsapi->getStride(src, 1), 
+            vs_bitblt(vsapi->getWritePtr(dst, 1), vsapi->getStride(dst, 1), vsapi->getReadPtr(src, 1), vsapi->getStride(src, 1),
                 vsapi->getFrameWidth(src, 1) * fi->bytesPerSample, vsapi->getFrameHeight(src, 1));
             vs_bitblt(vsapi->getWritePtr(dst, 2), vsapi->getStride(dst, 2), vsapi->getReadPtr(src, 2), vsapi->getStride(src, 2),
                 vsapi->getFrameWidth(src, 2) * fi->bytesPerSample, vsapi->getFrameHeight(src, 2));
-        }       
+        }
 
         // Processing.
-        cl_int ret = CL_SUCCESS;        
+        cl_int ret = CL_SUCCESS;
         cl_command_queue command_queue = clCreateCommandQueue(d->context, d->deviceID, 0, NULL);
-        switch (d->clip_t) {
-            case (EXTRA_NONE | CLIP_UNORM | COLOR_GRAY) :
-                ret |= clEnqueueWriteImage(command_queue, d->mem_in[0], CL_TRUE, origin, region,
-                    (size_t) vsapi->getStride(src, 0), 0, vsapi->getReadPtr(src, 0), 0, NULL, NULL);               
-                break;
-            case (EXTRA_CLIP | CLIP_UNORM | COLOR_GRAY) :
-                ret |= clEnqueueWriteImage(command_queue, d->mem_in[0], CL_TRUE, origin, region,
+        for (int k = int64ToIntS(-d->d); k <= d->d; k++) {
+            src = vsapi->getFrameFilter(clamp(n + k, 0, maxframe), d->node, frameCtx);
+            ref = (d->knot) ? vsapi->getFrameFilter(clamp(n + k, 0, maxframe), d->knot, frameCtx) : nullptr;
+            const cl_int t_pk = t + k;
+            const size_t origin_in[3] = { 0, 0, (size_t) t_pk };
+            switch (d->clip_t) {
+                case (EXTRA_NONE | CLIP_UNORM | COLOR_GRAY) :
+                    ret |= clEnqueueWriteImage(command_queue, d->mem_in[0], CL_TRUE, origin, region,
+                        (size_t) vsapi->getStride(src, 0), 0, vsapi->getReadPtr(src, 0), 0, NULL, NULL);
+                    break;
+                case (EXTRA_CLIP | CLIP_UNORM | COLOR_GRAY) :
+                    ret |= clEnqueueWriteImage(command_queue, d->mem_in[0], CL_TRUE, origin, region,
+                        (size_t) vsapi->getStride(src, 0), 0, vsapi->getReadPtr(src, 0), 0, NULL, NULL);
+                    ret |= clEnqueueWriteImage(command_queue, d->mem_in[1], CL_TRUE, origin, region,
+                        (size_t) vsapi->getStride(ref, 0), 0, vsapi->getReadPtr(ref, 0), 0, NULL, NULL);
+                    break;
+                case (EXTRA_NONE | CLIP_UNSIGNED | COLOR_GRAY) :
+                    ret |= clEnqueueWriteImage(command_queue, d->mem_P[0], CL_TRUE, origin, region,
                     (size_t) vsapi->getStride(src, 0), 0, vsapi->getReadPtr(src, 0), 0, NULL, NULL);
-                ret |= clEnqueueWriteImage(command_queue, d->mem_in[2], CL_TRUE, origin, region,
-                    (size_t) vsapi->getStride(ref, 0), 0, vsapi->getReadPtr(ref, 0), 0, NULL, NULL);
-                break;
-            case (EXTRA_NONE | CLIP_UNSIGNED | COLOR_GRAY) :
-                ret |= clEnqueueWriteImage(command_queue, d->mem_P[0], CL_TRUE, origin, region,
+                    ret |= clSetKernelArg(d->kernel[6], 3, sizeof(cl_mem), &d->mem_in[0]);
+                    ret |= clSetKernelArg(d->kernel[6], 4, sizeof(cl_int), &t_pk);
+                    ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[6], 2, NULL, global_work, NULL, 0, NULL, NULL);
+                    break;
+                case (EXTRA_CLIP | CLIP_UNSIGNED | COLOR_GRAY) :
+                    ret |= clEnqueueWriteImage(command_queue, d->mem_P[0], CL_TRUE, origin, region,
                     (size_t) vsapi->getStride(src, 0), 0, vsapi->getReadPtr(src, 0), 0, NULL, NULL);
-                ret |= clSetKernelArg(d->kernel[5], 3, sizeof(cl_mem), &d->mem_in[0]);
-                ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[5], 2, NULL, global_work, NULL, 0, NULL, NULL);              
-                break;
-            case (EXTRA_CLIP | CLIP_UNSIGNED | COLOR_GRAY) :
-                ret |= clEnqueueWriteImage(command_queue, d->mem_P[0], CL_TRUE, origin, region,
-                   (size_t) vsapi->getStride(src, 0), 0, vsapi->getReadPtr(src, 0), 0, NULL, NULL);
-                ret |= clSetKernelArg(d->kernel[5], 3, sizeof(cl_mem), &d->mem_in[0]);
-                ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[5], 2, NULL, global_work, NULL, 0, NULL, NULL);
-                ret |= clEnqueueWriteImage(command_queue, d->mem_P[0], CL_TRUE, origin, region,
-                   (size_t) vsapi->getStride(ref, 0), 0, vsapi->getReadPtr(ref, 0), 0, NULL, NULL);
-                ret |= clSetKernelArg(d->kernel[5], 3, sizeof(cl_mem), &d->mem_in[2]);
-                ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[5], 2, NULL, global_work, NULL, 0, NULL, NULL);
-                break;  
-            case (EXTRA_NONE | CLIP_UNORM | COLOR_YUV) :
-            case (EXTRA_NONE | CLIP_UNSIGNED | COLOR_YUV) :
-            case (EXTRA_NONE | CLIP_UNORM | COLOR_RGB) :
-            case (EXTRA_NONE | CLIP_UNSIGNED | COLOR_RGB) :
-                ret |= clEnqueueWriteImage(command_queue, d->mem_P[0], CL_TRUE, origin, region,
-                    (size_t) vsapi->getStride(src, 0), 0, vsapi->getReadPtr(src, 0), 0, NULL, NULL);
-                ret |= clEnqueueWriteImage(command_queue, d->mem_P[1], CL_TRUE, origin, region,
-                    (size_t) vsapi->getStride(src, 1), 0, vsapi->getReadPtr(src, 1), 0, NULL, NULL);
-                ret |= clEnqueueWriteImage(command_queue, d->mem_P[2], CL_TRUE, origin, region,
-                    (size_t) vsapi->getStride(src, 2), 0, vsapi->getReadPtr(src, 2), 0, NULL, NULL);
-                ret |= clSetKernelArg(d->kernel[5], 3, sizeof(cl_mem), &d->mem_in[0]);
-                ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[5], 2, NULL, global_work, NULL, 0, NULL, NULL);             
-                break;
-            case (EXTRA_CLIP | CLIP_UNORM | COLOR_YUV) :
-            case (EXTRA_CLIP | CLIP_UNSIGNED | COLOR_YUV) :
-            case (EXTRA_CLIP | CLIP_UNORM | COLOR_RGB) :
-            case (EXTRA_CLIP | CLIP_UNSIGNED | COLOR_RGB) :
-                ret |= clEnqueueWriteImage(command_queue, d->mem_P[0], CL_TRUE, origin, region,
-                    (size_t) vsapi->getStride(src, 0), 0, vsapi->getReadPtr(src, 0), 0, NULL, NULL);
-                ret |= clEnqueueWriteImage(command_queue, d->mem_P[1], CL_TRUE, origin, region,
-                    (size_t) vsapi->getStride(src, 1), 0, vsapi->getReadPtr(src, 1), 0, NULL, NULL);
-                ret |= clEnqueueWriteImage(command_queue, d->mem_P[2], CL_TRUE, origin, region,
-                    (size_t) vsapi->getStride(src, 2), 0, vsapi->getReadPtr(src, 2), 0, NULL, NULL);
-                ret |= clSetKernelArg(d->kernel[5], 3, sizeof(cl_mem), &d->mem_in[0]);
-                ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[5], 2, NULL, global_work, NULL, 0, NULL, NULL);
-                ret |= clEnqueueWriteImage(command_queue, d->mem_P[0], CL_TRUE, origin, region,
-                    (size_t) vsapi->getStride(ref, 0), 0, vsapi->getReadPtr(ref, 0), 0, NULL, NULL);
-                ret |= clEnqueueWriteImage(command_queue, d->mem_P[1], CL_TRUE, origin, region,
-                    (size_t) vsapi->getStride(ref, 1), 0, vsapi->getReadPtr(ref, 1), 0, NULL, NULL);
-                ret |= clEnqueueWriteImage(command_queue, d->mem_P[2], CL_TRUE, origin, region,
-                    (size_t) vsapi->getStride(ref, 2), 0, vsapi->getReadPtr(ref, 2), 0, NULL, NULL);
-                ret |= clSetKernelArg(d->kernel[5], 3, sizeof(cl_mem), &d->mem_in[2]);
-                ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[5], 2, NULL, global_work, NULL, 0, NULL, NULL);
-                break;      
-            default:
-                vsapi->setFilterError("knlm.KNLMeansCL: knlmeansGetFrame error!", frameCtx);
-                vsapi->freeNode(d->node);
-                vsapi->freeNode(d->knot);
-                return 0;
+                    ret |= clSetKernelArg(d->kernel[6], 3, sizeof(cl_mem), &d->mem_in[0]);
+                    ret |= clSetKernelArg(d->kernel[6], 4, sizeof(cl_int), &t_pk);
+                    ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[6], 2, NULL, global_work, NULL, 0, NULL, NULL);
+                    ret |= clEnqueueWriteImage(command_queue, d->mem_P[1], CL_TRUE, origin, region,
+                        (size_t) vsapi->getStride(ref, 0), 0, vsapi->getReadPtr(ref, 0), 0, NULL, NULL);
+                    ret |= clSetKernelArg(d->kernel[6], 3, sizeof(cl_mem), &d->mem_in[1]);
+                    ret |= clSetKernelArg(d->kernel[6], 4, sizeof(cl_int), &t_pk);
+                    ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[6], 2, NULL, global_work, NULL, 0, NULL, NULL);
+                    break;
+                case (EXTRA_NONE | CLIP_UNORM | COLOR_YUV) :
+                case (EXTRA_NONE | CLIP_UNSIGNED | COLOR_YUV) :
+                case (EXTRA_NONE | CLIP_UNORM | COLOR_RGB) :
+                case (EXTRA_NONE | CLIP_UNSIGNED | COLOR_RGB) :
+                    ret |= clEnqueueWriteImage(command_queue, d->mem_P[0], CL_TRUE, origin, region,
+                        (size_t) vsapi->getStride(src, 0), 0, vsapi->getReadPtr(src, 0), 0, NULL, NULL);
+                    ret |= clEnqueueWriteImage(command_queue, d->mem_P[1], CL_TRUE, origin, region,
+                        (size_t) vsapi->getStride(src, 1), 0, vsapi->getReadPtr(src, 1), 0, NULL, NULL);
+                    ret |= clEnqueueWriteImage(command_queue, d->mem_P[2], CL_TRUE, origin, region,
+                        (size_t) vsapi->getStride(src, 2), 0, vsapi->getReadPtr(src, 2), 0, NULL, NULL);
+                    ret |= clSetKernelArg(d->kernel[6], 3, sizeof(cl_mem), &d->mem_in[0]);
+                    ret |= clSetKernelArg(d->kernel[6], 4, sizeof(cl_int), &t_pk);
+                    ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[6], 2, NULL, global_work, NULL, 0, NULL, NULL);
+                    break;
+                case (EXTRA_CLIP | CLIP_UNORM | COLOR_YUV) :
+                case (EXTRA_CLIP | CLIP_UNSIGNED | COLOR_YUV) :
+                case (EXTRA_CLIP | CLIP_UNORM | COLOR_RGB) :
+                case (EXTRA_CLIP | CLIP_UNSIGNED | COLOR_RGB) :
+                    ret |= clEnqueueWriteImage(command_queue, d->mem_P[0], CL_TRUE, origin, region,
+                        (size_t) vsapi->getStride(src, 0), 0, vsapi->getReadPtr(src, 0), 0, NULL, NULL);
+                    ret |= clEnqueueWriteImage(command_queue, d->mem_P[1], CL_TRUE, origin, region,
+                        (size_t) vsapi->getStride(src, 1), 0, vsapi->getReadPtr(src, 1), 0, NULL, NULL);
+                    ret |= clEnqueueWriteImage(command_queue, d->mem_P[2], CL_TRUE, origin, region,
+                        (size_t) vsapi->getStride(src, 2), 0, vsapi->getReadPtr(src, 2), 0, NULL, NULL);
+                    ret |= clSetKernelArg(d->kernel[6], 3, sizeof(cl_mem), &d->mem_in[0]);
+                    ret |= clSetKernelArg(d->kernel[6], 4, sizeof(cl_int), &t_pk);
+                    ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[6], 2, NULL, global_work, NULL, 0, NULL, NULL);
+                    ret |= clEnqueueWriteImage(command_queue, d->mem_P[0], CL_TRUE, origin, region,
+                        (size_t) vsapi->getStride(ref, 0), 0, vsapi->getReadPtr(ref, 0), 0, NULL, NULL);
+                    ret |= clEnqueueWriteImage(command_queue, d->mem_P[1], CL_TRUE, origin, region,
+                        (size_t) vsapi->getStride(ref, 1), 0, vsapi->getReadPtr(ref, 1), 0, NULL, NULL);
+                    ret |= clEnqueueWriteImage(command_queue, d->mem_P[2], CL_TRUE, origin, region,
+                        (size_t) vsapi->getStride(ref, 2), 0, vsapi->getReadPtr(ref, 2), 0, NULL, NULL);
+                    ret |= clSetKernelArg(d->kernel[6], 3, sizeof(cl_mem), &d->mem_in[1]);
+                    ret |= clSetKernelArg(d->kernel[6], 4, sizeof(cl_int), &t_pk);
+                    ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[6], 2, NULL, global_work, NULL, 0, NULL, NULL);
+                    break;
+                default:
+                    vsapi->setFilterError("knlm.KNLMeansCL: knlmeansGetFrame error!", frameCtx);
+                    vsapi->freeNode(d->node);
+                    vsapi->freeNode(d->knot);
+                    return 0;
+            }
+            vsapi->freeFrame(src);
+            vsapi->freeFrame(ref);
         }
-        vsapi->freeFrame(src);
-        vsapi->freeFrame(ref);
-        const cl_float pattern_u0 = 0.0f;
-        const cl_float pattern_u3 = CL_FLT_EPSILON;
-        const size_t size_u0 = sizeof(cl_float) * d->idmn[0] * d->idmn[1] * ((d->clip_t & COLOR_GRAY) ? 2 : 4);
-        const size_t size_u3 = sizeof(cl_float) * d->idmn[0] * d->idmn[1];
         ret |= clEnqueueFillBuffer(command_queue, d->mem_U[0], &pattern_u0, sizeof(cl_float), 0, size_u0, 0, NULL, NULL);
         ret |= clEnqueueFillBuffer(command_queue, d->mem_U[3], &pattern_u3, sizeof(cl_float), 0, size_u3, 0, NULL, NULL);
-        if (d->d) {
-            // Temporal.
-            for (int k = int64ToIntS(-d->d); k <= d->d; k++) {
-                src = vsapi->getFrameFilter(clamp(n + k, 0, maxframe), d->node, frameCtx);
-                ref = (d->knot) ? vsapi->getFrameFilter(clamp(n + k, 0, maxframe), d->knot, frameCtx) : nullptr;
-                switch (d->clip_t) {
-                    case (EXTRA_NONE | CLIP_UNORM | COLOR_GRAY) :
-                        ret |= clEnqueueWriteImage(command_queue, d->mem_in[1], CL_TRUE, origin, region,
-                            (size_t) vsapi->getStride(src, 0), 0, vsapi->getReadPtr(src, 0), 0, NULL, NULL);
-                        break;
-                    case (EXTRA_CLIP | CLIP_UNORM | COLOR_GRAY) :
-                        ret |= clEnqueueWriteImage(command_queue, d->mem_in[1], CL_TRUE, origin, region,
-                            (size_t) vsapi->getStride(src, 0), 0, vsapi->getReadPtr(src, 0), 0, NULL, NULL);
-                        ret |= clEnqueueWriteImage(command_queue, d->mem_in[3], CL_TRUE, origin, region,
-                            (size_t) vsapi->getStride(ref, 0), 0, vsapi->getReadPtr(ref, 0), 0, NULL, NULL);
-                        break;
-                    case (EXTRA_NONE | CLIP_UNSIGNED | COLOR_GRAY) :
-                        ret |= clEnqueueWriteImage(command_queue, d->mem_P[0], CL_TRUE, origin, region,
-                            (size_t) vsapi->getStride(src, 0), 0, vsapi->getReadPtr(src, 0), 0, NULL, NULL);
-                        ret |= clSetKernelArg(d->kernel[5], 3, sizeof(cl_mem), &d->mem_in[1]);
-                        ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[5], 2, NULL, global_work, NULL, 0, NULL, NULL);
-                        break;
-                    case (EXTRA_CLIP | CLIP_UNSIGNED | COLOR_GRAY) :
-                        ret |= clEnqueueWriteImage(command_queue, d->mem_P[0], CL_TRUE, origin, region,
-                            (size_t) vsapi->getStride(src, 0), 0, vsapi->getReadPtr(src, 0), 0, NULL, NULL);
-                        ret |= clSetKernelArg(d->kernel[5], 3, sizeof(cl_mem), &d->mem_in[1]);
-                        ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[5], 2, NULL, global_work, NULL, 0, NULL, NULL);
-                        ret |= clEnqueueWriteImage(command_queue, d->mem_P[0], CL_TRUE, origin, region,
-                            (size_t) vsapi->getStride(ref, 0), 0, vsapi->getReadPtr(ref, 0), 0, NULL, NULL);
-                        ret |= clSetKernelArg(d->kernel[5], 3, sizeof(cl_mem), &d->mem_in[3]);
-                        ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[5], 2, NULL, global_work, NULL, 0, NULL, NULL);
-                        break;
-                    case (EXTRA_NONE | CLIP_UNORM | COLOR_YUV) :
-                    case (EXTRA_NONE | CLIP_UNSIGNED | COLOR_YUV) :
-                    case (EXTRA_NONE | CLIP_UNORM | COLOR_RGB) :
-                    case (EXTRA_NONE | CLIP_UNSIGNED | COLOR_RGB) :
-                        ret |= clEnqueueWriteImage(command_queue, d->mem_P[0], CL_TRUE, origin, region,
-                            (size_t) vsapi->getStride(src, 0), 0, vsapi->getReadPtr(src, 0), 0, NULL, NULL);
-                        ret |= clEnqueueWriteImage(command_queue, d->mem_P[1], CL_TRUE, origin, region,
-                            (size_t) vsapi->getStride(src, 1), 0, vsapi->getReadPtr(src, 1), 0, NULL, NULL);
-                        ret |= clEnqueueWriteImage(command_queue, d->mem_P[2], CL_TRUE, origin, region,
-                            (size_t) vsapi->getStride(src, 2), 0, vsapi->getReadPtr(src, 2), 0, NULL, NULL);
-                        ret |= clSetKernelArg(d->kernel[5], 3, sizeof(cl_mem), &d->mem_in[1]);
-                        ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[5], 2, NULL, global_work, NULL, 0, NULL, NULL);
-                        break;
-                    case (EXTRA_CLIP | CLIP_UNORM | COLOR_YUV) :
-                    case (EXTRA_CLIP | CLIP_UNSIGNED | COLOR_YUV) :
-                    case (EXTRA_CLIP | CLIP_UNORM | COLOR_RGB) :
-                    case (EXTRA_CLIP | CLIP_UNSIGNED | COLOR_RGB) :
-                        ret |= clEnqueueWriteImage(command_queue, d->mem_P[0], CL_TRUE, origin, region,
-                            (size_t) vsapi->getStride(src, 0), 0, vsapi->getReadPtr(src, 0), 0, NULL, NULL);
-                        ret |= clEnqueueWriteImage(command_queue, d->mem_P[1], CL_TRUE, origin, region,
-                            (size_t) vsapi->getStride(src, 1), 0, vsapi->getReadPtr(src, 1), 0, NULL, NULL);
-                        ret |= clEnqueueWriteImage(command_queue, d->mem_P[2], CL_TRUE, origin, region,
-                            (size_t) vsapi->getStride(src, 2), 0, vsapi->getReadPtr(src, 2), 0, NULL, NULL);
-                        ret |= clSetKernelArg(d->kernel[5], 3, sizeof(cl_mem), &d->mem_in[1]);
-                        ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[5], 2, NULL, global_work, NULL, 0, NULL, NULL);
-                        ret |= clEnqueueWriteImage(command_queue, d->mem_P[0], CL_TRUE, origin, region,
-                            (size_t) vsapi->getStride(ref, 0), 0, vsapi->getReadPtr(ref, 0), 0, NULL, NULL);
-                        ret |= clEnqueueWriteImage(command_queue, d->mem_P[1], CL_TRUE, origin, region,
-                            (size_t) vsapi->getStride(ref, 1), 0, vsapi->getReadPtr(ref, 1), 0, NULL, NULL);
-                        ret |= clEnqueueWriteImage(command_queue, d->mem_P[2], CL_TRUE, origin, region,
-                            (size_t) vsapi->getStride(ref, 2), 0, vsapi->getReadPtr(ref, 2), 0, NULL, NULL);
-                        ret |= clSetKernelArg(d->kernel[5], 3, sizeof(cl_mem), &d->mem_in[3]);
-                        ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[5], 2, NULL, global_work, NULL, 0, NULL, NULL);
-                        break;
-                    default:
-                        vsapi->setFilterError("knlm.KNLMeansCL: knlmeansGetFrame error!", frameCtx);
-                        vsapi->freeNode(d->node);
-                        vsapi->freeNode(d->knot);
-                        return 0;
-                }
-                vsapi->freeFrame(src);
-                vsapi->freeFrame(ref);
-                for (int j = int64ToIntS(-d->a); j <= d->a; j++) {
-                    for (int i = int64ToIntS(-d->a); i <= d->a; i++) {
-                        if (k || j || i) {
-                            const cl_int q[2] = { i, j };
-                            ret |= clSetKernelArg(d->kernel[0], 4, 2 * sizeof(cl_int), &q);
-                            ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[0], 2, NULL, global_work, NULL, 0, NULL, NULL);
-                            ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[1], 2, NULL, global_work, local_horiz, 0, NULL, NULL);
-                            ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[2], 2, NULL, global_work, local_vert, 0, NULL, NULL);
-                            ret |= clSetKernelArg(d->kernel[3], 5, 2 * sizeof(cl_int), &q);
-                            ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[3], 2, NULL, global_work, NULL, 0, NULL, NULL);
-                        }
-                    }
-                }
-            }
-        } else {
-            // Spatial.
-            for (int j = int64ToIntS(-d->a); j <= 0; j++) {
+        for (int k = int64ToIntS(-d->d); k <= 0; k++) {
+            for (int j = int64ToIntS(-d->a); j <= d->a; j++) {
                 for (int i = int64ToIntS(-d->a); i <= d->a; i++) {
-                    if (j * (2 * d->a + 1) + i < 0) {
-                        const cl_int q[2] = { i, j };
-                        ret |= clSetKernelArg(d->kernel[0], 4, 2 * sizeof(cl_int), &q);
+                    if (k * (2 * int64ToIntS(d->a) + 1) * (2 * int64ToIntS(d->a) + 1) + j * (2 * int64ToIntS(d->a) + 1) + i < 0) {
+                        const cl_int q[4] = { i, j, k, 0 };
+                        ret |= clSetKernelArg(d->kernel[0], 3, 4 * sizeof(cl_int), &q);
                         ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[0], 2, NULL, global_work, NULL, 0, NULL, NULL);
-                        ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[1], 2, NULL, global_work, local_horiz, 0, NULL, NULL);
-                        ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[2], 2, NULL, global_work, local_vert, 0, NULL, NULL);
-                        ret |= clSetKernelArg(d->kernel[3], 5, 2 * sizeof(cl_int), &q);
-                        ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[3], 2, NULL, global_work, NULL, 0, NULL, NULL);
+                        ret |= clSetKernelArg(d->kernel[2], 2, sizeof(cl_int), &t);
+                        ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[2], 2, NULL, global_work, local_horiz, 0, NULL, NULL);
+                        ret |= clSetKernelArg(d->kernel[3], 2, sizeof(cl_int), &t);
+                        ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[3], 2, NULL, global_work, local_vert, 0, NULL, NULL);
+                        if (k) {
+                            const cl_int t_mq = t - k;
+                            ret |= clSetKernelArg(d->kernel[1], 3, 4 * sizeof(cl_int), &q);
+                            ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[1], 2, NULL, global_work, NULL, 0, NULL, NULL);
+                            ret |= clSetKernelArg(d->kernel[2], 2, sizeof(cl_int), &t_mq);
+                            ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[2], 2, NULL, global_work, local_horiz, 0, NULL, NULL);
+                            ret |= clSetKernelArg(d->kernel[3], 2, sizeof(cl_int), &t_mq);
+                            ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[3], 2, NULL, global_work, local_vert, 0, NULL, NULL);
+                        }
+                        ret |= clSetKernelArg(d->kernel[4], 5, 4 * sizeof(cl_int), &q);
+                        ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[4], 2, NULL, global_work, NULL, 0, NULL, NULL);
                     }
                 }
-            }
+             }
         }
-        ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[4], 2, NULL, global_work, NULL, 0, NULL, NULL);
+        ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[5], 2, NULL, global_work, NULL, 0, NULL, NULL);
         switch (d->clip_t) {
             case (EXTRA_NONE | CLIP_UNORM | COLOR_GRAY) :
             case (EXTRA_CLIP | CLIP_UNORM | COLOR_GRAY) :
@@ -715,7 +650,7 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
                 break;
             case (EXTRA_NONE | CLIP_UNSIGNED | COLOR_GRAY) :
             case (EXTRA_CLIP | CLIP_UNSIGNED | COLOR_GRAY) :
-                ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[6], 2, NULL, global_work, NULL, 0, NULL, NULL);
+                ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[7], 2, NULL, global_work, NULL, 0, NULL, NULL);
                 ret |= clEnqueueReadImage(command_queue, d->mem_P[0], CL_TRUE, origin, region,
                     (size_t) vsapi->getStride(dst, 0), 0, vsapi->getWritePtr(dst, 0), 0, NULL, NULL);
                 break;  
@@ -727,7 +662,7 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
             case (EXTRA_CLIP | CLIP_UNORM | COLOR_RGB) :
             case (EXTRA_NONE | CLIP_UNSIGNED | COLOR_RGB) :
             case (EXTRA_CLIP | CLIP_UNSIGNED | COLOR_RGB) :
-                ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[6], 2, NULL, global_work, NULL, 0, NULL, NULL);
+                ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[7], 2, NULL, global_work, NULL, 0, NULL, NULL);
                 ret |= clEnqueueReadImage(command_queue, d->mem_P[0], CL_TRUE, origin, region,
                     (size_t) vsapi->getStride(dst, 0), 0, vsapi->getWritePtr(dst, 0), 0, NULL, NULL);
                 ret |= clEnqueueReadImage(command_queue, d->mem_P[1], CL_TRUE, origin, region,
@@ -844,10 +779,9 @@ static void VS_CC VapourSynthPluginFree(void *instanceData, VSCore *core, const 
     clReleaseMemObject(d->mem_U[1]);
     clReleaseMemObject(d->mem_U[0]);
     clReleaseMemObject(d->mem_out);
-    clReleaseMemObject(d->mem_in[3]);
-    clReleaseMemObject(d->mem_in[2]);
     clReleaseMemObject(d->mem_in[1]);
     clReleaseMemObject(d->mem_in[0]);
+    clReleaseKernel(d->kernel[7]);
     clReleaseKernel(d->kernel[6]);
     clReleaseKernel(d->kernel[5]);
     clReleaseKernel(d->kernel[4]);
@@ -1111,23 +1045,20 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
     free(devices);
 
     // Creates an OpenCL context, 2D images and buffers object.
-    d.idmn[0] = (cl_uint) d.vi->width;
-    d.idmn[1] = (cl_uint) d.vi->height;
+    d.idmn[0] = d.vi->width;
+    d.idmn[1] = d.vi->height;
     d.context = clCreateContext(NULL, 1, &d.deviceID, NULL, NULL, NULL);
     const cl_image_format image_format = { channel_order, channel_type };
-    const cl_image_desc image_desc = { CL_MEM_OBJECT_IMAGE2D, d.idmn[0], d.idmn[1], 1, 1, 0, 0, 0, 0, NULL };
+    const cl_image_desc image_desc = { CL_MEM_OBJECT_IMAGE2D_ARRAY, (size_t) d.idmn[0], (size_t) d.idmn[1], 1, 1, 0, 0, 0, 0, NULL };
+    const cl_image_desc image_desc_out = { CL_MEM_OBJECT_IMAGE2D, (size_t) d.idmn[0], (size_t) d.idmn[1], 1, 1, 0, 0, 0, 0, NULL };
     if ((d.clip_t & COLOR_GRAY) && !d.bit_shift) {
         d.mem_in[0] = clCreateImage(d.context, CL_MEM_READ_ONLY | CL_MEM_HOST_WRITE_ONLY, &image_format, &image_desc, NULL, NULL);
-        d.mem_in[1] = clCreateImage(d.context, CL_MEM_READ_ONLY | CL_MEM_HOST_WRITE_ONLY, &image_format, &image_desc, NULL, NULL);
-        d.mem_in[2] = clCreateImage(d.context, CL_MEM_READ_ONLY | CL_MEM_HOST_WRITE_ONLY, &image_format, &image_desc, NULL, NULL);
-        d.mem_in[3] = clCreateImage(d.context, CL_MEM_READ_ONLY | CL_MEM_HOST_WRITE_ONLY, &image_format, &image_desc, NULL, NULL);
-        d.mem_out = clCreateImage(d.context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY, &image_format, &image_desc, NULL, NULL);
+        d.mem_in[1] = clCreateImage(d.context, CL_MEM_READ_ONLY | CL_MEM_HOST_WRITE_ONLY, &image_format, &image_desc, NULL, NULL);       
+        d.mem_out = clCreateImage(d.context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY, &image_format, &image_desc_out, NULL, NULL);
     } else {
         d.mem_in[0] = clCreateImage(d.context, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, &image_format, &image_desc, NULL, NULL);
-        d.mem_in[1] = clCreateImage(d.context, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, &image_format, &image_desc, NULL, NULL);
-        d.mem_in[2] = clCreateImage(d.context, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, &image_format, &image_desc, NULL, NULL);
-        d.mem_in[3] = clCreateImage(d.context, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, &image_format, &image_desc, NULL, NULL);
-        d.mem_out = clCreateImage(d.context, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, &image_format, &image_desc, NULL, NULL);
+        d.mem_in[1] = clCreateImage(d.context, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, &image_format, &image_desc, NULL, NULL);       
+        d.mem_out = clCreateImage(d.context, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, &image_format, &image_desc_out, NULL, NULL);
     }
     const cl_image_format image_format_u = { CL_LUMINANCE, CL_HALF_FLOAT };
     const size_t size_u0 = sizeof(cl_float) * d.idmn[0] * d.idmn[1] * ((d.clip_t & COLOR_GRAY) ? 2 : 4);
@@ -1138,23 +1069,23 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
     d.mem_U[3] = clCreateBuffer(d.context, CL_MEM_READ_WRITE | CL_MEM_HOST_WRITE_ONLY, size_u3, NULL, NULL);
     if (d.bit_shift) {
         const cl_image_format image_format_p = { CL_R, CL_UNSIGNED_INT16 };
-        d.mem_P[0] = clCreateImage(d.context, CL_MEM_READ_WRITE, &image_format_p, &image_desc, NULL, NULL);
-        d.mem_P[1] = clCreateImage(d.context, CL_MEM_READ_WRITE, &image_format_p, &image_desc, NULL, NULL);
-        d.mem_P[2] = clCreateImage(d.context, CL_MEM_READ_WRITE, &image_format_p, &image_desc, NULL, NULL);
+        d.mem_P[0] = clCreateImage(d.context, CL_MEM_READ_WRITE, &image_format_p, &image_desc_out, NULL, NULL);
+        d.mem_P[1] = clCreateImage(d.context, CL_MEM_READ_WRITE, &image_format_p, &image_desc_out, NULL, NULL);
+        d.mem_P[2] = clCreateImage(d.context, CL_MEM_READ_WRITE, &image_format_p, &image_desc_out, NULL, NULL);
     } else {
         const cl_image_format image_format_p = { CL_LUMINANCE, channel_type };
-        d.mem_P[0] = clCreateImage(d.context, CL_MEM_READ_WRITE, &image_format_p, &image_desc, NULL, NULL);
-        d.mem_P[1] = clCreateImage(d.context, CL_MEM_READ_WRITE, &image_format_p, &image_desc, NULL, NULL);
-        d.mem_P[2] = clCreateImage(d.context, CL_MEM_READ_WRITE, &image_format_p, &image_desc, NULL, NULL);
+        d.mem_P[0] = clCreateImage(d.context, CL_MEM_READ_WRITE, &image_format_p, &image_desc_out, NULL, NULL);
+        d.mem_P[1] = clCreateImage(d.context, CL_MEM_READ_WRITE, &image_format_p, &image_desc_out, NULL, NULL);
+        d.mem_P[2] = clCreateImage(d.context, CL_MEM_READ_WRITE, &image_format_p, &image_desc_out, NULL, NULL);
     }
 
     // Creates and Build a program executable from the program source.
-    d.program = clCreateProgramWithSource(d.context, 1, &source_code_spatial, NULL, NULL);
+    d.program = clCreateProgramWithSource(d.context, 1, &kernel_source_code, NULL, NULL);
     char options[2048];
     setlocale(LC_ALL, "C");  
     snprintf(options, 2048, "-cl-single-precision-constant -cl-denorms-are-zero -cl-fast-relaxed-math -Werror "
         "-D H_BLOCK_X=%i -D H_BLOCK_Y=%i -D V_BLOCK_X=%i -D V_BLOCK_Y=%i -D NLMK_TCLIP=%u -D NLMK_S=%i " 
-        "-D NLMK_WMODE=%i -D NLMK_TEMPORAL=%i -D NLMK_H2_INV_NORM=%f -D NLMK_BIT_SHIFT=%u",
+        "-D NLMK_WMODE=%i -D NLMK_D=%i -D NLMK_H2_INV_NORM=%f -D NLMK_BIT_SHIFT=%u",
         H_BLOCK_X, H_BLOCK_Y, V_BLOCK_X, V_BLOCK_Y, d.clip_t, int64ToIntS(d.s),
         int64ToIntS(d.wmode), int64ToIntS(d.d), 65025.0 / (3*d.h*d.h*(2*d.s+1)*(2*d.s+1)), d.bit_shift); 
     ret = clBuildProgram(d.program, 1, &d.deviceID, options, NULL, NULL);
@@ -1184,44 +1115,47 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
     setlocale(LC_ALL, "");
 
     // Creates kernel objects.
-    d.kernel[0] = clCreateKernel(d.program, "NLM_dist", NULL);
-    d.kernel[1] = clCreateKernel(d.program, "NLM_horiz", NULL);
-    d.kernel[2] = clCreateKernel(d.program, "NLM_vert", NULL);
-    d.kernel[3] = clCreateKernel(d.program, "NLM_accu", NULL);
-    d.kernel[4] = clCreateKernel(d.program, "NLM_finish", NULL);
-    d.kernel[5] = clCreateKernel(d.program, "NLM_pack", NULL);
-    d.kernel[6] = clCreateKernel(d.program, "NLM_unpack", NULL);
+    d.kernel[0] = clCreateKernel(d.program, "nlmDistanceLeft", NULL);
+    d.kernel[1] = clCreateKernel(d.program, "nlmDistanceRight", NULL);
+    d.kernel[2] = clCreateKernel(d.program, "nlmHorizontal", NULL);
+    d.kernel[3] = clCreateKernel(d.program, "nlmVertical", NULL);
+    d.kernel[4] = clCreateKernel(d.program, "nlmAccumulation", NULL);
+    d.kernel[5] = clCreateKernel(d.program, "nlmFinish", NULL);
+    d.kernel[6] = clCreateKernel(d.program, "nlmPack", NULL);
+    d.kernel[7] = clCreateKernel(d.program, "nlmUnpack", NULL);
 
     // Sets kernel arguments.
-    ret = clSetKernelArg(d.kernel[0], 0, sizeof(cl_mem), &d.mem_in[(d.clip_t & EXTRA_NONE) ? 0 : 2]);
-    ret |= clSetKernelArg(d.kernel[0], 1, sizeof(cl_mem), &d.mem_in[(d.clip_t & EXTRA_NONE) ? (d.d ? 1 : 0) : (d.d ? 3 : 2)]);
-    ret |= clSetKernelArg(d.kernel[0], 2, sizeof(cl_mem), &d.mem_U[1]);
-    ret |= clSetKernelArg(d.kernel[0], 3, 2 * sizeof(cl_uint), &d.idmn);
-    ret |= clSetKernelArg(d.kernel[1], 0, sizeof(cl_mem), &d.mem_U[1]);
-    ret |= clSetKernelArg(d.kernel[1], 1, sizeof(cl_mem), &d.mem_U[2]);
-    ret |= clSetKernelArg(d.kernel[1], 2, 2 * sizeof(cl_uint), &d.idmn);
-    ret |= clSetKernelArg(d.kernel[2], 0, sizeof(cl_mem), &d.mem_U[2]);
-    ret |= clSetKernelArg(d.kernel[2], 1, sizeof(cl_mem), &d.mem_U[1]);
-    ret |= clSetKernelArg(d.kernel[2], 2, 2 * sizeof(cl_uint), &d.idmn);
-    ret |= clSetKernelArg(d.kernel[3], 0, sizeof(cl_mem), &d.mem_in[d.d ? 1 : 0]);
-    ret |= clSetKernelArg(d.kernel[3], 1, sizeof(cl_mem), &d.mem_U[0]);
-    ret |= clSetKernelArg(d.kernel[3], 2, sizeof(cl_mem), &d.mem_U[1]);
-    ret |= clSetKernelArg(d.kernel[3], 3, sizeof(cl_mem), &d.mem_U[3]);
-    ret |= clSetKernelArg(d.kernel[3], 4, 2 * sizeof(cl_uint), &d.idmn);
+    ret = clSetKernelArg(d.kernel[0], 0, sizeof(cl_mem), &d.mem_in[(d.clip_t & EXTRA_NONE) ? 0 : 1]);
+    ret |= clSetKernelArg(d.kernel[0], 1, sizeof(cl_mem), &d.mem_U[1]);
+    ret |= clSetKernelArg(d.kernel[0], 2, 2 * sizeof(cl_int), &d.idmn);
+    ret |= clSetKernelArg(d.kernel[1], 0, sizeof(cl_mem), &d.mem_in[(d.clip_t & EXTRA_NONE) ? 0 : 1]);
+    ret |= clSetKernelArg(d.kernel[1], 1, sizeof(cl_mem), &d.mem_U[1]);
+    ret |= clSetKernelArg(d.kernel[1], 2, 2 * sizeof(cl_int), &d.idmn);
+    ret |= clSetKernelArg(d.kernel[2], 0, sizeof(cl_mem), &d.mem_U[1]);
+    ret |= clSetKernelArg(d.kernel[2], 1, sizeof(cl_mem), &d.mem_U[2]);
+    ret |= clSetKernelArg(d.kernel[2], 3, 2 * sizeof(cl_int), &d.idmn);
+    ret |= clSetKernelArg(d.kernel[3], 0, sizeof(cl_mem), &d.mem_U[2]);
+    ret |= clSetKernelArg(d.kernel[3], 1, sizeof(cl_mem), &d.mem_U[1]);
+    ret |= clSetKernelArg(d.kernel[3], 3, 2 * sizeof(cl_int), &d.idmn);
     ret |= clSetKernelArg(d.kernel[4], 0, sizeof(cl_mem), &d.mem_in[0]);
-    ret |= clSetKernelArg(d.kernel[4], 1, sizeof(cl_mem), &d.mem_out);
-    ret |= clSetKernelArg(d.kernel[4], 2, sizeof(cl_mem), &d.mem_U[0]);
+    ret |= clSetKernelArg(d.kernel[4], 1, sizeof(cl_mem), &d.mem_U[0]);
+    ret |= clSetKernelArg(d.kernel[4], 2, sizeof(cl_mem), &d.mem_U[1]);
     ret |= clSetKernelArg(d.kernel[4], 3, sizeof(cl_mem), &d.mem_U[3]);
-    ret |= clSetKernelArg(d.kernel[4], 4, 2 * sizeof(cl_uint), &d.idmn);
-    ret |= clSetKernelArg(d.kernel[5], 0, sizeof(cl_mem), &d.mem_P[0]);
-    ret |= clSetKernelArg(d.kernel[5], 1, sizeof(cl_mem), &d.mem_P[1]);
-    ret |= clSetKernelArg(d.kernel[5], 2, sizeof(cl_mem), &d.mem_P[2]);
-    ret |= clSetKernelArg(d.kernel[5], 4, 2 * sizeof(cl_uint), &d.idmn);
+    ret |= clSetKernelArg(d.kernel[4], 4, 2 * sizeof(cl_int), &d.idmn);
+    ret |= clSetKernelArg(d.kernel[5], 0, sizeof(cl_mem), &d.mem_in[0]);
+    ret |= clSetKernelArg(d.kernel[5], 1, sizeof(cl_mem), &d.mem_out);
+    ret |= clSetKernelArg(d.kernel[5], 2, sizeof(cl_mem), &d.mem_U[0]);
+    ret |= clSetKernelArg(d.kernel[5], 3, sizeof(cl_mem), &d.mem_U[3]);
+    ret |= clSetKernelArg(d.kernel[5], 4, 2 * sizeof(cl_int), &d.idmn);
     ret |= clSetKernelArg(d.kernel[6], 0, sizeof(cl_mem), &d.mem_P[0]);
     ret |= clSetKernelArg(d.kernel[6], 1, sizeof(cl_mem), &d.mem_P[1]);
     ret |= clSetKernelArg(d.kernel[6], 2, sizeof(cl_mem), &d.mem_P[2]);
-    ret |= clSetKernelArg(d.kernel[6], 3, sizeof(cl_mem), &d.mem_out);
-    ret |= clSetKernelArg(d.kernel[6], 4, 2 * sizeof(cl_uint), &d.idmn);
+    ret |= clSetKernelArg(d.kernel[6], 5, 2 * sizeof(cl_int), &d.idmn);
+    ret |= clSetKernelArg(d.kernel[7], 0, sizeof(cl_mem), &d.mem_P[0]);
+    ret |= clSetKernelArg(d.kernel[7], 1, sizeof(cl_mem), &d.mem_P[1]);
+    ret |= clSetKernelArg(d.kernel[7], 2, sizeof(cl_mem), &d.mem_P[2]);
+    ret |= clSetKernelArg(d.kernel[7], 3, sizeof(cl_mem), &d.mem_out);
+    ret |= clSetKernelArg(d.kernel[7], 4, 2 * sizeof(cl_int), &d.idmn);
     if (ret != CL_SUCCESS) {
         vsapi->setError(out, "knlm.KNLMeansCL: VapourSynthCreate error (clSetKernelArg)!");
         vsapi->freeNode(d.node);
