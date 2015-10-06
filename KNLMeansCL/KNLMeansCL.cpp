@@ -65,7 +65,7 @@ KNLMeansClass::KNLMeansClass(PClip _child, const int _d, const int _a, const int
     ocl_id(_ocl_id), lsb(_lsb), info(_info) {
 
     // Checks AviSynth Version.
-    env->CheckVersion(6);
+    env->CheckVersion(5);
     child->SetCacheHints(CACHE_WINDOW, d);
 
     // Checks source clip and rclip.
