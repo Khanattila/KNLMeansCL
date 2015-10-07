@@ -19,6 +19,23 @@
 #ifndef __KERNEL_H__
 #define __KERNEL_H__
 
+typedef enum _nlm_kernel_function {
+    nlmSpatialDistance,
+    nlmSpatialHorizontal,
+    nlmSpatialVertical,
+    nlmSpatialAccumulation,
+    nlmSpatialFinish,
+    nlmDistanceLeft,
+    nlmDistanceRight,
+    nlmHorizontal,
+    nlmVertical,
+    nlmAccumulation,
+    nlmFinish,
+    nlmPack,
+    nlmUnpack,
+    nlmNumberKernels
+} nlm_kernel_function;
+
 //////////////////////////////////////////
 // OpenCL
 static const cl_uint H_BLOCK_X = 32, H_BLOCK_Y = 4, V_BLOCK_X = 32, V_BLOCK_Y = 4;
