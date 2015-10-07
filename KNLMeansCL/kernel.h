@@ -356,6 +356,37 @@ static const char* kernel_source_code =
 "	    write_imageui(G, s,    (uint4) val.y);						                             	              \n" \
 "	    write_imageui(B, s,    (uint4) val.z);						                                              \n" \
 "	}       																									  \n" \
+"}																		    									  \n" \
+"																												  \n" \
+"__kernel																										  \n" \
+"void nlmSpatialDistance(__read_only image2d_t U1, __write_only image2d_t U4, const int2 dim, const int2 q) {     \n" \
+"																												  \n" \
+"	const int x = get_global_id(0);																				  \n" \
+"	const int y = get_global_id(1);																				  \n" \
+"	if(x >= dim.x || y >= dim.y) return;																		  \n" \
+"																												  \n" \
+"	const sampler_t smp = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP | CLK_FILTER_NEAREST;		        	  \n" \
+"	const int2 p = (int2) (x, y);                                         		        						  \n" \
+"																												  \n" \
+"	if (CHECK_FLAG(COLOR_GRAY)) {	                    														  \n" \
+"		const float  u1    = read_imagef(U1, smp, p    ).x;		    	   							              \n" \
+"		const float  u1_pq = read_imagef(U1, smp, p + q).x;		    							                  \n" \
+"		const float  val   = 3.0f * (u1 - u1_pq) * (u1 - u1_pq);                                                  \n" \
+"		write_imagef(U4, p, (float4) val);		             				    								  \n" \
+"	} else if (CHECK_FLAG(COLOR_YUV)) {			    															  \n" \
+"		const float4 u1    = read_imagef(U1, smp, p    );	     	        							          \n" \
+"		const float4 u1_pq = read_imagef(U1, smp, p + q);  	        									          \n" \
+"		const float4 dist  = (u1 - u1_pq) * (u1 - u1_pq);														  \n" \
+"		const float  val   = dist.x + dist.y + dist.z;                                                            \n" \
+"		write_imagef(U4, p, (float4) val);					    		    								      \n" \
+"	} else if (CHECK_FLAG(COLOR_RGB)) {	    																	  \n" \
+"		const float4 u1    = read_imagef(U1, smp, p    );	         		        						      \n" \
+"		const float4 u1_pq = read_imagef(U1, smp, p + q);	        	        								  \n" \
+"		const float4 wgh   = (float4) (wRED, wGREEN, wBLUE, wALPHA);											  \n" \
+"		const float4 dist  = wgh * (u1 - u1_pq) * (u1 - u1_pq);												      \n" \
+"		const float  val   = dist.x + dist.y + dist.z;                                                            \n" \
+"		write_imagef(U4, p, (float4) val);	           					    								      \n" \
+"	}																											  \n" \
 "}																												  ";
 
 static const char* source_code_spatial =
