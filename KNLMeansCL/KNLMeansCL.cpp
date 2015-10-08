@@ -143,7 +143,7 @@ KNLMeansClass::KNLMeansClass(PClip _child, const int _d, const int _a, const int
     
     // Creates an OpenCL context, 2D images and buffers object.
     idmn[0] = vi.width;
-    idmn[1] = (lsb ? (vi.height / 2) : (vi.height));
+    idmn[1] = lsb ? (vi.height / 2) : (vi.height);
     idmn[2] = vi.height;
     context = clCreateContext(NULL, 1, &deviceID, NULL, NULL, NULL);
     const cl_image_format image_format = { channel_order, channel_type };
@@ -205,6 +205,11 @@ KNLMeansClass::KNLMeansClass(PClip _child, const int _d, const int _a, const int
     setlocale(LC_ALL, "");
 
     // Creates kernel objects.
+    kernel[nlmSpatialDistance] = clCreateKernel(program, "nlmSpatialDistance", NULL);
+    kernel[nlmSpatialHorizontal] = clCreateKernel(program, "nlmSpatialHorizontal", NULL);
+    kernel[nlmSpatialVertical] = clCreateKernel(program, "nlmSpatialVertical", NULL);
+    kernel[nlmSpatialAccumulation] = clCreateKernel(program, "nlmSpatialAccumulation", NULL);
+    kernel[nlmSpatialFinish] = clCreateKernel(program, "nlmSpatialFinish", NULL);
     kernel[nlmDistanceLeft] = clCreateKernel(program, "nlmDistanceLeft", NULL);
     kernel[nlmDistanceRight] = clCreateKernel(program, "nlmDistanceRight", NULL);
     kernel[nlmHorizontal] = clCreateKernel(program, "nlmHorizontal", NULL);
@@ -215,7 +220,26 @@ KNLMeansClass::KNLMeansClass(PClip _child, const int _d, const int _a, const int
     kernel[nlmUnpack] = clCreateKernel(program, "nlmUnpack", NULL);
 
     // Sets kernel arguments.
-    ret = clSetKernelArg(kernel[nlmDistanceLeft], 0, sizeof(cl_mem), &mem_in[(clip_t & EXTRA_NONE) ? 0 : 1]);
+    ret = clSetKernelArg(kernel[nlmSpatialDistance], 0, sizeof(cl_mem), &mem_in[(clip_t & EXTRA_NONE) ? 0 : 1]);
+    ret |= clSetKernelArg(kernel[nlmSpatialDistance], 1, sizeof(cl_mem), &mem_U[1]);
+    ret |= clSetKernelArg(kernel[nlmSpatialDistance], 2, 2 * sizeof(cl_int), &idmn);
+    ret |= clSetKernelArg(kernel[nlmSpatialHorizontal], 0, sizeof(cl_mem), &mem_U[1]);
+    ret |= clSetKernelArg(kernel[nlmSpatialHorizontal], 1, sizeof(cl_mem), &mem_U[2]);
+    ret |= clSetKernelArg(kernel[nlmSpatialHorizontal], 2, 2 * sizeof(cl_int), &idmn);
+    ret |= clSetKernelArg(kernel[nlmSpatialVertical], 0, sizeof(cl_mem), &mem_U[2]);
+    ret |= clSetKernelArg(kernel[nlmSpatialVertical], 1, sizeof(cl_mem), &mem_U[1]);
+    ret |= clSetKernelArg(kernel[nlmSpatialVertical], 2, 2 * sizeof(cl_int), &idmn);
+    ret |= clSetKernelArg(kernel[nlmSpatialAccumulation], 0, sizeof(cl_mem), &mem_in[0]);
+    ret |= clSetKernelArg(kernel[nlmSpatialAccumulation], 1, sizeof(cl_mem), &mem_U[0]);
+    ret |= clSetKernelArg(kernel[nlmSpatialAccumulation], 2, sizeof(cl_mem), &mem_U[1]);
+    ret |= clSetKernelArg(kernel[nlmSpatialAccumulation], 3, sizeof(cl_mem), &mem_U[3]);
+    ret |= clSetKernelArg(kernel[nlmSpatialAccumulation], 4, 2 * sizeof(cl_int), &idmn);
+    ret |= clSetKernelArg(kernel[nlmSpatialFinish], 0, sizeof(cl_mem), &mem_in[0]);
+    ret |= clSetKernelArg(kernel[nlmSpatialFinish], 1, sizeof(cl_mem), &mem_out);
+    ret |= clSetKernelArg(kernel[nlmSpatialFinish], 2, sizeof(cl_mem), &mem_U[0]);
+    ret |= clSetKernelArg(kernel[nlmSpatialFinish], 3, sizeof(cl_mem), &mem_U[3]);
+    ret |= clSetKernelArg(kernel[nlmSpatialFinish], 4, 2 * sizeof(cl_int), &idmn);
+    ret |= clSetKernelArg(kernel[nlmDistanceLeft], 0, sizeof(cl_mem), &mem_in[(clip_t & EXTRA_NONE) ? 0 : 1]);
     ret |= clSetKernelArg(kernel[nlmDistanceLeft], 1, sizeof(cl_mem), &mem_U[1]);
     ret |= clSetKernelArg(kernel[nlmDistanceLeft], 2, 2 * sizeof(cl_int), &idmn);
     ret |= clSetKernelArg(kernel[nlmDistanceRight], 0, sizeof(cl_mem), &mem_in[(clip_t & EXTRA_NONE) ? 0 : 1]);
@@ -769,6 +793,11 @@ KNLMeansClass::~KNLMeansClass() {
     clReleaseKernel(kernel[nlmHorizontal]);
     clReleaseKernel(kernel[nlmDistanceRight]);
     clReleaseKernel(kernel[nlmDistanceLeft]);
+    clReleaseKernel(kernel[nlmSpatialFinish]);
+    clReleaseKernel(kernel[nlmSpatialAccumulation]);
+    clReleaseKernel(kernel[nlmSpatialVertical]);
+    clReleaseKernel(kernel[nlmSpatialHorizontal]);
+    clReleaseKernel(kernel[nlmSpatialDistance]);
     clReleaseProgram(program);
     clReleaseContext(context);
 }
@@ -799,6 +828,11 @@ static void VS_CC VapourSynthPluginFree(void *instanceData, VSCore *core, const 
     clReleaseKernel(d->kernel[nlmHorizontal]);
     clReleaseKernel(d->kernel[nlmDistanceRight]);
     clReleaseKernel(d->kernel[nlmDistanceLeft]);
+    clReleaseKernel(d->kernel[nlmSpatialFinish]);
+    clReleaseKernel(d->kernel[nlmSpatialAccumulation]);
+    clReleaseKernel(d->kernel[nlmSpatialVertical]);
+    clReleaseKernel(d->kernel[nlmSpatialHorizontal]);
+    clReleaseKernel(d->kernel[nlmSpatialDistance]);
     clReleaseProgram(d->program);
     clReleaseContext(d->context);
     free(d);
@@ -1125,6 +1159,11 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
     setlocale(LC_ALL, "");
 
     // Creates kernel objects.
+    d.kernel[nlmSpatialDistance] = clCreateKernel(d.program, "nlmSpatialDistance", NULL);
+    d.kernel[nlmSpatialHorizontal] = clCreateKernel(d.program, "nlmSpatialHorizontal", NULL);
+    d.kernel[nlmSpatialVertical] = clCreateKernel(d.program, "nlmSpatialVertical", NULL);
+    d.kernel[nlmSpatialAccumulation] = clCreateKernel(d.program, "nlmSpatialAccumulation", NULL);
+    d.kernel[nlmSpatialFinish] = clCreateKernel(d.program, "nlmSpatialFinish", NULL);
     d.kernel[nlmDistanceLeft] = clCreateKernel(d.program, "nlmDistanceLeft", NULL);
     d.kernel[nlmDistanceRight] = clCreateKernel(d.program, "nlmDistanceRight", NULL);
     d.kernel[nlmHorizontal] = clCreateKernel(d.program, "nlmHorizontal", NULL);
@@ -1135,7 +1174,26 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
     d.kernel[nlmUnpack] = clCreateKernel(d.program, "nlmUnpack", NULL);
 
     // Sets kernel arguments.
-    ret = clSetKernelArg(d.kernel[nlmDistanceLeft], 0, sizeof(cl_mem), &d.mem_in[(d.clip_t & EXTRA_NONE) ? 0 : 1]);
+    ret = clSetKernelArg(d.kernel[nlmSpatialDistance], 0, sizeof(cl_mem), &d.mem_in[(d.clip_t & EXTRA_NONE) ? 0 : 1]);
+    ret |= clSetKernelArg(d.kernel[nlmSpatialDistance], 1, sizeof(cl_mem), &d.mem_U[1]);
+    ret |= clSetKernelArg(d.kernel[nlmSpatialDistance], 2, 2 * sizeof(cl_int), &d.idmn);
+    ret |= clSetKernelArg(d.kernel[nlmSpatialHorizontal], 0, sizeof(cl_mem), &d.mem_U[1]);
+    ret |= clSetKernelArg(d.kernel[nlmSpatialHorizontal], 1, sizeof(cl_mem), &d.mem_U[2]);
+    ret |= clSetKernelArg(d.kernel[nlmSpatialHorizontal], 2, 2 * sizeof(cl_int), &d.idmn);
+    ret |= clSetKernelArg(d.kernel[nlmSpatialVertical], 0, sizeof(cl_mem), &d.mem_U[2]);
+    ret |= clSetKernelArg(d.kernel[nlmSpatialVertical], 1, sizeof(cl_mem), &d.mem_U[1]);
+    ret |= clSetKernelArg(d.kernel[nlmSpatialVertical], 2, 2 * sizeof(cl_int), &d.idmn);
+    ret |= clSetKernelArg(d.kernel[nlmSpatialAccumulation], 0, sizeof(cl_mem), &d.mem_in[0]);
+    ret |= clSetKernelArg(d.kernel[nlmSpatialAccumulation], 1, sizeof(cl_mem), &d.mem_U[0]);
+    ret |= clSetKernelArg(d.kernel[nlmSpatialAccumulation], 2, sizeof(cl_mem), &d.mem_U[1]);
+    ret |= clSetKernelArg(d.kernel[nlmSpatialAccumulation], 3, sizeof(cl_mem), &d.mem_U[3]);
+    ret |= clSetKernelArg(d.kernel[nlmSpatialAccumulation], 4, 2 * sizeof(cl_int), &d.idmn);
+    ret |= clSetKernelArg(d.kernel[nlmSpatialFinish], 0, sizeof(cl_mem), &d.mem_in[0]);
+    ret |= clSetKernelArg(d.kernel[nlmSpatialFinish], 1, sizeof(cl_mem), &d.mem_out);
+    ret |= clSetKernelArg(d.kernel[nlmSpatialFinish], 2, sizeof(cl_mem), &d.mem_U[0]);
+    ret |= clSetKernelArg(d.kernel[nlmSpatialFinish], 3, sizeof(cl_mem), &d.mem_U[3]);
+    ret |= clSetKernelArg(d.kernel[nlmSpatialFinish], 4, 2 * sizeof(cl_int), &d.idmn);
+    ret |= clSetKernelArg(d.kernel[nlmDistanceLeft], 0, sizeof(cl_mem), &d.mem_in[(d.clip_t & EXTRA_NONE) ? 0 : 1]);
     ret |= clSetKernelArg(d.kernel[nlmDistanceLeft], 1, sizeof(cl_mem), &d.mem_U[1]);
     ret |= clSetKernelArg(d.kernel[nlmDistanceLeft], 2, 2 * sizeof(cl_int), &d.idmn);
     ret |= clSetKernelArg(d.kernel[nlmDistanceRight], 0, sizeof(cl_mem), &d.mem_in[(d.clip_t & EXTRA_NONE) ? 0 : 1]);
