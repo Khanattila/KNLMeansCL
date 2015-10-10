@@ -19,15 +19,30 @@
 #ifndef __OCL_UTILS_H__
 #define __OCL_UTILS_H__
 
-#define STR(code) case code: return #code
-
+//////////////////////////////////////////
+// Type Definition
 typedef struct _ocl_device_packed {
     cl_platform_id platform;
     cl_device_id device;
 } ocl_device_packed;
 
 //////////////////////////////////////////
+// Common
+inline size_t mrounds(const size_t num, const size_t mul) {
+    return (size_t) ceil((double) num / (double) mul) * mul;
+}
+
+template <typename T>T inline fastmax(const T& left, const T& right) {
+    return left > right ? left : right;
+}
+
+template <typename T>T inline clamp(const T& value, const T& low, const T& high) {
+    return value < low ? low : (value > high ? high : value);
+}
+
+//////////////////////////////////////////
 // oclErrorToString
+#define STR(code) case code: return #code
 const char* oclErrorToString(cl_int err) {
     switch (err) {
         STR(CL_DEVICE_NOT_FOUND);

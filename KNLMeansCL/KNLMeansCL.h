@@ -99,15 +99,3 @@ typedef struct {
     bool equals(const VSVideoInfo *v, const VSVideoInfo *w);
 } KNLMeansData;
 #endif //__VAPOURSYNTH_H__
-
-inline size_t mrounds(const size_t num, const size_t mul) {
-    return (size_t) ceil((double) num / (double) mul) * mul;
-}
-
-template <typename T>T inline fastmax(const T& left, const T& right) {
-    return left > right ? left : right;
-}
-
-template <typename T>T inline clamp(const T& value, const T& low, const T& high) {
-    return value < low ? low : (value > high ? high : value);
-}
