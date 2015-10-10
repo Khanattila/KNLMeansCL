@@ -670,13 +670,13 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
                 const size_t origin_in[3] = { 0, 0, (size_t) t_pk };
                 switch (d->clip_t) {
                     case (EXTRA_NONE | CLIP_UNORM | COLOR_GRAY) :
-                        ret |= clEnqueueWriteImage(command_queue, d->mem_in[0], CL_TRUE, origin, region,
+                        ret |= clEnqueueWriteImage(command_queue, d->mem_in[0], CL_TRUE, origin_in, region,
                             (size_t) vsapi->getStride(src, 0), 0, vsapi->getReadPtr(src, 0), 0, NULL, NULL);
                         break;
                     case (EXTRA_CLIP | CLIP_UNORM | COLOR_GRAY) :
-                        ret |= clEnqueueWriteImage(command_queue, d->mem_in[0], CL_TRUE, origin, region,
-                        (size_t) vsapi->getStride(src, 0), 0, vsapi->getReadPtr(src, 0), 0, NULL, NULL);
-                        ret |= clEnqueueWriteImage(command_queue, d->mem_in[1], CL_TRUE, origin, region,
+                        ret |= clEnqueueWriteImage(command_queue, d->mem_in[0], CL_TRUE, origin_in, region,
+                            (size_t) vsapi->getStride(src, 0), 0, vsapi->getReadPtr(src, 0), 0, NULL, NULL);
+                        ret |= clEnqueueWriteImage(command_queue, d->mem_in[1], CL_TRUE, origin_in, region,
                             (size_t) vsapi->getStride(ref, 0), 0, vsapi->getReadPtr(ref, 0), 0, NULL, NULL);
                         break;
                     case (EXTRA_NONE | CLIP_UNSIGNED | COLOR_GRAY) :
@@ -794,17 +794,20 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
                     ret |= clEnqueueWriteImage(command_queue, d->mem_P[0], CL_TRUE, origin, region,
                         (size_t) vsapi->getStride(src, 0), 0, vsapi->getReadPtr(src, 0), 0, NULL, NULL);
                     ret |= clSetKernelArg(d->kernel[nlmSpatialPack], 3, sizeof(cl_mem), &d->mem_in[0]);
-                    ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[nlmSpatialPack], 2, NULL, global_work, NULL, 0, NULL, NULL);
+                    ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[nlmSpatialPack],
+                        2, NULL, global_work, NULL, 0, NULL, NULL);
                     break;
                 case (EXTRA_CLIP | CLIP_UNSIGNED | COLOR_GRAY) :
                     ret |= clEnqueueWriteImage(command_queue, d->mem_P[0], CL_TRUE, origin, region,
                         (size_t) vsapi->getStride(src, 0), 0, vsapi->getReadPtr(src, 0), 0, NULL, NULL);
                     ret |= clSetKernelArg(d->kernel[nlmSpatialPack], 3, sizeof(cl_mem), &d->mem_in[0]);
-                    ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[nlmSpatialPack], 2, NULL, global_work, NULL, 0, NULL, NULL);
+                    ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[nlmSpatialPack],
+                        2, NULL, global_work, NULL, 0, NULL, NULL);
                     ret |= clEnqueueWriteImage(command_queue, d->mem_P[1], CL_TRUE, origin, region,
                         (size_t) vsapi->getStride(ref, 0), 0, vsapi->getReadPtr(ref, 0), 0, NULL, NULL);
                     ret |= clSetKernelArg(d->kernel[nlmSpatialPack], 3, sizeof(cl_mem), &d->mem_in[1]);
-                    ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[nlmSpatialPack], 2, NULL, global_work, NULL, 0, NULL, NULL);
+                    ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[nlmSpatialPack],
+                        2, NULL, global_work, NULL, 0, NULL, NULL);
                     break;
                 case (EXTRA_NONE | CLIP_UNORM | COLOR_YUV) :
                 case (EXTRA_NONE | CLIP_UNSIGNED | COLOR_YUV) :
@@ -817,7 +820,8 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
                     ret |= clEnqueueWriteImage(command_queue, d->mem_P[2], CL_TRUE, origin, region,
                         (size_t) vsapi->getStride(src, 2), 0, vsapi->getReadPtr(src, 2), 0, NULL, NULL);
                     ret |= clSetKernelArg(d->kernel[nlmSpatialPack], 3, sizeof(cl_mem), &d->mem_in[0]);
-                    ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[nlmSpatialPack], 2, NULL, global_work, NULL, 0, NULL, NULL);
+                    ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[nlmSpatialPack],
+                        2, NULL, global_work, NULL, 0, NULL, NULL);
                     break;
                 case (EXTRA_CLIP | CLIP_UNORM | COLOR_YUV) :
                 case (EXTRA_CLIP | CLIP_UNSIGNED | COLOR_YUV) :
@@ -830,7 +834,8 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
                     ret |= clEnqueueWriteImage(command_queue, d->mem_P[2], CL_TRUE, origin, region,
                         (size_t) vsapi->getStride(src, 2), 0, vsapi->getReadPtr(src, 2), 0, NULL, NULL);
                     ret |= clSetKernelArg(d->kernel[nlmSpatialPack], 3, sizeof(cl_mem), &d->mem_in[0]);
-                    ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[nlmSpatialPack], 2, NULL, global_work, NULL, 0, NULL, NULL);
+                    ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[nlmSpatialPack],
+                        2, NULL, global_work, NULL, 0, NULL, NULL);
                     ret |= clEnqueueWriteImage(command_queue, d->mem_P[0], CL_TRUE, origin, region,
                         (size_t) vsapi->getStride(ref, 0), 0, vsapi->getReadPtr(ref, 0), 0, NULL, NULL);
                     ret |= clEnqueueWriteImage(command_queue, d->mem_P[1], CL_TRUE, origin, region,
@@ -838,7 +843,8 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
                     ret |= clEnqueueWriteImage(command_queue, d->mem_P[2], CL_TRUE, origin, region,
                         (size_t) vsapi->getStride(ref, 2), 0, vsapi->getReadPtr(ref, 2), 0, NULL, NULL);
                     ret |= clSetKernelArg(d->kernel[nlmSpatialPack], 3, sizeof(cl_mem), &d->mem_in[1]);
-                    ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[nlmSpatialPack], 2, NULL, global_work, NULL, 0, NULL, NULL);
+                    ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[nlmSpatialPack],
+                        2, NULL, global_work, NULL, 0, NULL, NULL);
                     break;
                 default:
                     vsapi->setFilterError("knlm.KNLMeansCL: knlmeansGetFrame error!", frameCtx);
@@ -864,7 +870,7 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
                 }
             }
             ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[nlmSpatialFinish], 2, NULL, global_work, NULL, 0, NULL, NULL);
-        }  
+        }
         switch (d->clip_t) {
             case (EXTRA_NONE | CLIP_UNORM | COLOR_GRAY) :
             case (EXTRA_CLIP | CLIP_UNORM | COLOR_GRAY) :
