@@ -429,7 +429,7 @@ static const char* kernel_source_code =
 "																												  \n" \
 "__kernel																										  \n" \
 "void nlmSpatialPack(__read_only image2d_t R, __read_only image2d_t G, __read_only image2d_t B,   	    		  \n" \
-"__write_only image2d_t U1, const int t, const int2 dim) {    										        	  \n" \
+"__write_only image2d_t U1, const int2 dim) {                										        	  \n" \
 "																												  \n" \
 "	const int x = get_global_id(0);																				  \n" \
 "	const int y = get_global_id(1);																				  \n" \
