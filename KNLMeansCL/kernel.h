@@ -19,6 +19,8 @@
 #ifndef __KERNEL_H__
 #define __KERNEL_H__
 
+//////////////////////////////////////////
+// Type Definition
 typedef enum _nlm_kernel_function {
     nlmSpatialDistance,
     nlmSpatialHorizontal,
@@ -37,9 +39,10 @@ typedef enum _nlm_kernel_function {
     nlmNumberKernels
 } nlm_kernel_function;
 
-//////////////////////////////////////////
-// OpenCL
 static const cl_uint H_BLOCK_X = 32, H_BLOCK_Y = 4, V_BLOCK_X = 32, V_BLOCK_Y = 4;
+
+//////////////////////////////////////////
+// Kernel Source Code
 static const char* kernel_source_code =
 "																												  \n" \
 "#define wRED    0.6664827524f        	                   														  \n" \
