@@ -336,32 +336,35 @@ PVideoFrame __stdcall KNLMeansClass::GetFrame(int n, IScriptEnvironment* env) {
             switch (clip_t) {
                 case (EXTRA_NONE | CLIP_UNORM | COLOR_GRAY) :
                     ret |= clEnqueueWriteImage(command_queue, mem_in[0], CL_TRUE, origin_in, region,
-                    (size_t) src->GetPitch(PLANAR_Y), 0, src->GetReadPtr(PLANAR_Y), 0, NULL, NULL);
+                        (size_t) src->GetPitch(PLANAR_Y), 0, src->GetReadPtr(PLANAR_Y), 0, NULL, NULL);
                     break;
                 case (EXTRA_CLIP | CLIP_UNORM | COLOR_GRAY) :
                     ret |= clEnqueueWriteImage(command_queue, mem_in[0], CL_TRUE, origin_in, region,
-                    (size_t) src->GetPitch(PLANAR_Y), 0, src->GetReadPtr(PLANAR_Y), 0, NULL, NULL);
+                        (size_t) src->GetPitch(PLANAR_Y), 0, src->GetReadPtr(PLANAR_Y), 0, NULL, NULL);
                     ret |= clEnqueueWriteImage(command_queue, mem_in[1], CL_TRUE, origin_in, region,
                         (size_t) ref->GetPitch(PLANAR_Y), 0, ref->GetReadPtr(PLANAR_Y), 0, NULL, NULL);
                     break;
                 case (EXTRA_NONE | CLIP_STACKED | COLOR_GRAY) :
                     ret |= clEnqueueWriteImage(command_queue, mem_P[0], CL_TRUE, origin, region_p,
-                    (size_t) src->GetPitch(PLANAR_Y), 0, src->GetReadPtr(PLANAR_Y), 0, NULL, NULL);
+                        (size_t) src->GetPitch(PLANAR_Y), 0, src->GetReadPtr(PLANAR_Y), 0, NULL, NULL);
                     ret |= clSetKernelArg(kernel[nlmPack], 3, sizeof(cl_mem), &mem_in[0]);
                     ret |= clSetKernelArg(kernel[nlmPack], 4, sizeof(cl_int), &t_pk);
-                    ret |= clEnqueueNDRangeKernel(command_queue, kernel[nlmPack], 2, NULL, global_work, NULL, 0, NULL, NULL);
+                    ret |= clEnqueueNDRangeKernel(command_queue, kernel[nlmPack],
+                        2, NULL, global_work, NULL, 0, NULL, NULL);
                     break;
                 case (EXTRA_CLIP | CLIP_STACKED | COLOR_GRAY) :
                     ret |= clEnqueueWriteImage(command_queue, mem_P[0], CL_TRUE, origin, region_p,
-                    (size_t) src->GetPitch(PLANAR_Y), 0, src->GetReadPtr(PLANAR_Y), 0, NULL, NULL);
+                        (size_t) src->GetPitch(PLANAR_Y), 0, src->GetReadPtr(PLANAR_Y), 0, NULL, NULL);
                     ret |= clSetKernelArg(kernel[nlmPack], 3, sizeof(cl_mem), &mem_in[0]);
                     ret |= clSetKernelArg(kernel[nlmPack], 4, sizeof(cl_int), &t_pk);
-                    ret |= clEnqueueNDRangeKernel(command_queue, kernel[nlmPack], 2, NULL, global_work, NULL, 0, NULL, NULL);
+                    ret |= clEnqueueNDRangeKernel(command_queue, kernel[nlmPack],
+                        2, NULL, global_work, NULL, 0, NULL, NULL);
                     ret |= clEnqueueWriteImage(command_queue, mem_P[1], CL_TRUE, origin, region_p,
                         (size_t) ref->GetPitch(PLANAR_Y), 0, ref->GetReadPtr(PLANAR_Y), 0, NULL, NULL);
                     ret |= clSetKernelArg(kernel[nlmPack], 3, sizeof(cl_mem), &mem_in[1]);
                     ret |= clSetKernelArg(kernel[nlmPack], 4, sizeof(cl_int), &t_pk);
-                    ret |= clEnqueueNDRangeKernel(command_queue, kernel[nlmPack], 2, NULL, global_work, NULL, 0, NULL, NULL);
+                    ret |= clEnqueueNDRangeKernel(command_queue, kernel[nlmPack],
+                        2, NULL, global_work, NULL, 0, NULL, NULL);
                     break;
                 case (EXTRA_NONE | CLIP_UNORM | COLOR_YUV) :
                 case (EXTRA_NONE | CLIP_STACKED | COLOR_YUV) :
@@ -373,7 +376,8 @@ PVideoFrame __stdcall KNLMeansClass::GetFrame(int n, IScriptEnvironment* env) {
                         (size_t) src->GetPitch(PLANAR_V), 0, src->GetReadPtr(PLANAR_V), 0, NULL, NULL);
                     ret |= clSetKernelArg(kernel[nlmPack], 3, sizeof(cl_mem), &mem_in[0]);
                     ret |= clSetKernelArg(kernel[nlmPack], 4, sizeof(cl_int), &t_pk);
-                    ret |= clEnqueueNDRangeKernel(command_queue, kernel[nlmPack], 2, NULL, global_work, NULL, 0, NULL, NULL);
+                    ret |= clEnqueueNDRangeKernel(command_queue, kernel[nlmPack],
+                        2, NULL, global_work, NULL, 0, NULL, NULL);
                     break;
                 case (EXTRA_CLIP | CLIP_UNORM | COLOR_YUV) :
                 case (EXTRA_CLIP | CLIP_STACKED | COLOR_YUV) :
@@ -385,7 +389,8 @@ PVideoFrame __stdcall KNLMeansClass::GetFrame(int n, IScriptEnvironment* env) {
                         (size_t) src->GetPitch(PLANAR_V), 0, src->GetReadPtr(PLANAR_V), 0, NULL, NULL);
                     ret |= clSetKernelArg(kernel[nlmPack], 3, sizeof(cl_mem), &mem_in[0]);
                     ret |= clSetKernelArg(kernel[nlmPack], 4, sizeof(cl_int), &t_pk);
-                    ret |= clEnqueueNDRangeKernel(command_queue, kernel[nlmPack], 2, NULL, global_work, NULL, 0, NULL, NULL);
+                    ret |= clEnqueueNDRangeKernel(command_queue, kernel[nlmPack],
+                        2, NULL, global_work, NULL, 0, NULL, NULL);
                     ret |= clEnqueueWriteImage(command_queue, mem_P[0], CL_TRUE, origin, region_p,
                         (size_t) ref->GetPitch(PLANAR_Y), 0, ref->GetReadPtr(PLANAR_Y), 0, NULL, NULL);
                     ret |= clEnqueueWriteImage(command_queue, mem_P[1], CL_TRUE, origin, region_p,
@@ -394,15 +399,16 @@ PVideoFrame __stdcall KNLMeansClass::GetFrame(int n, IScriptEnvironment* env) {
                         (size_t) ref->GetPitch(PLANAR_V), 0, ref->GetReadPtr(PLANAR_Y), 0, NULL, NULL);
                     ret |= clSetKernelArg(kernel[nlmPack], 3, sizeof(cl_mem), &mem_in[1]);
                     ret |= clSetKernelArg(kernel[nlmPack], 4, sizeof(cl_int), &t_pk);
-                    ret |= clEnqueueNDRangeKernel(command_queue, kernel[nlmPack], 2, NULL, global_work, NULL, 0, NULL, NULL);
+                    ret |= clEnqueueNDRangeKernel(command_queue, kernel[nlmPack],
+                        2, NULL, global_work, NULL, 0, NULL, NULL);
                     break;
                 case (EXTRA_NONE | CLIP_UNORM | COLOR_RGB) :
                     ret |= clEnqueueWriteImage(command_queue, mem_in[0], CL_TRUE, origin_in, region,
-                    (size_t) src->GetPitch(), 0, src->GetReadPtr(), 0, NULL, NULL);
+                        (size_t) src->GetPitch(), 0, src->GetReadPtr(), 0, NULL, NULL);
                     break;
                 case (EXTRA_CLIP | CLIP_UNORM | COLOR_RGB) :
                     ret |= clEnqueueWriteImage(command_queue, mem_in[0], CL_TRUE, origin_in, region,
-                    (size_t) src->GetPitch(), 0, src->GetReadPtr(), 0, NULL, NULL);
+                        (size_t) src->GetPitch(), 0, src->GetReadPtr(), 0, NULL, NULL);
                     ret |= clEnqueueWriteImage(command_queue, mem_in[1], CL_TRUE, origin_in, region,
                         (size_t) ref->GetPitch(), 0, ref->GetReadPtr(), 0, NULL, NULL);
                     break;
@@ -461,17 +467,20 @@ PVideoFrame __stdcall KNLMeansClass::GetFrame(int n, IScriptEnvironment* env) {
                 ret |= clEnqueueWriteImage(command_queue, mem_P[0], CL_TRUE, origin, region_p,
                     (size_t) src->GetPitch(PLANAR_Y), 0, src->GetReadPtr(PLANAR_Y), 0, NULL, NULL);
                 ret |= clSetKernelArg(kernel[nlmSpatialPack], 3, sizeof(cl_mem), &mem_in[0]);
-                ret |= clEnqueueNDRangeKernel(command_queue, kernel[nlmSpatialPack], 2, NULL, global_work, NULL, 0, NULL, NULL);
+                ret |= clEnqueueNDRangeKernel(command_queue, kernel[nlmSpatialPack],
+                    2, NULL, global_work, NULL, 0, NULL, NULL);
                 break;
             case (EXTRA_CLIP | CLIP_STACKED | COLOR_GRAY) :
                 ret |= clEnqueueWriteImage(command_queue, mem_P[0], CL_TRUE, origin, region_p,
                     (size_t) src->GetPitch(PLANAR_Y), 0, src->GetReadPtr(PLANAR_Y), 0, NULL, NULL);
                 ret |= clSetKernelArg(kernel[nlmSpatialPack], 3, sizeof(cl_mem), &mem_in[0]);
-                ret |= clEnqueueNDRangeKernel(command_queue, kernel[nlmSpatialPack], 2, NULL, global_work, NULL, 0, NULL, NULL);
+                ret |= clEnqueueNDRangeKernel(command_queue, kernel[nlmSpatialPack],
+                    2, NULL, global_work, NULL, 0, NULL, NULL);
                 ret |= clEnqueueWriteImage(command_queue, mem_P[1], CL_TRUE, origin, region_p,
                     (size_t) ref->GetPitch(PLANAR_Y), 0, ref->GetReadPtr(PLANAR_Y), 0, NULL, NULL);
                 ret |= clSetKernelArg(kernel[nlmSpatialPack], 3, sizeof(cl_mem), &mem_in[1]);
-                ret |= clEnqueueNDRangeKernel(command_queue, kernel[nlmSpatialPack], 2, NULL, global_work, NULL, 0, NULL, NULL);
+                ret |= clEnqueueNDRangeKernel(command_queue, kernel[nlmSpatialPack],
+                    2, NULL, global_work, NULL, 0, NULL, NULL);
                 break;
             case (EXTRA_NONE | CLIP_UNORM | COLOR_YUV) :
             case (EXTRA_NONE | CLIP_STACKED | COLOR_YUV) :
@@ -482,7 +491,8 @@ PVideoFrame __stdcall KNLMeansClass::GetFrame(int n, IScriptEnvironment* env) {
                 ret |= clEnqueueWriteImage(command_queue, mem_P[2], CL_TRUE, origin, region_p,
                     (size_t) src->GetPitch(PLANAR_V), 0, src->GetReadPtr(PLANAR_V), 0, NULL, NULL);
                 ret |= clSetKernelArg(kernel[nlmSpatialPack], 3, sizeof(cl_mem), &mem_in[0]);
-                ret |= clEnqueueNDRangeKernel(command_queue, kernel[nlmSpatialPack], 2, NULL, global_work, NULL, 0, NULL, NULL);
+                ret |= clEnqueueNDRangeKernel(command_queue, kernel[nlmSpatialPack],
+                    2, NULL, global_work, NULL, 0, NULL, NULL);
                 break;
             case (EXTRA_CLIP | CLIP_UNORM | COLOR_YUV) :
             case (EXTRA_CLIP | CLIP_STACKED | COLOR_YUV) :
@@ -493,7 +503,8 @@ PVideoFrame __stdcall KNLMeansClass::GetFrame(int n, IScriptEnvironment* env) {
                 ret |= clEnqueueWriteImage(command_queue, mem_P[2], CL_TRUE, origin, region_p,
                     (size_t) src->GetPitch(PLANAR_V), 0, src->GetReadPtr(PLANAR_V), 0, NULL, NULL);
                 ret |= clSetKernelArg(kernel[nlmSpatialPack], 3, sizeof(cl_mem), &mem_in[0]);
-                ret |= clEnqueueNDRangeKernel(command_queue, kernel[nlmSpatialPack], 2, NULL, global_work, NULL, 0, NULL, NULL);
+                ret |= clEnqueueNDRangeKernel(command_queue, kernel[nlmSpatialPack],
+                    2, NULL, global_work, NULL, 0, NULL, NULL);
                 ret |= clEnqueueWriteImage(command_queue, mem_P[0], CL_TRUE, origin, region_p,
                     (size_t) ref->GetPitch(PLANAR_Y), 0, ref->GetReadPtr(PLANAR_Y), 0, NULL, NULL);
                 ret |= clEnqueueWriteImage(command_queue, mem_P[1], CL_TRUE, origin, region_p,
@@ -501,7 +512,8 @@ PVideoFrame __stdcall KNLMeansClass::GetFrame(int n, IScriptEnvironment* env) {
                 ret |= clEnqueueWriteImage(command_queue, mem_P[2], CL_TRUE, origin, region_p,
                     (size_t) ref->GetPitch(PLANAR_V), 0, ref->GetReadPtr(PLANAR_Y), 0, NULL, NULL);
                 ret |= clSetKernelArg(kernel[nlmSpatialPack], 3, sizeof(cl_mem), &mem_in[1]);
-                ret |= clEnqueueNDRangeKernel(command_queue, kernel[nlmSpatialPack], 2, NULL, global_work, NULL, 0, NULL, NULL);
+                ret |= clEnqueueNDRangeKernel(command_queue, kernel[nlmSpatialPack],
+                    2, NULL, global_work, NULL, 0, NULL, NULL);
                 break;
             case (EXTRA_NONE | CLIP_UNORM | COLOR_RGB) :
                 ret |= clEnqueueWriteImage(command_queue, mem_in[0], CL_TRUE, origin, region,
@@ -544,7 +556,8 @@ PVideoFrame __stdcall KNLMeansClass::GetFrame(int n, IScriptEnvironment* env) {
             break;
         case (EXTRA_NONE | CLIP_STACKED | COLOR_GRAY) :
         case (EXTRA_CLIP | CLIP_STACKED | COLOR_GRAY) :
-            ret |= clEnqueueNDRangeKernel(command_queue, kernel[nlmUnpack], 2, NULL, global_work, NULL, 0, NULL, NULL);
+            ret |= clEnqueueNDRangeKernel(command_queue, kernel[nlmUnpack],
+                2, NULL, global_work, NULL, 0, NULL, NULL);
             ret |= clEnqueueReadImage(command_queue, mem_P[0], CL_TRUE, origin, region_p,
                 (size_t) dst->GetPitch(PLANAR_Y), 0, dst->GetWritePtr(PLANAR_Y), 0, NULL, NULL); 
             break;
@@ -552,7 +565,8 @@ PVideoFrame __stdcall KNLMeansClass::GetFrame(int n, IScriptEnvironment* env) {
         case (EXTRA_CLIP | CLIP_UNORM | COLOR_YUV) :
         case (EXTRA_NONE | CLIP_STACKED | COLOR_YUV) :
         case (EXTRA_CLIP | CLIP_STACKED | COLOR_YUV) :
-            ret |= clEnqueueNDRangeKernel(command_queue, kernel[nlmUnpack], 2, NULL, global_work, NULL, 0, NULL, NULL);
+            ret |= clEnqueueNDRangeKernel(command_queue, kernel[nlmUnpack], 2,
+                NULL, global_work, NULL, 0, NULL, NULL);
             ret |= clEnqueueReadImage(command_queue, mem_P[0], CL_TRUE, origin, region_p,
                 (size_t) dst->GetPitch(PLANAR_Y), 0, dst->GetWritePtr(PLANAR_Y), 0, NULL, NULL);
             ret |= clEnqueueReadImage(command_queue, mem_P[1], CL_TRUE, origin, region_p,
@@ -684,19 +698,22 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
                             (size_t) vsapi->getStride(src, 0), 0, vsapi->getReadPtr(src, 0), 0, NULL, NULL);
                         ret |= clSetKernelArg(d->kernel[nlmPack], 3, sizeof(cl_mem), &d->mem_in[0]);
                         ret |= clSetKernelArg(d->kernel[nlmPack], 4, sizeof(cl_int), &t_pk);
-                        ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[nlmPack], 2, NULL, global_work, NULL, 0, NULL, NULL);
+                        ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[nlmPack],
+                            2, NULL, global_work, NULL, 0, NULL, NULL);
                         break;
                     case (EXTRA_CLIP | CLIP_UNSIGNED | COLOR_GRAY) :
                         ret |= clEnqueueWriteImage(command_queue, d->mem_P[0], CL_TRUE, origin, region,
                             (size_t) vsapi->getStride(src, 0), 0, vsapi->getReadPtr(src, 0), 0, NULL, NULL);
                         ret |= clSetKernelArg(d->kernel[nlmPack], 3, sizeof(cl_mem), &d->mem_in[0]);
                         ret |= clSetKernelArg(d->kernel[nlmPack], 4, sizeof(cl_int), &t_pk);
-                        ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[nlmPack], 2, NULL, global_work, NULL, 0, NULL, NULL);
+                        ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[nlmPack],
+                            2, NULL, global_work, NULL, 0, NULL, NULL);
                         ret |= clEnqueueWriteImage(command_queue, d->mem_P[1], CL_TRUE, origin, region,
                             (size_t) vsapi->getStride(ref, 0), 0, vsapi->getReadPtr(ref, 0), 0, NULL, NULL);
                         ret |= clSetKernelArg(d->kernel[nlmPack], 3, sizeof(cl_mem), &d->mem_in[1]);
                         ret |= clSetKernelArg(d->kernel[nlmPack], 4, sizeof(cl_int), &t_pk);
-                        ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[nlmPack], 2, NULL, global_work, NULL, 0, NULL, NULL);
+                        ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[nlmPack],
+                            2, NULL, global_work, NULL, 0, NULL, NULL);
                         break;
                     case (EXTRA_NONE | CLIP_UNORM | COLOR_YUV) :
                     case (EXTRA_NONE | CLIP_UNSIGNED | COLOR_YUV) :
@@ -710,7 +727,8 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
                             (size_t) vsapi->getStride(src, 2), 0, vsapi->getReadPtr(src, 2), 0, NULL, NULL);
                         ret |= clSetKernelArg(d->kernel[nlmPack], 3, sizeof(cl_mem), &d->mem_in[0]);
                         ret |= clSetKernelArg(d->kernel[nlmPack], 4, sizeof(cl_int), &t_pk);
-                        ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[nlmPack], 2, NULL, global_work, NULL, 0, NULL, NULL);
+                        ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[nlmPack],
+                            2, NULL, global_work, NULL, 0, NULL, NULL);
                         break;
                     case (EXTRA_CLIP | CLIP_UNORM | COLOR_YUV) :
                     case (EXTRA_CLIP | CLIP_UNSIGNED | COLOR_YUV) :
@@ -724,7 +742,8 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
                             (size_t) vsapi->getStride(src, 2), 0, vsapi->getReadPtr(src, 2), 0, NULL, NULL);
                         ret |= clSetKernelArg(d->kernel[nlmPack], 3, sizeof(cl_mem), &d->mem_in[0]);
                         ret |= clSetKernelArg(d->kernel[nlmPack], 4, sizeof(cl_int), &t_pk);
-                        ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[nlmPack], 2, NULL, global_work, NULL, 0, NULL, NULL);
+                        ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[nlmPack],
+                            2, NULL, global_work, NULL, 0, NULL, NULL);
                         ret |= clEnqueueWriteImage(command_queue, d->mem_P[0], CL_TRUE, origin, region,
                             (size_t) vsapi->getStride(ref, 0), 0, vsapi->getReadPtr(ref, 0), 0, NULL, NULL);
                         ret |= clEnqueueWriteImage(command_queue, d->mem_P[1], CL_TRUE, origin, region,
@@ -733,7 +752,8 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
                             (size_t) vsapi->getStride(ref, 2), 0, vsapi->getReadPtr(ref, 2), 0, NULL, NULL);
                         ret |= clSetKernelArg(d->kernel[nlmPack], 3, sizeof(cl_mem), &d->mem_in[1]);
                         ret |= clSetKernelArg(d->kernel[nlmPack], 4, sizeof(cl_int), &t_pk);
-                        ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[nlmPack], 2, NULL, global_work, NULL, 0, NULL, NULL);
+                        ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[nlmPack],
+                            2, NULL, global_work, NULL, 0, NULL, NULL);
                         break;
                     default:
                         vsapi->setFilterError("knlm.KNLMeansCL: knlmeansGetFrame error!", frameCtx);
