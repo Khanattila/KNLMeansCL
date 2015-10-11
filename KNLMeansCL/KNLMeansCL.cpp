@@ -100,8 +100,8 @@ KNLMeansClass::KNLMeansClass(PClip _child, const int _d, const int _a, const int
     // Checks user value.
     if (d < 0)
         env->ThrowError("KNLMeansCL: d must be greater than or equal to 0!");
-    if (a < 0)
-        env->ThrowError("KNLMeansCL: a must be greater than or equal to 0!");
+    if (a < 1)
+        env->ThrowError("KNLMeansCL: a must be greater than or equal to 1!");
     if (s < 0 || s > 4)
         env->ThrowError("KNLMeansCL: s must be in range [0, 4]!");
     if (wmode < 0 || wmode > 2)
@@ -1231,8 +1231,8 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
         vsapi->freeNode(d.knot);
         return;
     }
-    if (d.a < 0) {
-        vsapi->setError(out, "knlm.KNLMeansCL: a must be greater than or equal to 0!");
+    if (d.a < 1) {
+        vsapi->setError(out, "knlm.KNLMeansCL: a must be greater than or equal to 1!");
         vsapi->freeNode(d.node);
         vsapi->freeNode(d.knot);
         return;
