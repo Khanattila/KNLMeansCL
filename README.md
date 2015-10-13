@@ -3,6 +3,7 @@
 
 **KNLMeansCL** is an optimized OpenCL implementation of the Non-local means de-noising algorithm. Every pixel is restored by the weighted average of all pixels in its search window. The level of averaging is determined by the filtering parameter h. 
 
+For maximum performance the plugin should run on the GPU.
 The library is written in C/C++ and the source is available under the GNU General Public License v3.0.
 
 ### AviSynth(+) and VapourSynth ###
