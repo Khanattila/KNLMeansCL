@@ -14,6 +14,11 @@
 *
 *	You should have received a copy of the GNU Lesser General Public License
 *	along with KNLMeansCL. If not, see <http://www.gnu.org/licenses/>.
+*   
+*   To speed up processing I use an algorithm proposed by B. Goossens,
+*   H.Q. Luong, J. Aelterman, A. Pizurica,  and W. Philips, "A GPU-Accelerated 
+*   Real-Time NLMeans Algorithm for Denoising Color Video Sequences",
+*   in Proc. ACIVS (2), 2010, pp.46-57. 
 */
 
 #ifndef __KERNEL_H__
