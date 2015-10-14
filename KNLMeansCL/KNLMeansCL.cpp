@@ -22,7 +22,7 @@
 #define DFT_cmode       false
 #define DFT_wmode       1
 #define DFT_h           1.2f
-#define DFT_ocl_device "DEFAULT"
+#define DFT_ocl_device "AUTO"
 #define DFT_ocl_id      0
 #define DFT_lsb         false
 #define DFT_info        false
@@ -61,7 +61,7 @@ inline bool KNLMeansData::equals(const VSVideoInfo *v, const VSVideoInfo *w) {
 #ifdef __AVISYNTH_6_H__
 KNLMeansClass::KNLMeansClass(PClip _child, const int _d, const int _a, const int _s, const bool _cmode, const int _wmode, const double _h,
     PClip _baby, const char* _ocl_device, const int _ocl_id, const bool _lsb, const bool _info, IScriptEnvironment* env) :
-    GenericVideoFilter(_child), d(_d), a(_a), s(_s), cmode(_cmode), wmode(_wmode), h(_h), baby(_baby), ocl_device(_ocl_device), 
+    GenericVideoFilter(_child), d(_d), a(_a), s(_s), cmode(_cmode), wmode(_wmode), h(_h), baby(_baby), ocl_device(_ocl_device),
     ocl_id(_ocl_id), lsb(_lsb), info(_info) {
 
     // Checks AviSynth Version.
@@ -108,7 +108,8 @@ KNLMeansClass::KNLMeansClass(PClip _child, const int _d, const int _a, const int
         env->ThrowError("KNLMeansCL: wmode must be in range [0, 2]!");
     if (h <= 0.0f)
         env->ThrowError("KNLMeansCL: h must be greater than 0!");
-    cl_device_type device_type = NULL;
+    cl_device_type device_type;
+    bool device_auto = false;
     if (!strcasecmp(ocl_device, "CPU")) {
         device_type = CL_DEVICE_TYPE_CPU;
     } else if (!strcasecmp(ocl_device, "GPU")) {
@@ -119,27 +120,64 @@ KNLMeansClass::KNLMeansClass(PClip _child, const int _d, const int _a, const int
         device_type = CL_DEVICE_TYPE_ALL;
     } else if (!strcasecmp(ocl_device, "DEFAULT")) {
         device_type = CL_DEVICE_TYPE_DEFAULT;
+    } else if (!strcasecmp(ocl_device, "AUTO")) {
+        device_auto = true;
     } else {
-        env->ThrowError("KNLMeansCL: device_type must be cpu, gpu, accelerator, all or default!");
+        env->ThrowError("KNLMeansCL: device_type must be cpu, gpu, accelerator, all, default or auto!");
     }
-    if (ocl_id < 0) 
+    if (ocl_id < 0)
         env->ThrowError("KNLMeansCL: device_id must be greater than or equal to 0!");
     if (info && vi.IsRGB())
         env->ThrowError("KNLMeansCL: info requires YUV color space!");
 
     // Gets PlatformID and DeviceID.
-    cl_int ret = oclGetDevicesList(device_type, NULL, &num_devices);
-    if (num_devices == 0)
-        env->ThrowError("KNLMeansCL: no opencl devices available!");
-    else if (ocl_id >= (int) num_devices)
-        env->ThrowError("KNLMeansCL: selected device is not available!");
-    ocl_device_packed *devices = (ocl_device_packed*) malloc(sizeof(ocl_device_packed) * num_devices);
-    ret |= oclGetDevicesList(device_type, devices, NULL);
-    if (ret != CL_SUCCESS)
-        env->ThrowError("KNLMeansCL: AviSynthCreate error (oclGetDevicesList)!");
-    platformID = devices[ocl_id].platform;
-    deviceID = devices[ocl_id].device;
-    free(devices);
+    cl_int ret = CL_SUCCESS;
+    if (device_auto) {
+        device_type = CL_DEVICE_TYPE_GPU;
+        ret |= oclGetDevicesList(device_type, NULL, &num_devices);
+        if (num_devices == 0) {
+            device_type = CL_DEVICE_TYPE_ACCELERATOR;
+            ret |= oclGetDevicesList(device_type, NULL, &num_devices);
+            if (num_devices == 0) {
+                device_type = CL_DEVICE_TYPE_CPU;
+                ret |= oclGetDevicesList(device_type, NULL, &num_devices);
+                if (num_devices == 0) {
+                    device_type = CL_DEVICE_TYPE_DEFAULT;
+                    ret |= oclGetDevicesList(device_type, NULL, &num_devices);
+                    if (num_devices == 0) {
+                        device_type = CL_DEVICE_TYPE_ALL;
+                        ret |= oclGetDevicesList(device_type, NULL, &num_devices);
+                        if (num_devices == 0) 
+                            env->ThrowError("KNLMeansCL: no opencl devices available!");           
+                    } else if (ocl_id >= (int) num_devices)
+                        env->ThrowError("KNLMeansCL: selected device is not available!");
+                } else if (ocl_id >= (int) num_devices)
+                    env->ThrowError("KNLMeansCL: selected device is not available!");
+            } else if (ocl_id >= (int) num_devices)
+                env->ThrowError("KNLMeansCL: selected device is not available!");
+        } else if (ocl_id >= (int) num_devices)
+            env->ThrowError("KNLMeansCL: selected device is not available!");
+        ocl_device_packed *devices = (ocl_device_packed*) malloc(sizeof(ocl_device_packed) * num_devices);
+        ret |= oclGetDevicesList(device_type, devices, NULL);
+        if (ret != CL_SUCCESS)
+            env->ThrowError("KNLMeansCL: AviSynthCreate error (oclGetDevicesList)!");
+        platformID = devices[ocl_id].platform;
+        deviceID = devices[ocl_id].device;
+        free(devices);
+    } else {
+        cl_int ret = oclGetDevicesList(device_type, NULL, &num_devices);
+        if (num_devices == 0)
+            env->ThrowError("KNLMeansCL: no opencl devices available!");
+        else if (ocl_id >= (int) num_devices)
+            env->ThrowError("KNLMeansCL: selected device is not available!");
+        ocl_device_packed *devices = (ocl_device_packed*) malloc(sizeof(ocl_device_packed) * num_devices);
+        ret |= oclGetDevicesList(device_type, devices, NULL);
+        if (ret != CL_SUCCESS)
+            env->ThrowError("KNLMeansCL: AviSynthCreate error (oclGetDevicesList)!");
+        platformID = devices[ocl_id].platform;
+        deviceID = devices[ocl_id].device;
+        free(devices);
+    }
     
     // Creates an OpenCL context, 2D images and buffers object.
     idmn[0] = vi.width;
@@ -1256,6 +1294,7 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
         return;
     }
     cl_device_type device_type;
+    bool device_auto = false;
     if (!strcasecmp(d.ocl_device, "CPU")) {
         device_type = CL_DEVICE_TYPE_CPU;
     } else if (!strcasecmp(d.ocl_device, "GPU")) {
@@ -1266,8 +1305,10 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
         device_type = CL_DEVICE_TYPE_ALL;
     } else if (!strcasecmp(d.ocl_device, "DEFAULT")) {
         device_type = CL_DEVICE_TYPE_DEFAULT;
+    } else if (!strcasecmp(d.ocl_device, "AUTO")) {
+        device_auto = true;
     } else {
-        vsapi->setError(out, "knlm.KNLMeansCL: device_type must be cpu, gpu, accelerator, all or default!");
+        vsapi->setError(out, "knlm.KNLMeansCL: device_type must be cpu, gpu, accelerator, all, default or auto!");
         vsapi->freeNode(d.node);
         vsapi->freeNode(d.knot);
         return;
@@ -1280,30 +1321,93 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
     }
 
     // Gets PlatformID and DeviceID.
-    cl_int ret = oclGetDevicesList(device_type, NULL, &d.num_devices);
-    if (d.num_devices == 0) {
-        vsapi->setError(out, "knlm.KNLMeansCL: no opencl platforms available!");
-        vsapi->freeNode(d.node);
-        vsapi->freeNode(d.knot);
-        return;
+    cl_int ret = CL_SUCCESS;
+    if (device_auto) {
+        device_type = CL_DEVICE_TYPE_GPU;
+        ret |= oclGetDevicesList(device_type, NULL, &d.num_devices);
+        if (d.num_devices == 0) {
+            device_type = CL_DEVICE_TYPE_ACCELERATOR;
+            ret |= oclGetDevicesList(device_type, NULL, &d.num_devices);
+            if (d.num_devices == 0) {
+                device_type = CL_DEVICE_TYPE_CPU;
+                ret |= oclGetDevicesList(device_type, NULL, &d.num_devices);
+                if (d.num_devices == 0) {
+                    device_type = CL_DEVICE_TYPE_DEFAULT;
+                    ret |= oclGetDevicesList(device_type, NULL, &d.num_devices);
+                    if (d.num_devices == 0) {
+                        device_type = CL_DEVICE_TYPE_ALL;
+                        ret |= oclGetDevicesList(device_type, NULL, &d.num_devices);
+                        if (d.num_devices == 0) {
+                            vsapi->setError(out, "knlm.KNLMeansCL: no opencl platforms available!");
+                            vsapi->freeNode(d.node);
+                            vsapi->freeNode(d.knot);
+                            return;
+                        } else if (d.ocl_id >= (int) d.num_devices) {
+                            vsapi->setError(out, "knlm.KNLMeansCL: selected device is not available!");
+                            vsapi->freeNode(d.node);
+                            vsapi->freeNode(d.knot);
+                            return;
+                        }
+                    } else if (d.ocl_id >= (int) d.num_devices) {
+                        vsapi->setError(out, "knlm.KNLMeansCL: selected device is not available!");
+                        vsapi->freeNode(d.node);
+                        vsapi->freeNode(d.knot);
+                        return;
+                    }
+                } else if (d.ocl_id >= (int) d.num_devices) {
+                    vsapi->setError(out, "knlm.KNLMeansCL: selected device is not available!");
+                    vsapi->freeNode(d.node);
+                    vsapi->freeNode(d.knot);
+                    return;
+                }
+            } else if (d.ocl_id >= (int) d.num_devices) {
+                vsapi->setError(out, "knlm.KNLMeansCL: selected device is not available!");
+                vsapi->freeNode(d.node);
+                vsapi->freeNode(d.knot);
+                return;
+            }
+        } else if (d.ocl_id >= (int) d.num_devices) {
+            vsapi->setError(out, "knlm.KNLMeansCL: selected device is not available!");
+            vsapi->freeNode(d.node);
+            vsapi->freeNode(d.knot);
+            return;
+        }
+        ocl_device_packed *devices = (ocl_device_packed*) malloc(sizeof(ocl_device_packed) * d.num_devices);
+        ret |= oclGetDevicesList(device_type, devices, NULL);
+        if (ret != CL_SUCCESS) {
+            vsapi->setError(out, "knlm.KNLMeansCL: VapourSynthCreate error (clGetPlatformID)!");
+            vsapi->freeNode(d.node);
+            vsapi->freeNode(d.knot);
+            return;
+        }
+        d.platformID = devices[d.ocl_id].platform;
+        d.deviceID = devices[d.ocl_id].device;
+        free(devices);
+    } else {
+        cl_int ret = oclGetDevicesList(device_type, NULL, &d.num_devices);
+        if (d.num_devices == 0) {
+            vsapi->setError(out, "knlm.KNLMeansCL: no opencl platforms available!");
+            vsapi->freeNode(d.node);
+            vsapi->freeNode(d.knot);
+            return;
+        } else if (d.ocl_id >= (int) d.num_devices) {
+            vsapi->setError(out, "knlm.KNLMeansCL: selected device is not available!");
+            vsapi->freeNode(d.node);
+            vsapi->freeNode(d.knot);
+            return;
+        }
+        ocl_device_packed *devices = (ocl_device_packed*) malloc(sizeof(ocl_device_packed) * d.num_devices);
+        ret |= oclGetDevicesList(device_type, devices, NULL);
+        if (ret != CL_SUCCESS) {
+            vsapi->setError(out, "knlm.KNLMeansCL: VapourSynthCreate error (oclGetDevicesList)!");
+            vsapi->freeNode(d.node);
+            vsapi->freeNode(d.knot);
+            return;
+        }
+        d.platformID = devices[d.ocl_id].platform;
+        d.deviceID = devices[d.ocl_id].device;
+        free(devices);
     }
-    else if (d.ocl_id >= (int) d.num_devices) {
-        vsapi->setError(out, "knlm.KNLMeansCL: selected device is not available!");
-        vsapi->freeNode(d.node);
-        vsapi->freeNode(d.knot);
-        return;
-    }
-    ocl_device_packed *devices = (ocl_device_packed*) malloc(sizeof(ocl_device_packed) * d.num_devices);
-    ret |= oclGetDevicesList(device_type, devices, NULL);
-    if (ret != CL_SUCCESS) {
-        vsapi->setError(out, "knlm.KNLMeansCL: VapourSynthCreate error (clGetPlatformID)!");
-        vsapi->freeNode(d.node);
-        vsapi->freeNode(d.knot);
-        return;
-    }
-    d.platformID = devices[d.ocl_id].platform;
-    d.deviceID = devices[d.ocl_id].device;
-    free(devices);
 
     // Creates an OpenCL context, 2D images and buffers object.
     d.idmn[0] = d.vi->width;
