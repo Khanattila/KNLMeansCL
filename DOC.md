@@ -86,10 +86,11 @@ string device_type      CPU := An OpenCL device that is the host processor.
                         ACCELERATOR := Dedicated OpenCL accelerators.
                         DEFAULT := The default OpenCL device in the system.
                         ALL := All OpenCL devices available in the system.
+                        AUTO := GPU -> ACCELERATOR -> CPU -> DEFAULT -> ALL.
 	
-                        Default: DEFAULT.
+                        Default: AUTO.
                         
-
+                        
 int device_id           The 'device_id'+1º device of type 'device_type' in the system.
                         Example: [device_type = "GPU", device_id = 1] return the second 
                         GPU in the system.
