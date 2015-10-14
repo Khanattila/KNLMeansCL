@@ -1,4 +1,13 @@
 ## Change Log ##
+**- v0.7.0**
+  - Performance increase: temporal up to 35% faster.
+  - New 'auto' device_type.
+  - Changed default 'd' value from '0' to '1'.
+  - Changed min 'a' value from '0' to '1'.
+  - OpenCL 1.2 support now required.
+  - AviSynth 2.6.0a1-a5 backward compatibility.
+  - Fixed Mac OS X version.
+  
 **- v0.6.11**
   - Performance increase: up to 50% faster.
   - AviSynth: OpenMP no more needed.

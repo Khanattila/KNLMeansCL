@@ -86,10 +86,11 @@ string device_type      CPU := An OpenCL device that is the host processor.
                         ACCELERATOR := Dedicated OpenCL accelerators.
                         DEFAULT := The default OpenCL device in the system.
                         ALL := All OpenCL devices available in the system.
+                        AUTO := GPU -> ACCELERATOR -> CPU -> DEFAULT -> ALL.
 	
-                        Default: DEFAULT.
+                        Default: AUTO.
                         
-
+                        
 int device_id           The 'device_id'+1º device of type 'device_type' in the system.
                         Example: [device_type = "GPU", device_id = 1] return the second 
                         GPU in the system.
@@ -110,21 +111,21 @@ bool info               Display info on screen. It requires YUV color space.
 #### Benchmark ####
 
 | | cmode | AviSynth | VapourSynth |
-| :------------- | :-------------: | :-------------: | :-------------: |
-| YUV420P8 | False | 72 fps  | 71 fps  |
-| YUV420P9  | False | - | 63 fps |
-| YUV420P10  | False | -  | 63 fps  |
-| YUV420P16  | False | 64 fps  | 64 fps  |
-| YUV444P8  | True | 48 fps  | 49 fps  |
-| YUV444P9  | True | -  | 40 fps  |
-| YUV444P10  | True | -  | 40 fps  |
-| YUV444P16  | True | 39 fps  | 40 fps  |
-| RGB24  | - | - | 49 fps  |
-| RGB27  | - | - | 40 fps  |
-| RGB30  | - | - | 40 fps  |
-| RGB48  | - | - | 41 fps  |
-| RGBA32 | - | 48 fps  | - |
+| :--------------- | :---------------: | :---------------: | :---------------: |
+| YUV420P8 | False | 37 fps  | 35 fps  |
+| YUV420P9  | False | - | 33 fps |
+| YUV420P10  | False | -  | 33 fps  |
+| YUV420P16  | False | 35 fps  | 34 fps  |
+| YUV444P8  | True | 28 fps  | 27 fps  |
+| YUV444P9  | True | -  | 22 fps  |
+| YUV444P10  | True | -  | 23 fps  |
+| YUV444P16  | True | 23 fps  | 23 fps  |
+| RGB24  | - | - | 27 fps  |
+| RGB27  | - | - | 23 fps  |
+| RGB30  | - | - | 23 fps  |
+| RGB48  | - | - | 23 fps  |
+| RGBA32 | - | 28 fps  | - |
 
-1080p, KNLMeansCL(d=0, a=2, device_type="GPU") - v0.6.11.
+720p, KNLMeansCL(d=1, a=2, s=4, device_type="GPU") - v0.7.0.
 
 Tested with the following configuration: Intel Core i5 2500K (4.2GHz), 8GB DDR3-1600 MHz, NVIDIA GeForce GTX 760, Windows 10 64bit.
