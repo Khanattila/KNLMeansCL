@@ -194,7 +194,7 @@ if $PKGCONFIGBIN --exists $DEPLIBS 2> /dev/null; then
     CXXFLAGS="$CXXFLAGS $($PKGCONFIGBIN --cflags $DEPLIBS)"
 else
     for lib in $DEPLIBS; do
-        LIBS="$LIBS -l${lib#lib}"
+        echo $TARGET_OS | grep darwin > /dev/null 2>&1 && LIBS="$LIBS -framework ${lib#lib}" || LIBS="$LIBS -l${lib#lib}"
     done
     log_echo "warning: pkg-config or pc files not found, lib detection may be inaccurate."
 fi
