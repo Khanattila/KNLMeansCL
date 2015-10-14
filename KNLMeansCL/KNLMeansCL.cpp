@@ -108,7 +108,7 @@ KNLMeansClass::KNLMeansClass(PClip _child, const int _d, const int _a, const int
         env->ThrowError("KNLMeansCL: wmode must be in range [0, 2]!");
     if (h <= 0.0f)
         env->ThrowError("KNLMeansCL: h must be greater than 0!");
-    cl_device_type device_type = NULL;
+    cl_device_type device_type = 0;
     bool device_auto = false;
     if (!strcasecmp(ocl_device, "CPU")) {
         device_type = CL_DEVICE_TYPE_CPU;
@@ -1293,7 +1293,7 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
         vsapi->freeNode(d.knot);
         return;
     }
-    cl_device_type device_type = NULL;
+    cl_device_type device_type = 0;
     bool device_auto = false;
     if (!strcasecmp(d.ocl_device, "CPU")) {
         device_type = CL_DEVICE_TYPE_CPU;
