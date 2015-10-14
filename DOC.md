@@ -6,9 +6,9 @@ AviSynth:               KNLMeansCL (clip, int d (0), int a (2), int s (4),
                                 bool lsb_inout (false), bool info (false))
 
 VapourSynth:            knlm.KNLMeansCL (clip clip, int d (0), int a (2), int s (4), 
-                                int cmode(0), int wmode (1), float h (1.2), 
+                                int cmode(False), int wmode (1), float h (1.2), 
                                 string device_type ("default"), int device_id (0), 
-                                int info (0)) 
+                                int info (False)) 
 ```
 
 #### Supported image format ####
