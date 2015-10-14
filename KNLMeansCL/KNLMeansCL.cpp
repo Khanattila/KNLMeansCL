@@ -16,7 +16,7 @@
 *	along with KNLMeansCL. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#define DFT_D           0
+#define DFT_D           1
 #define DFT_A           2
 #define DFT_S           4
 #define DFT_cmode       false
