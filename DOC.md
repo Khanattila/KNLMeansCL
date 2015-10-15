@@ -1,3 +1,10 @@
+#### First ####
+```
+'OpenCL.dll' is required ONLY if you have trouble with your 'OpenCL.dll'.
+Some NVIDIA users report the problem. Just repleace "C:\Windows\System32\OpenCL.dll"
+and/or "C:\Windows\SysWOW64\OpenCL.dll" with the one provided.
+```
+
 #### Syntax ####
 ```
 AviSynth:               KNLMeansCL (clip, int d (0), int a (2), int s (4), 
