@@ -92,6 +92,8 @@ CXXFLAGS="-std=c++11 -Wall -Wno-unused-local-typedefs -I. -I./shared -I$SRCDIR/i
 LDFLAGS=""
 SOFLAGS="-shared"
 DEPLIBS="OpenCL"
+CL_HEADER="CL/cl.h"
+LD_OPT="-l"
 TARGET=""
 
 # -- options ----------------------------------------------------------------
@@ -163,6 +165,8 @@ case "$TARGET_OS" in
     *darwin*)
         LIBNAME="libknlmeanscl.dylib"
         SOFLAGS="$SOFLAGS -dynamiclib -Wl,-undefined,suppress -Wl,-read_only_relocs,suppress -Wl,-flat_namespace"
+        CL_HEADER="OpenCL/cl.h"
+        LD_OPT="-framework "
         ;;
     *linux*)
         LIBNAME="libknlmeanscl.so"
@@ -194,7 +198,7 @@ if $PKGCONFIGBIN --exists $DEPLIBS 2> /dev/null; then
     CXXFLAGS="$CXXFLAGS $($PKGCONFIGBIN --cflags $DEPLIBS)"
 else
     for lib in $DEPLIBS; do
-        echo $TARGET_OS | grep darwin > /dev/null 2>&1 && LIBS="$LIBS -framework ${lib#lib}" || LIBS="$LIBS -l${lib#lib}"
+        LIBS="$LIBS ${LD_OPT}${lib#lib}"
     done
     log_echo "warning: pkg-config or pc files not found, lib detection may be inaccurate."
 fi
@@ -211,9 +215,9 @@ if ! cc_check "$CXXFLAGS $VSCFLAGS" "$LDFLAGS $LIBS $XLIBS" "VapourSynth.h" "get
 fi
 
 log_echo "checking for OpenCL..."
-if ! cc_check "$CXXFLAGS" "$LDFLAGS $LIBS $XLIBS" "CL/cl.h" "clCreateContextFromType(0,0,0,0,0);" ; then
+if ! cc_check "$CXXFLAGS" "$LDFLAGS $LIBS $XLIBS" "$CL_HEADER" "clCreateContextFromType(0,0,0,0,0);" ; then
     log_echo "error: OpenCL checking failed."
-    error_exit "CL/cl.h might not be installed or some libs missing."
+    error_exit "$CL_HEADER might not be installed or some libs missing."
 fi
 
 LDFLAGS="$SOFLAGS $LDFLAGS"
