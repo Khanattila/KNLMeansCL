@@ -260,7 +260,7 @@ KNLMeansClass::KNLMeansClass(PClip _child, const int _d, const int _a, const int
 
     // Sets kernel arguments.
     if (d) {
-        ret |= clSetKernelArg(kernel[nlmDistanceLeft], 0, sizeof(cl_mem), &mem_in[(clip_t & EXTRA_NONE) ? 0 : 1]);
+        ret = clSetKernelArg(kernel[nlmDistanceLeft], 0, sizeof(cl_mem), &mem_in[(clip_t & EXTRA_NONE) ? 0 : 1]);
         ret |= clSetKernelArg(kernel[nlmDistanceLeft], 1, sizeof(cl_mem), &mem_U[1]);
         ret |= clSetKernelArg(kernel[nlmDistanceLeft], 2, 2 * sizeof(cl_int), &idmn);
         ret |= clSetKernelArg(kernel[nlmDistanceRight], 0, sizeof(cl_mem), &mem_in[(clip_t & EXTRA_NONE) ? 0 : 1]);
