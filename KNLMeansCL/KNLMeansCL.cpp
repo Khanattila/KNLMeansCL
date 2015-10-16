@@ -686,8 +686,7 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
         }
     } else if (activationReason == arAllFramesReady) {
         // Variables.
-        const VSFrameRef *src = vsapi->getFrameFilter(n, d->node, frameCtx);
-        const VSFrameRef *ref = (d->knot) ? vsapi->getFrameFilter(n, d->knot, frameCtx) : nullptr;
+        const VSFrameRef *src, *ref;
         const VSFormat *fi = d->vi->format;
         VSFrameRef *dst = vsapi->newVideoFrame(fi, d->idmn[0], d->idmn[1], NULL, core);
         const cl_int t = int64ToIntS(d->d);
@@ -706,11 +705,13 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
 
         //Copy chroma.  
         if (fi->colorFamily == cmYUV && (d->clip_t & COLOR_GRAY)) {
+            src = vsapi->getFrameFilter(n, d->node, frameCtx);
             vs_bitblt(vsapi->getWritePtr(dst, 1), vsapi->getStride(dst, 1), vsapi->getReadPtr(src, 1), vsapi->getStride(src, 1),
                 vsapi->getFrameWidth(src, 1) * fi->bytesPerSample, vsapi->getFrameHeight(src, 1));
             vs_bitblt(vsapi->getWritePtr(dst, 2), vsapi->getStride(dst, 2), vsapi->getReadPtr(src, 2), vsapi->getStride(src, 2),
                 vsapi->getFrameWidth(src, 2) * fi->bytesPerSample, vsapi->getFrameHeight(src, 2));
-        }
+            vsapi->freeFrame(src);
+        }  
 
         // Processing.
         cl_int ret = CL_SUCCESS;
@@ -840,6 +841,8 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
             }
             ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[nlmFinish], 2, NULL, global_work, NULL, 0, NULL, NULL);
         } else {
+            src = vsapi->getFrameFilter(n, d->node, frameCtx);
+            ref = (d->knot) ? vsapi->getFrameFilter(n, d->knot, frameCtx) : nullptr;
             switch (d->clip_t) {
                 case (EXTRA_NONE | CLIP_UNORM | COLOR_GRAY) :
                     ret |= clEnqueueWriteImage(command_queue, d->mem_in[0], CL_TRUE, origin, region,
@@ -913,6 +916,8 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
                     vsapi->freeNode(d->knot);
                     return 0;
             }
+            vsapi->freeFrame(src);
+            vsapi->freeFrame(ref);
             for (int j = int64ToIntS(-d->a); j <= 0; j++) {
                 for (int i = int64ToIntS(-d->a); i <= d->a; i++) {
                     if (j * (2 * int64ToIntS(d->a) + 1) + i < 0) {
