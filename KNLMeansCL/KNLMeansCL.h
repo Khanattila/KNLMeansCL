@@ -16,7 +16,7 @@
 *	along with KNLMeansCL. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#define VERSION "0.7.0"
+#define VERSION "0.7.1"
 
 #ifdef _MSC_VER
     #pragma warning (disable : 4514 4710 4820)
