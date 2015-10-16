@@ -1,4 +1,7 @@
 ## Change Log ##
+**- v0.7.1**
+  - Fixed clSetKernelArg error in some configuration.
+
 **- v0.7.0**
   - Performance increase: temporal up to 35% faster.
   - New 'auto' device_type.
