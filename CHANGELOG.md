@@ -1,6 +1,7 @@
 ## Change Log ##
-**- v0.7.1**
+**- v0.7.2**
   - Fixed clSetKernelArg error in some configuration.
+  - Fixed VapourSynth memory leak.
 
 **- v0.7.0**
   - Performance increase: temporal up to 35% faster.
