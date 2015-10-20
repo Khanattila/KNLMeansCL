@@ -54,14 +54,18 @@ static const char* kernel_source_code =
 "#define wGREEN	 1.2866580779f        	        																  \n" \
 "#define wBLUE	 1.0468591696f        						            										  \n" \
 "#define wALPHA	 0.0f                  						            										  \n" \
-"#define wMSB 	 256.0f / 257.0f        																		  \n" \
-"#define wLSB      1.0f / 257.0f      																			  \n" \
+"#define wMSB 	 (256.0f / 257.0f)        																		  \n" \
+"#define wLSB    (  1.0f / 257.0f)     																			  \n" \
 "#define CHECK_FLAG(flag) ((NLMK_TCLIP & (flag)) == (flag))    													  \n" \
 "																												  \n" \
 "enum {                                                                                                           \n" \
 "    COLOR_GRAY    = 1 << 0, COLOR_YUV     = 1 << 1, COLOR_RGB     = 1 << 2,                                      \n" \
 "    CLIP_UNORM    = 1 << 3, CLIP_UNSIGNED = 1 << 4, CLIP_STACKED  = 1 << 5                                       \n" \
 "};                                                                                                               \n" \
+"																												  \n" \
+"float   norm(uint u);																							  \n" \
+"ushort  denorm(float f);																						  \n" \
+"ushort4 denorm4(float4 f);																						  \n" \
 "																												  \n" \
 "float   norm(uint u)      { return native_divide((float) (u << NLMK_BIT_SHIFT), (float) USHRT_MAX); }            \n" \
 "ushort  denorm(float f)   { return convert_ushort_sat(f * (float) USHRT_MAX) >> (ushort) NLMK_BIT_SHIFT; }       \n" \
