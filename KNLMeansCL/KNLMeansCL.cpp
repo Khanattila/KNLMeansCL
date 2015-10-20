@@ -134,21 +134,21 @@ KNLMeansClass::KNLMeansClass(PClip _child, const int _d, const int _a, const int
     cl_int ret = CL_SUCCESS;
     if (device_auto) {
         device_type = CL_DEVICE_TYPE_GPU;
-        ret |= oclGetDevicesList(device_type, NULL, &num_devices);
+        ret |= oclGetDevicesList(device_type, NULL, &num_devices, OCL_MIN_VERSION);
         if (num_devices == 0) {
             device_type = CL_DEVICE_TYPE_ACCELERATOR;
-            ret |= oclGetDevicesList(device_type, NULL, &num_devices);
+            ret |= oclGetDevicesList(device_type, NULL, &num_devices, OCL_MIN_VERSION);
             if (num_devices == 0) {
                 device_type = CL_DEVICE_TYPE_CPU;
-                ret |= oclGetDevicesList(device_type, NULL, &num_devices);
+                ret |= oclGetDevicesList(device_type, NULL, &num_devices, OCL_MIN_VERSION);
                 if (num_devices == 0) {
                     device_type = CL_DEVICE_TYPE_DEFAULT;
-                    ret |= oclGetDevicesList(device_type, NULL, &num_devices);
+                    ret |= oclGetDevicesList(device_type, NULL, &num_devices, OCL_MIN_VERSION);
                     if (num_devices == 0) {
                         device_type = CL_DEVICE_TYPE_ALL;
-                        ret |= oclGetDevicesList(device_type, NULL, &num_devices);
+                        ret |= oclGetDevicesList(device_type, NULL, &num_devices, OCL_MIN_VERSION);
                         if (num_devices == 0) 
-                            env->ThrowError("KNLMeansCL: no opencl devices available!");           
+                            env->ThrowError("KNLMeansCL: no compatible opencl platforms available! (OpenCL "OCL_MIN_VERSION" API)");
                     } else if (ocl_id >= (int) num_devices)
                         env->ThrowError("KNLMeansCL: selected device is not available!");
                 } else if (ocl_id >= (int) num_devices)
@@ -158,20 +158,20 @@ KNLMeansClass::KNLMeansClass(PClip _child, const int _d, const int _a, const int
         } else if (ocl_id >= (int) num_devices)
             env->ThrowError("KNLMeansCL: selected device is not available!");
         ocl_device_packed *devices = (ocl_device_packed*) malloc(sizeof(ocl_device_packed) * num_devices);
-        ret |= oclGetDevicesList(device_type, devices, NULL);
+        ret |= oclGetDevicesList(device_type, devices, NULL, OCL_MIN_VERSION);
         if (ret != CL_SUCCESS)
             env->ThrowError("KNLMeansCL: AviSynthCreate error (oclGetDevicesList)!");
         platformID = devices[ocl_id].platform;
         deviceID = devices[ocl_id].device;
         free(devices);
     } else {
-        cl_int ret = oclGetDevicesList(device_type, NULL, &num_devices);
+        cl_int ret = oclGetDevicesList(device_type, NULL, &num_devices, OCL_MIN_VERSION);
         if (num_devices == 0)
-            env->ThrowError("KNLMeansCL: no opencl devices available!");
+            env->ThrowError("KNLMeansCL: no compatible opencl platforms available! (OpenCL "OCL_MIN_VERSION" API)");
         else if (ocl_id >= (int) num_devices)
             env->ThrowError("KNLMeansCL: selected device is not available!");
         ocl_device_packed *devices = (ocl_device_packed*) malloc(sizeof(ocl_device_packed) * num_devices);
-        ret |= oclGetDevicesList(device_type, devices, NULL);
+        ret |= oclGetDevicesList(device_type, devices, NULL, OCL_MIN_VERSION);
         if (ret != CL_SUCCESS)
             env->ThrowError("KNLMeansCL: AviSynthCreate error (oclGetDevicesList)!");
         platformID = devices[ocl_id].platform;
@@ -1333,21 +1333,22 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
     cl_int ret = CL_SUCCESS;
     if (device_auto) {
         device_type = CL_DEVICE_TYPE_GPU;
-        ret |= oclGetDevicesList(device_type, NULL, &d.num_devices);
+        ret |= oclGetDevicesList(device_type, NULL, &d.num_devices, OCL_MIN_VERSION);
         if (d.num_devices == 0) {
             device_type = CL_DEVICE_TYPE_ACCELERATOR;
-            ret |= oclGetDevicesList(device_type, NULL, &d.num_devices);
+            ret |= oclGetDevicesList(device_type, NULL, &d.num_devices, OCL_MIN_VERSION);
             if (d.num_devices == 0) {
                 device_type = CL_DEVICE_TYPE_CPU;
-                ret |= oclGetDevicesList(device_type, NULL, &d.num_devices);
+                ret |= oclGetDevicesList(device_type, NULL, &d.num_devices, OCL_MIN_VERSION);
                 if (d.num_devices == 0) {
                     device_type = CL_DEVICE_TYPE_DEFAULT;
-                    ret |= oclGetDevicesList(device_type, NULL, &d.num_devices);
+                    ret |= oclGetDevicesList(device_type, NULL, &d.num_devices, OCL_MIN_VERSION);
                     if (d.num_devices == 0) {
                         device_type = CL_DEVICE_TYPE_ALL;
-                        ret |= oclGetDevicesList(device_type, NULL, &d.num_devices);
+                        ret |= oclGetDevicesList(device_type, NULL, &d.num_devices, OCL_MIN_VERSION);
                         if (d.num_devices == 0) {
-                            vsapi->setError(out, "knlm.KNLMeansCL: no opencl platforms available!");
+                            vsapi->setError(out, 
+                                "knlm.KNLMeansCL: no compatible opencl platforms available! (OpenCL "OCL_MIN_VERSION" API)");
                             vsapi->freeNode(d.node);
                             vsapi->freeNode(d.knot);
                             return;
@@ -1382,7 +1383,7 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
             return;
         }
         ocl_device_packed *devices = (ocl_device_packed*) malloc(sizeof(ocl_device_packed) * d.num_devices);
-        ret |= oclGetDevicesList(device_type, devices, NULL);
+        ret |= oclGetDevicesList(device_type, devices, NULL, OCL_MIN_VERSION);
         if (ret != CL_SUCCESS) {
             vsapi->setError(out, "knlm.KNLMeansCL: VapourSynthCreate error (clGetPlatformID)!");
             vsapi->freeNode(d.node);
@@ -1393,9 +1394,9 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
         d.deviceID = devices[d.ocl_id].device;
         free(devices);
     } else {
-        cl_int ret = oclGetDevicesList(device_type, NULL, &d.num_devices);
+        cl_int ret = oclGetDevicesList(device_type, NULL, &d.num_devices, OCL_MIN_VERSION);
         if (d.num_devices == 0) {
-            vsapi->setError(out, "knlm.KNLMeansCL: no opencl platforms available!");
+            vsapi->setError(out, "knlm.KNLMeansCL: no compatible opencl platforms available! (OpenCL "OCL_MIN_VERSION" API)");
             vsapi->freeNode(d.node);
             vsapi->freeNode(d.knot);
             return;
@@ -1406,7 +1407,7 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
             return;
         }
         ocl_device_packed *devices = (ocl_device_packed*) malloc(sizeof(ocl_device_packed) * d.num_devices);
-        ret |= oclGetDevicesList(device_type, devices, NULL);
+        ret |= oclGetDevicesList(device_type, devices, NULL, OCL_MIN_VERSION);
         if (ret != CL_SUCCESS) {
             vsapi->setError(out, "knlm.KNLMeansCL: VapourSynthCreate error (oclGetDevicesList)!");
             vsapi->freeNode(d.node);

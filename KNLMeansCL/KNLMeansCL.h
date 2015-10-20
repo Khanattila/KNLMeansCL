@@ -17,6 +17,7 @@
 */
 
 #define VERSION "0.7.2"
+#define OCL_MIN_VERSION "1.2"
 
 #ifdef _MSC_VER
     #pragma warning (disable : 4514 4710 4820)
