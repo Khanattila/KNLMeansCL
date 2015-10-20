@@ -688,7 +688,7 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
         // Variables.
         const VSFrameRef *src, *ref;
         const VSFormat *fi = d->vi->format;
-        VSFrameRef *dst = vsapi->newVideoFrame(fi, d->idmn[0], d->idmn[1], NULL, core);
+        VSFrameRef *dst;
         const cl_int t = int64ToIntS(d->d);
         const cl_float pattern_u0 = 0.0f;
         const cl_float pattern_u3 = CL_FLT_EPSILON;
@@ -706,12 +706,13 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
         //Copy chroma.  
         if (fi->colorFamily == cmYUV && (d->clip_t & COLOR_GRAY)) {
             src = vsapi->getFrameFilter(n, d->node, frameCtx);
-            vs_bitblt(vsapi->getWritePtr(dst, 1), vsapi->getStride(dst, 1), vsapi->getReadPtr(src, 1), vsapi->getStride(src, 1),
-                vsapi->getFrameWidth(src, 1) * fi->bytesPerSample, vsapi->getFrameHeight(src, 1));
-            vs_bitblt(vsapi->getWritePtr(dst, 2), vsapi->getStride(dst, 2), vsapi->getReadPtr(src, 2), vsapi->getStride(src, 2),
-                vsapi->getFrameWidth(src, 2) * fi->bytesPerSample, vsapi->getFrameHeight(src, 2));
+            const VSFrameRef *planeSrc[] = { NULL, src, src };
+            const int planes[] = { 0, 1, 2 };
+            dst = vsapi->newVideoFrame2(fi, d->idmn[0], d->idmn[1], planeSrc, planes, NULL, core);
             vsapi->freeFrame(src);
-        }  
+        } else {
+            dst = vsapi->newVideoFrame(fi, d->idmn[0], d->idmn[1], NULL, core);
+        }
 
         // Processing.
         cl_int ret = CL_SUCCESS;
