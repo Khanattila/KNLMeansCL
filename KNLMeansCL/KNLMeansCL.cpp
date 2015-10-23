@@ -686,7 +686,7 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
         }
     } else if (activationReason == arAllFramesReady) {
         // Variables.
-        const VSFrameRef *src, *ref;
+        const VSFrameRef *src = vsapi->getFrameFilter(n, d->node, frameCtx), *ref;
         const VSFormat *fi = d->vi->format;
         VSFrameRef *dst;
         const cl_int t = int64ToIntS(d->d);
@@ -705,14 +705,13 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
 
         //Copy chroma.  
         if (fi->colorFamily == cmYUV && (d->clip_t & COLOR_GRAY)) {
-            src = vsapi->getFrameFilter(n, d->node, frameCtx);
             const VSFrameRef *planeSrc[] = { NULL, src, src };
             const int planes[] = { 0, 1, 2 };
-            dst = vsapi->newVideoFrame2(fi, d->idmn[0], d->idmn[1], planeSrc, planes, NULL, core);
-            vsapi->freeFrame(src);
+            dst = vsapi->newVideoFrame2(fi, d->idmn[0], d->idmn[1], planeSrc, planes, src, core);           
         } else {
-            dst = vsapi->newVideoFrame(fi, d->idmn[0], d->idmn[1], NULL, core);
+            dst = vsapi->newVideoFrame(fi, d->idmn[0], d->idmn[1], src, core);
         }
+        vsapi->freeFrame(src);
 
         // Processing.
         cl_int ret = CL_SUCCESS;
