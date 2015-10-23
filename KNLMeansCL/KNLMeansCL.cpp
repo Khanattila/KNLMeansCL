@@ -148,7 +148,7 @@ KNLMeansClass::KNLMeansClass(PClip _child, const int _d, const int _a, const int
                         device_type = CL_DEVICE_TYPE_ALL;
                         ret |= oclGetDevicesList(device_type, NULL, &num_devices, OCL_MIN_VERSION);
                         if (num_devices == 0) 
-                            env->ThrowError("KNLMeansCL: no compatible opencl platforms available! (OpenCL "OCL_MIN_VERSION" API)");
+                            env->ThrowError("KNLMeansCL: no compatible opencl platforms available! (OpenCL " OCL_MIN_VERSION " API)");
                     } else if (ocl_id >= (int) num_devices)
                         env->ThrowError("KNLMeansCL: selected device is not available!");
                 } else if (ocl_id >= (int) num_devices)
@@ -167,7 +167,7 @@ KNLMeansClass::KNLMeansClass(PClip _child, const int _d, const int _a, const int
     } else {
         cl_int ret = oclGetDevicesList(device_type, NULL, &num_devices, OCL_MIN_VERSION);
         if (num_devices == 0)
-            env->ThrowError("KNLMeansCL: no compatible opencl platforms available! (OpenCL "OCL_MIN_VERSION" API)");
+            env->ThrowError("KNLMeansCL: no compatible opencl platforms available! (OpenCL " OCL_MIN_VERSION " API)");
         else if (ocl_id >= (int) num_devices)
             env->ThrowError("KNLMeansCL: selected device is not available!");
         ocl_device_packed *devices = (ocl_device_packed*) malloc(sizeof(ocl_device_packed) * num_devices);
@@ -1347,7 +1347,7 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
                         ret |= oclGetDevicesList(device_type, NULL, &d.num_devices, OCL_MIN_VERSION);
                         if (d.num_devices == 0) {
                             vsapi->setError(out, 
-                                "knlm.KNLMeansCL: no compatible opencl platforms available! (OpenCL "OCL_MIN_VERSION" API)");
+                                "knlm.KNLMeansCL: no compatible opencl platforms available! (OpenCL " OCL_MIN_VERSION " API)");
                             vsapi->freeNode(d.node);
                             vsapi->freeNode(d.knot);
                             return;
@@ -1395,7 +1395,7 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
     } else {
         cl_int ret = oclGetDevicesList(device_type, NULL, &d.num_devices, OCL_MIN_VERSION);
         if (d.num_devices == 0) {
-            vsapi->setError(out, "knlm.KNLMeansCL: no compatible opencl platforms available! (OpenCL "OCL_MIN_VERSION" API)");
+            vsapi->setError(out, "knlm.KNLMeansCL: no compatible opencl platforms available! (OpenCL " OCL_MIN_VERSION " API)");
             vsapi->freeNode(d.node);
             vsapi->freeNode(d.knot);
             return;
