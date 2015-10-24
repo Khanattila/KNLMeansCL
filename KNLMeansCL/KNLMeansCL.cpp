@@ -1459,7 +1459,7 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
     char options[2048];
     setlocale(LC_ALL, "C"); 
 #ifdef __APPLE__
-    snprintf(options, 2048, "-cl-denorms-are-zero -O3 -cl-fast-relaxed-math -cl-mad-enable "
+    snprintf(options, 2048, "-cl-denorms-are-zero -cl-fast-relaxed-math -cl-mad-enable "
         "-D H_BLOCK_X=%i -D H_BLOCK_Y=%i -D V_BLOCK_X=%i -D V_BLOCK_Y=%i -D NLMK_TCLIP=%u -D NLMK_S=%i " 
         "-D NLMK_WMODE=%i -D NLMK_D=%i -D NLMK_H2_INV_NORM=%ff -D NLMK_BIT_SHIFT=%u",
         H_BLOCK_X, H_BLOCK_Y, V_BLOCK_X, V_BLOCK_Y, d.clip_t, int64ToIntS(d.s),
