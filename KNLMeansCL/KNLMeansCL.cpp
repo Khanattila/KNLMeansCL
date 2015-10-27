@@ -39,20 +39,34 @@
 #include "KNLMeansCL.h"
 
 //////////////////////////////////////////
-// AviSynthEquals
+// AviSynthFunctions
 #ifdef __AVISYNTH_6_H__
 inline bool KNLMeansClass::equals(VideoInfo *v, VideoInfo *w) {
-    return v->width == w->width && v->height == w->height && v->fps_numerator == w->fps_numerator
-        && v->fps_denominator == w->fps_denominator && v->num_frames == w->num_frames;
+    return v->width == w->width && v->height == w->height && v->fps_numerator == w->fps_numerator &&
+        v->fps_denominator == w->fps_denominator && v->num_frames == w->num_frames;
+}
+inline void KNLMeansClass::oclErrorCheck(const char* function, cl_int errcode, IScriptEnvironment *env) {
+    if (errcode != CL_SUCCESS) {
+        char buffer[2048];
+        snprintf(buffer, 2048, "KNLMeansCL: fatal error!\n (%s: %s)", function, oclErrorToString(errcode));
+        env->ThrowError(buffer);
+    }
 }
 #endif //__AVISYNTH_6_H__
 
 //////////////////////////////////////////
-// VapourSynthEquals
+// VapourSynthFunctions
 #ifdef VAPOURSYNTH_H
 inline bool KNLMeansData::equals(const VSVideoInfo *v, const VSVideoInfo *w) {
     return v->width == w->width && v->height == w->height && v->fpsNum == w->fpsNum && 
         v->fpsDen == w->fpsDen && v->numFrames == w->numFrames && v->format == w->format;
+}
+inline void KNLMeansData::oclErrorCheck2(const char* function, cl_int errcode, VSMap *out, const VSAPI *vsapi) {
+    char buffer[2048];
+    snprintf(buffer, 2048, "knlm.KNLMeansCL: fatal error!\n (%s: %s)", function, oclErrorToString(errcode));
+    vsapi->setError(out, buffer);
+    vsapi->freeNode(node);
+    vsapi->freeNode(knot);
 }
 #endif //__VAPOURSYNTH_H__
 
@@ -74,11 +88,11 @@ KNLMeansClass::KNLMeansClass(PClip _child, const int _d, const int _a, const int
     if (!vi.IsPlanar() && !vi.IsRGB32())
         env->ThrowError("KNLMeansCL: planar YUV or RGB32 data!");
     if (cmode && !vi.IsYV24() && !vi.IsRGB32())
-        env->ThrowError("KNLMeansCL: cmode requires 4:4:4 subsampling!");
+        env->ThrowError("KNLMeansCL: 'cmode' requires 4:4:4 subsampling!");
     if (baby) {
         VideoInfo rvi = baby->GetVideoInfo();
         if (!equals(&vi, &rvi))
-            env->ThrowError("KNLMeansCL: rclip do not math source clip!");
+            env->ThrowError("KNLMeansCL: 'rclip' do not math source clip!");
         baby->SetCacheHints(CACHE_WINDOW, d);
         clip_t = EXTRA_CLIP;
     } else clip_t = EXTRA_NONE;
@@ -99,15 +113,15 @@ KNLMeansClass::KNLMeansClass(PClip _child, const int _d, const int _a, const int
 
     // Checks user value.
     if (d < 0)
-        env->ThrowError("KNLMeansCL: d must be greater than or equal to 0!");
+        env->ThrowError("KNLMeansCL: 'd' must be greater than or equal to 0!");
     if (a < 1)
-        env->ThrowError("KNLMeansCL: a must be greater than or equal to 1!");
+        env->ThrowError("KNLMeansCL: 'a' must be greater than or equal to 1!");
     if (s < 0 || s > 4)
-        env->ThrowError("KNLMeansCL: s must be in range [0, 4]!");
+        env->ThrowError("KNLMeansCL: 's' must be in range [0, 4]!");
     if (wmode < 0 || wmode > 2)
-        env->ThrowError("KNLMeansCL: wmode must be in range [0, 2]!");
+        env->ThrowError("KNLMeansCL: 'wmode' must be in range [0, 2]!");
     if (h <= 0.0f)
-        env->ThrowError("KNLMeansCL: h must be greater than 0!");
+        env->ThrowError("KNLMeansCL: 'h' must be greater than 0!");
     cl_device_type device_type = 0;
     bool device_auto = false;
     if (!strcasecmp(ocl_device, "CPU")) {
@@ -119,47 +133,47 @@ KNLMeansClass::KNLMeansClass(PClip _child, const int _d, const int _a, const int
     } else if (!strcasecmp(ocl_device, "AUTO")) {
         device_auto = true;
     } else {
-        env->ThrowError("KNLMeansCL: device_type must be cpu, gpu, accelerator or auto!");
+        env->ThrowError("KNLMeansCL: 'device_type' must be 'cpu', 'gpu', 'accelerator' or 'auto'!");
     }
     if (ocl_id < 0)
-        env->ThrowError("KNLMeansCL: device_id must be greater than or equal to 0!");
+        env->ThrowError("KNLMeansCL: 'device_id' must be greater than or equal to 0!");
     if (info && vi.IsRGB())
-        env->ThrowError("KNLMeansCL: info requires YUV color space!");
+        env->ThrowError("KNLMeansCL: 'info' requires YUV color space!");
 
     // Gets PlatformID and DeviceID.
     cl_int ret = CL_SUCCESS;
     if (device_auto) {
         device_type = CL_DEVICE_TYPE_GPU;
-        ret |= oclGetDevicesList(device_type, NULL, &num_devices, OCL_MIN_VERSION);
+        ret |= oclGetDevicesList(device_type, NULL, &num_devices, OCL_MIN_VERSION);       
         if (num_devices == 0) {
             device_type = CL_DEVICE_TYPE_ACCELERATOR;
-            ret |= oclGetDevicesList(device_type, NULL, &num_devices, OCL_MIN_VERSION);
+            ret |= oclGetDevicesList(device_type, NULL, &num_devices, OCL_MIN_VERSION);            
             if (num_devices == 0) {
                 device_type = CL_DEVICE_TYPE_CPU;
                 ret |= oclGetDevicesList(device_type, NULL, &num_devices, OCL_MIN_VERSION);               
                 if (num_devices == 0) 
-                    env->ThrowError("KNLMeansCL: no compatible opencl platforms available! (OpenCL " OCL_MIN_VERSION " API)");                    
+                    env->ThrowError("KNLMeansCL: no compatible opencl platforms available!\n (OpenCL " OCL_MIN_VERSION " API)");                    
             } else if (ocl_id >= (int) num_devices)
                 env->ThrowError("KNLMeansCL: selected device is not available!");
         } else if (ocl_id >= (int) num_devices)
             env->ThrowError("KNLMeansCL: selected device is not available!");
         ocl_device_packed *devices = (ocl_device_packed*) malloc(sizeof(ocl_device_packed) * num_devices);
-        ret |= oclGetDevicesList(device_type, devices, NULL, OCL_MIN_VERSION);
+        ret |= oclGetDevicesList(device_type, devices, NULL, OCL_MIN_VERSION);        
         if (ret != CL_SUCCESS)
-            env->ThrowError("KNLMeansCL: AviSynthCreate error (oclGetDevicesList)!");
+            env->ThrowError("KNLMeansCL: fatal error!\n (oclGetDevicesList)");
         platformID = devices[ocl_id].platform;
         deviceID = devices[ocl_id].device;
         free(devices);
     } else {
-        cl_int ret = oclGetDevicesList(device_type, NULL, &num_devices, OCL_MIN_VERSION);
+        ret |= oclGetDevicesList(device_type, NULL, &num_devices, OCL_MIN_VERSION);       
         if (num_devices == 0)
-            env->ThrowError("KNLMeansCL: no compatible opencl platforms available! (OpenCL " OCL_MIN_VERSION " API)");
+            env->ThrowError("KNLMeansCL: no compatible opencl platforms available!\n (OpenCL " OCL_MIN_VERSION " API)");
         else if (ocl_id >= (int) num_devices)
             env->ThrowError("KNLMeansCL: selected device is not available!");
         ocl_device_packed *devices = (ocl_device_packed*) malloc(sizeof(ocl_device_packed) * num_devices);
         ret |= oclGetDevicesList(device_type, devices, NULL, OCL_MIN_VERSION);
         if (ret != CL_SUCCESS)
-            env->ThrowError("KNLMeansCL: AviSynthCreate error (oclGetDevicesList)!");
+            env->ThrowError("KNLMeansCL: fatal error!\n (oclGetDevicesList)");
         platformID = devices[ocl_id].platform;
         deviceID = devices[ocl_id].device;
         free(devices);
@@ -169,32 +183,46 @@ KNLMeansClass::KNLMeansClass(PClip _child, const int _d, const int _a, const int
     idmn[0] = vi.width;
     idmn[1] = lsb ? (vi.height / 2) : (vi.height);
     idmn[2] = vi.height;
-    context = clCreateContext(NULL, 1, &deviceID, NULL, NULL, NULL);
+    context = clCreateContext(NULL, 1, &deviceID, NULL, NULL, &ret);
+    oclErrorCheck("clCreateContext", ret, env);
     const cl_image_format image_format = { channel_order, channel_type };
     const cl_image_desc image_desc = { (cl_mem_object_type) (d ? CL_MEM_OBJECT_IMAGE2D_ARRAY : CL_MEM_OBJECT_IMAGE2D),
         (size_t) idmn[0], (size_t) idmn[1], 1, 2 * (size_t) d + 1, 0, 0, 0, 0, NULL };
     const cl_image_desc image_desc_out = { CL_MEM_OBJECT_IMAGE2D, (size_t) idmn[0], (size_t) idmn[1], 1, 1, 0, 0, 0, 0, NULL };
     if (!(clip_t & COLOR_YUV) && !lsb) {
-        mem_in[0] = clCreateImage(context, CL_MEM_READ_ONLY | CL_MEM_HOST_WRITE_ONLY, &image_format, &image_desc, NULL, NULL);
-        mem_in[1] = clCreateImage(context, CL_MEM_READ_ONLY | CL_MEM_HOST_WRITE_ONLY, &image_format, &image_desc, NULL, NULL);
-        mem_out = clCreateImage(context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY, &image_format, &image_desc_out, NULL, NULL);
+        mem_in[0] = clCreateImage(context, CL_MEM_READ_ONLY | CL_MEM_HOST_WRITE_ONLY, &image_format, &image_desc, NULL, &ret);
+        oclErrorCheck("clCreateImage(mem_in[0])", ret, env);
+        mem_in[1] = clCreateImage(context, CL_MEM_READ_ONLY | CL_MEM_HOST_WRITE_ONLY, &image_format, &image_desc, NULL, &ret);
+        oclErrorCheck("clCreateImage(mem_in[1])", ret, env);
+        mem_out = clCreateImage(context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY, &image_format, &image_desc_out, NULL, &ret);
+        oclErrorCheck("clCreateImage(mem_out)", ret, env);
     } else {
-        mem_in[0] = clCreateImage(context, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, &image_format, &image_desc, NULL, NULL);
-        mem_in[1] = clCreateImage(context, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, &image_format, &image_desc, NULL, NULL);
-        mem_out = clCreateImage(context, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, &image_format, &image_desc_out, NULL, NULL);
+        mem_in[0] = clCreateImage(context, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, &image_format, &image_desc, NULL, &ret);
+        oclErrorCheck("clCreateImage(mem_in[0])", ret, env);
+        mem_in[1] = clCreateImage(context, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, &image_format, &image_desc, NULL, &ret);
+        oclErrorCheck("clCreateImage(mem_in[1])", ret, env);
+        mem_out = clCreateImage(context, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, &image_format, &image_desc_out, NULL, &ret);
+        oclErrorCheck("clCreateImage(mem_out)", ret, env);
     }
     const cl_image_format image_format_u = { CL_LUMINANCE, CL_HALF_FLOAT };
     const size_t size_u0 = sizeof(cl_float) * idmn[0] * idmn[1] * ((clip_t & COLOR_GRAY) ? 2 : 4);
     const size_t size_u3 = sizeof(cl_float) * idmn[0] * idmn[1];
-    mem_U[0] = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_HOST_WRITE_ONLY, size_u0, NULL, NULL);
-    mem_U[1] = clCreateImage(context, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, &image_format_u, &image_desc, NULL, NULL);
-    mem_U[2] = clCreateImage(context, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, &image_format_u, &image_desc, NULL, NULL);
-    mem_U[3] = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_HOST_WRITE_ONLY, size_u3, NULL, NULL);
+    mem_U[0] = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_HOST_WRITE_ONLY, size_u0, NULL, &ret);
+    oclErrorCheck("clCreateBuffer(mem_U[0])", ret, env);
+    mem_U[1] = clCreateImage(context, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, &image_format_u, &image_desc, NULL, &ret);
+    oclErrorCheck("clCreateImage(mem_U[1])", ret, env);
+    mem_U[2] = clCreateImage(context, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, &image_format_u, &image_desc, NULL, &ret);
+    oclErrorCheck("clCreateImage(mem_U[2])", ret, env);
+    mem_U[3] = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_HOST_WRITE_ONLY, size_u3, NULL, &ret);
+    oclErrorCheck("clCreateBuffer(mem_U[3])", ret, env);
     const cl_image_format image_format_p = { CL_LUMINANCE, CL_UNORM_INT8 };
     const cl_image_desc image_desc_p = { CL_MEM_OBJECT_IMAGE2D, (size_t) idmn[0], (size_t) idmn[2], 1, 1, 0, 0, 0, 0, NULL };
-    mem_P[0] = clCreateImage(context, CL_MEM_READ_WRITE, &image_format_p, &image_desc_p, NULL, NULL);
-    mem_P[1] = clCreateImage(context, CL_MEM_READ_WRITE, &image_format_p, &image_desc_p, NULL, NULL);
-    mem_P[2] = clCreateImage(context, CL_MEM_READ_WRITE, &image_format_p, &image_desc_p, NULL, NULL);
+    mem_P[0] = clCreateImage(context, CL_MEM_READ_WRITE, &image_format_p, &image_desc_p, NULL, &ret);
+    oclErrorCheck("clCreateImage(mem_P[0])", ret, env);
+    mem_P[1] = clCreateImage(context, CL_MEM_READ_WRITE, &image_format_p, &image_desc_p, NULL, &ret);
+    oclErrorCheck("clCreateImage(mem_P[1])", ret, env);
+    mem_P[2] = clCreateImage(context, CL_MEM_READ_WRITE, &image_format_p, &image_desc_p, NULL, &ret);
+    oclErrorCheck("clCreateImage(mem_P[2])", ret, env);
         
     // Creates and Build a program executable from the program source.
     program = clCreateProgramWithSource(context, 1, &kernel_source_code, NULL, NULL);
@@ -205,7 +233,7 @@ KNLMeansClass::KNLMeansClass(PClip _child, const int _d, const int _a, const int
         "-D NLMK_WMODE=%i -D NLMK_D=%i -D NLMK_H2_INV_NORM=%f -D NLMK_BIT_SHIFT=%u",
         H_BLOCK_X, H_BLOCK_Y, V_BLOCK_X, V_BLOCK_Y, clip_t, s,
         wmode, d, 65025.0 / (3*h*h*(2*s+1)*(2*s+1)), 0u);
-    ret = clBuildProgram(program, 1, &deviceID, options, NULL, NULL);
+    ret |= clBuildProgram(program, 1, &deviceID, options, NULL, NULL);
     if (ret != CL_SUCCESS) {
         size_t options_size, log_size;
         clGetProgramBuildInfo(program, deviceID, CL_PROGRAM_BUILD_OPTIONS, 0, NULL, &options_size);
@@ -224,29 +252,43 @@ KNLMeansClass::KNLMeansClass(PClip _child, const int _d, const int _a, const int
         outfile << log << std::endl;
         outfile.close();
         free(log);
-        env->ThrowError("KNLMeansCL: AviSynthCreate error (clBuildProgram)!\n Please report Log-KNLMeansCL.txt.");
+        env->ThrowError("KNLMeansCL: fatal error!\n (clBuildProgram: please report Log-KNLMeansCL.txt.)");
     }
     setlocale(LC_ALL, "");
 
     // Creates kernel objects.
-    kernel[nlmSpatialDistance] = clCreateKernel(program, "nlmSpatialDistance", NULL);
-    kernel[nlmSpatialHorizontal] = clCreateKernel(program, "nlmSpatialHorizontal", NULL);
-    kernel[nlmSpatialVertical] = clCreateKernel(program, "nlmSpatialVertical", NULL);
-    kernel[nlmSpatialAccumulation] = clCreateKernel(program, "nlmSpatialAccumulation", NULL);
-    kernel[nlmSpatialFinish] = clCreateKernel(program, "nlmSpatialFinish", NULL);
-    kernel[nlmDistanceLeft] = clCreateKernel(program, "nlmDistanceLeft", NULL);
-    kernel[nlmDistanceRight] = clCreateKernel(program, "nlmDistanceRight", NULL);
-    kernel[nlmHorizontal] = clCreateKernel(program, "nlmHorizontal", NULL);
-    kernel[nlmVertical] = clCreateKernel(program, "nlmVertical", NULL);
-    kernel[nlmAccumulation] = clCreateKernel(program, "nlmAccumulation", NULL);
-    kernel[nlmFinish] = clCreateKernel(program, "nlmFinish", NULL);
-    kernel[nlmSpatialPack] = clCreateKernel(program, "nlmSpatialPack", NULL);
-    kernel[nlmPack] = clCreateKernel(program, "nlmPack", NULL);
-    kernel[nlmUnpack] = clCreateKernel(program, "nlmUnpack", NULL);
+    kernel[nlmSpatialDistance] = clCreateKernel(program, "nlmSpatialDistance", &ret);
+    oclErrorCheck("clCreateKernel(nlmSpatialDistance)", ret, env);
+    kernel[nlmSpatialHorizontal] = clCreateKernel(program, "nlmSpatialHorizontal", &ret);
+    oclErrorCheck("clCreateKernel(nlmSpatialHorizontal)", ret, env);
+    kernel[nlmSpatialVertical] = clCreateKernel(program, "nlmSpatialVertical", &ret);
+    oclErrorCheck("clCreateKernel(nlmSpatialVertical)", ret, env);
+    kernel[nlmSpatialAccumulation] = clCreateKernel(program, "nlmSpatialAccumulation", &ret);
+    oclErrorCheck("clCreateKernel(nlmSpatialAccumulation)", ret, env);
+    kernel[nlmSpatialFinish] = clCreateKernel(program, "nlmSpatialFinish", &ret);
+    oclErrorCheck("clCreateKernel(nlmSpatialFinish)", ret, env);
+    kernel[nlmDistanceLeft] = clCreateKernel(program, "nlmDistanceLeft", &ret);
+    oclErrorCheck("clCreateKernel(nlmDistanceLeft)", ret, env);
+    kernel[nlmDistanceRight] = clCreateKernel(program, "nlmDistanceRight", &ret);
+    oclErrorCheck("clCreateKernel(nlmDistanceRight)", ret, env);
+    kernel[nlmHorizontal] = clCreateKernel(program, "nlmHorizontal", &ret);
+    oclErrorCheck("clCreateKernel(nlmHorizontal)", ret, env);
+    kernel[nlmVertical] = clCreateKernel(program, "nlmVertical", &ret);
+    oclErrorCheck("clCreateKernel(nlmVertical)", ret, env);
+    kernel[nlmAccumulation] = clCreateKernel(program, "nlmAccumulation", &ret);
+    oclErrorCheck("clCreateKernel(nlmAccumulation)", ret, env);
+    kernel[nlmFinish] = clCreateKernel(program, "nlmFinish", &ret);
+    oclErrorCheck("clCreateKernel(nlmFinish)", ret, env);
+    kernel[nlmSpatialPack] = clCreateKernel(program, "nlmSpatialPack", &ret);
+    oclErrorCheck("clCreateKernel(nlmSpatialPack)", ret, env);
+    kernel[nlmPack] = clCreateKernel(program, "nlmPack", &ret);
+    oclErrorCheck("clCreateKernel(nlmPack)", ret, env);
+    kernel[nlmUnpack] = clCreateKernel(program, "nlmUnpack", &ret);
+    oclErrorCheck("clCreateKernel(nlmUnpack)", ret, env);
 
     // Sets kernel arguments.
     if (d) {
-        ret = clSetKernelArg(kernel[nlmDistanceLeft], 0, sizeof(cl_mem), &mem_in[(clip_t & EXTRA_NONE) ? 0 : 1]);
+        ret |= clSetKernelArg(kernel[nlmDistanceLeft], 0, sizeof(cl_mem), &mem_in[(clip_t & EXTRA_NONE) ? 0 : 1]);
         ret |= clSetKernelArg(kernel[nlmDistanceLeft], 1, sizeof(cl_mem), &mem_U[1]);
         ret |= clSetKernelArg(kernel[nlmDistanceLeft], 2, 2 * sizeof(cl_int), &idmn);
         ret |= clSetKernelArg(kernel[nlmDistanceRight], 0, sizeof(cl_mem), &mem_in[(clip_t & EXTRA_NONE) ? 0 : 1]);
@@ -273,7 +315,7 @@ KNLMeansClass::KNLMeansClass(PClip _child, const int _d, const int _a, const int
         ret |= clSetKernelArg(kernel[nlmPack], 2, sizeof(cl_mem), &mem_P[2]);
         ret |= clSetKernelArg(kernel[nlmPack], 5, 2 * sizeof(cl_int), &idmn);
     } else {
-        ret = clSetKernelArg(kernel[nlmSpatialDistance], 0, sizeof(cl_mem), &mem_in[(clip_t & EXTRA_NONE) ? 0 : 1]);
+        ret |= clSetKernelArg(kernel[nlmSpatialDistance], 0, sizeof(cl_mem), &mem_in[(clip_t & EXTRA_NONE) ? 0 : 1]);
         ret |= clSetKernelArg(kernel[nlmSpatialDistance], 1, sizeof(cl_mem), &mem_U[1]);
         ret |= clSetKernelArg(kernel[nlmSpatialDistance], 2, 2 * sizeof(cl_int), &idmn);
         ret |= clSetKernelArg(kernel[nlmSpatialHorizontal], 0, sizeof(cl_mem), &mem_U[1]);
@@ -302,14 +344,14 @@ KNLMeansClass::KNLMeansClass(PClip _child, const int _d, const int _a, const int
     ret |= clSetKernelArg(kernel[nlmUnpack], 2, sizeof(cl_mem), &mem_P[2]);
     ret |= clSetKernelArg(kernel[nlmUnpack], 3, sizeof(cl_mem), &mem_out);
     ret |= clSetKernelArg(kernel[nlmUnpack], 4, 2 * sizeof(cl_int), &idmn);
-    if (ret != CL_SUCCESS) 	env->ThrowError("KNLMeansCL: AviSynthCreate error (clSetKernelArg)!");
+    if (ret != CL_SUCCESS) 	env->ThrowError("KNLMeansCL: fatal error!\n (clSetKernelArg)");
 }
 #endif //__AVISYNTH_6_H__
 
 //////////////////////////////////////////
 // VapourSynthInit
 #ifdef VAPOURSYNTH_H
-static void VS_CC VapourSynthInit(VSMap *in, VSMap *out, void **instanceData,
+static void VS_CC VapourSynthPluginInit(VSMap *in, VSMap *out, void **instanceData,
     VSNode *node, VSCore *core, const VSAPI *vsapi) {
 
     KNLMeansData *d = (KNLMeansData*) *instanceData;
@@ -440,7 +482,7 @@ PVideoFrame __stdcall KNLMeansClass::GetFrame(int n, IScriptEnvironment* env) {
                         (size_t) ref->GetPitch(), 0, ref->GetReadPtr(), 0, NULL, NULL);
                     break;
                 default:
-                    env->ThrowError("KNLMeansCL: AviSynthGetFrame error!");
+                    env->ThrowError("KNLMeansCL: fatal error!\n (AviSynthGetFrame)");
                     break;
             }
         }
@@ -553,7 +595,7 @@ PVideoFrame __stdcall KNLMeansClass::GetFrame(int n, IScriptEnvironment* env) {
                     (size_t) ref->GetPitch(), 0, ref->GetReadPtr(), 0, NULL, NULL);
                 break;
             default:
-                env->ThrowError("KNLMeansCL: AviSynthGetFrame error!");
+                env->ThrowError("KNLMeansCL: fatal error!\n (AviSynthGetFrame)");
                 break;
         }
         for (int j = -a; j <= 0; j++) {
@@ -607,12 +649,12 @@ PVideoFrame __stdcall KNLMeansClass::GetFrame(int n, IScriptEnvironment* env) {
                 (size_t) dst->GetPitch(), 0, dst->GetWritePtr(), 0, NULL, NULL);
             break;
         default:
-            env->ThrowError("KNLMeansCL: AviSynthGetFrame error!");
+            env->ThrowError("KNLMeansCL: fatal error!\n (AviSynthGetFrame)");
             break;
     }
     ret |= clFinish(command_queue);
     ret |= clReleaseCommandQueue(command_queue);
-    if (ret != CL_SUCCESS) env->ThrowError("KNLMeansCL: AviSynthGetFrame error!");
+    if (ret != CL_SUCCESS) env->ThrowError("KNLMeansCL: fatal error!\n (AviSynthGetFrame)");
 
     // Info.
     if (info) {
@@ -651,7 +693,7 @@ PVideoFrame __stdcall KNLMeansClass::GetFrame(int n, IScriptEnvironment* env) {
         ret |= clGetDeviceInfo(deviceID, CL_DRIVER_VERSION, sizeof(char) * 2048, str1, NULL);
         snprintf(buffer, 2048, " Version: %s %s", str, str1);
         DrawString(frm, pitch, 0, y++, buffer);
-        if (ret != CL_SUCCESS) env->ThrowError("KNLMeansCL: AviSynthInfo error!");
+        if (ret != CL_SUCCESS) env->ThrowError("KNLMeansCL: fatal error!\n (AviSynthInfo)");
     }
     return dst;
 }
@@ -784,7 +826,7 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
                             2, NULL, global_work, NULL, 0, NULL, NULL);
                         break;
                     default:
-                        vsapi->setFilterError("knlm.KNLMeansCL: knlmeansGetFrame error!", frameCtx);
+                        vsapi->setFilterError("knlm.KNLMeansCL: fatal error!\n (VapourSynthGetFrame)", frameCtx);
                         vsapi->freeNode(d->node);
                         vsapi->freeNode(d->knot);
                         return 0;
@@ -897,7 +939,7 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
                         2, NULL, global_work, NULL, 0, NULL, NULL);
                     break;
                 default:
-                    vsapi->setFilterError("knlm.KNLMeansCL: knlmeansGetFrame error!", frameCtx);
+                    vsapi->setFilterError("knlm.KNLMeansCL: fatal error!\n (VapourSynthGetFrame)", frameCtx);
                     vsapi->freeNode(d->node);
                     vsapi->freeNode(d->knot);
                     return 0;
@@ -952,7 +994,7 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
                     (size_t) vsapi->getStride(dst, 2), 0, vsapi->getWritePtr(dst, 2), 0, NULL, NULL);                             
                 break;
             default:
-                vsapi->setFilterError("knlm.KNLMeansCL: knlmeansGetFrame error!", frameCtx);
+                vsapi->setFilterError("knlm.KNLMeansCL: fatal error!\n (VapourSynthGetFrame)", frameCtx);
                 vsapi->freeNode(d->node);
                 vsapi->freeNode(d->knot);
                 return 0;
@@ -960,7 +1002,7 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
         ret |= clFinish(command_queue);
         ret |= clReleaseCommandQueue(command_queue);
         if (ret != CL_SUCCESS) {
-            vsapi->setFilterError("knlm.KNLMeansCL: knlmeansGetFrame error!", frameCtx);
+            vsapi->setFilterError("knlm.KNLMeansCL: fatal error!\n (VapourSynthGetFrame)", frameCtx);
             vsapi->freeNode(d->node);
             vsapi->freeNode(d->knot);
             return 0;
@@ -1006,7 +1048,7 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
             snprintf(buffer, 2048, " Version: %s %s", str, str1);
             DrawString(frm, pitch, 0, y++, buffer);
             if (ret != CL_SUCCESS) {
-                vsapi->setFilterError("knlm.KNLMeansCL: VapourSynthInfo error!", frameCtx);
+                vsapi->setFilterError("knlm.KNLMeansCL: fatal error!\n (VapourSynthInfo)", frameCtx);
                 vsapi->freeNode(d->node);
                 vsapi->freeNode(d->knot);
                 return 0;
@@ -1120,7 +1162,7 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
         d.cmode = vsapi->propGetInt(in, "cmode", 0, &err);
         if (err) d.cmode = DFT_cmode;
         if (d.cmode && (d.vi->format->subSamplingW != 0) && (d.vi->format->subSamplingH != 0)) {
-            vsapi->setError(out, "knlm.KNLMeansCL: cmode requires 4:4:4 subsampling!");
+            vsapi->setError(out, "knlm.KNLMeansCL: 'cmode' requires 4:4:4 subsampling!");
             vsapi->freeNode(d.node);
             vsapi->freeNode(d.knot);
             return;
@@ -1226,7 +1268,7 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
         return;
     }
     if (d.knot && !d.equals(d.vi, vsapi->getVideoInfo(d.knot))) {
-        vsapi->setError(out, "knlm.KNLMeansCL: rclip do not math source clip!");
+        vsapi->setError(out, "knlm.KNLMeansCL: 'rclip' do not math source clip!");
         vsapi->freeNode(d.node);
         vsapi->freeNode(d.knot);
         return;
@@ -1252,37 +1294,37 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
 
     // Checks user value.
     if (d.info && d.vi->format->bitsPerSample != 8) {
-        vsapi->setError(out, "knlm.KNLMeansCL: info requires Gray8 or YUVP8 color space!");
+        vsapi->setError(out, "knlm.KNLMeansCL: 'info' requires Gray8 or YUVP8 color space!");
         vsapi->freeNode(d.node);
         vsapi->freeNode(d.knot);
         return;
     }
     if (d.d < 0) {
-        vsapi->setError(out, "knlm.KNLMeansCL: d must be greater than or equal to 0!");
+        vsapi->setError(out, "knlm.KNLMeansCL: 'd' must be greater than or equal to 0!");
         vsapi->freeNode(d.node);
         vsapi->freeNode(d.knot);
         return;
     }
     if (d.a < 1) {
-        vsapi->setError(out, "knlm.KNLMeansCL: a must be greater than or equal to 1!");
+        vsapi->setError(out, "knlm.KNLMeansCL: 'a' must be greater than or equal to 1!");
         vsapi->freeNode(d.node);
         vsapi->freeNode(d.knot);
         return;
     }
     if (d.s < 0) {
-        vsapi->setError(out, "knlm.KNLMeansCL: s must be greater than or equal to 0!");
+        vsapi->setError(out, "knlm.KNLMeansCL: 's' must be greater than or equal to 0!");
         vsapi->freeNode(d.node);
         vsapi->freeNode(d.knot);
         return;
     }
     if (d.wmode < 0 || d.wmode > 2) {
-        vsapi->setError(out, "knlm.KNLMeansCL: wmode must be in range [0, 2]!");
+        vsapi->setError(out, "knlm.KNLMeansCL: 'wmode' must be in range [0, 2]!");
         vsapi->freeNode(d.node);
         vsapi->freeNode(d.knot);
         return;
     }
     if (d.h <= 0.0) {
-        vsapi->setError(out, "knlm.KNLMeansCL: h must be greater than 0!");
+        vsapi->setError(out, "knlm.KNLMeansCL: 'h' must be greater than 0!");
         vsapi->freeNode(d.node);
         vsapi->freeNode(d.knot);
         return;
@@ -1298,13 +1340,13 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
     } else if (!strcasecmp(d.ocl_device, "AUTO")) {
         device_auto = true;
     } else {
-        vsapi->setError(out, "knlm.KNLMeansCL: device_type must be cpu, gpu, accelerator or auto!");
+        vsapi->setError(out, "knlm.KNLMeansCL: 'device_type' must be 'cpu', 'gpu', 'accelerator' or 'auto'!");
         vsapi->freeNode(d.node);
         vsapi->freeNode(d.knot);
         return;
     }
     if (d.ocl_id < 0) {
-        vsapi->setError(out, "knlm.KNLMeansCL: device_id must be greater than or equal to 0!");
+        vsapi->setError(out, "knlm.KNLMeansCL: 'device_id' must be greater than or equal to 0!");
         vsapi->freeNode(d.node);
         vsapi->freeNode(d.knot);
         return;
@@ -1323,7 +1365,7 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
                 ret |= oclGetDevicesList(device_type, NULL, &d.num_devices, OCL_MIN_VERSION);
                 if (d.num_devices == 0) {
                     vsapi->setError(out, 
-                        "knlm.KNLMeansCL: no compatible opencl platforms available! (OpenCL " OCL_MIN_VERSION " API)");
+                        "knlm.KNLMeansCL: no compatible opencl platforms available!\n (OpenCL " OCL_MIN_VERSION " API)");
                     vsapi->freeNode(d.node);
                     vsapi->freeNode(d.knot);
                     return;                                            
@@ -1348,7 +1390,7 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
         ocl_device_packed *devices = (ocl_device_packed*) malloc(sizeof(ocl_device_packed) * d.num_devices);
         ret |= oclGetDevicesList(device_type, devices, NULL, OCL_MIN_VERSION);
         if (ret != CL_SUCCESS) {
-            vsapi->setError(out, "knlm.KNLMeansCL: VapourSynthCreate error (clGetPlatformID)!");
+            vsapi->setError(out, "knlm.KNLMeansCL: fatal error!\n (oclGetDevicesList)");
             vsapi->freeNode(d.node);
             vsapi->freeNode(d.knot);
             return;
@@ -1357,9 +1399,9 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
         d.deviceID = devices[d.ocl_id].device;
         free(devices);
     } else {
-        cl_int ret = oclGetDevicesList(device_type, NULL, &d.num_devices, OCL_MIN_VERSION);
+        ret |= oclGetDevicesList(device_type, NULL, &d.num_devices, OCL_MIN_VERSION);
         if (d.num_devices == 0) {
-            vsapi->setError(out, "knlm.KNLMeansCL: no compatible opencl platforms available! (OpenCL " OCL_MIN_VERSION " API)");
+            vsapi->setError(out, "knlm.KNLMeansCL: no compatible opencl platforms available!\n (OpenCL " OCL_MIN_VERSION " API)");
             vsapi->freeNode(d.node);
             vsapi->freeNode(d.knot);
             return;
@@ -1372,7 +1414,7 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
         ocl_device_packed *devices = (ocl_device_packed*) malloc(sizeof(ocl_device_packed) * d.num_devices);
         ret |= oclGetDevicesList(device_type, devices, NULL, OCL_MIN_VERSION);
         if (ret != CL_SUCCESS) {
-            vsapi->setError(out, "knlm.KNLMeansCL: VapourSynthCreate error (oclGetDevicesList)!");
+            vsapi->setError(out, "knlm.KNLMeansCL: fatal error!\n (oclGetDevicesList)");
             vsapi->freeNode(d.node);
             vsapi->freeNode(d.knot);
             return;
@@ -1385,37 +1427,54 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
     // Creates an OpenCL context, 2D images and buffers object.
     d.idmn[0] = d.vi->width;
     d.idmn[1] = d.vi->height;
-    d.context = clCreateContext(NULL, 1, &d.deviceID, NULL, NULL, NULL);
+    d.context = clCreateContext(NULL, 1, &d.deviceID, NULL, NULL, &ret);
+    if (ret != CL_SUCCESS) { d.oclErrorCheck2("clCreateContext", ret, out, vsapi); return; }
     const cl_image_format image_format = { channel_order, channel_type };
     const cl_image_desc image_desc = { (cl_mem_object_type) (d.d ? CL_MEM_OBJECT_IMAGE2D_ARRAY : CL_MEM_OBJECT_IMAGE2D),
         (size_t) d.idmn[0], (size_t) d.idmn[1], 1, 2 * (size_t) d.d + 1, 0, 0, 0, 0, NULL };
     const cl_image_desc image_desc_out = { CL_MEM_OBJECT_IMAGE2D, (size_t) d.idmn[0], (size_t) d.idmn[1], 1, 1, 0, 0, 0, 0, NULL };
     if ((d.clip_t & COLOR_GRAY) && !d.bit_shift) {
-        d.mem_in[0] = clCreateImage(d.context, CL_MEM_READ_ONLY | CL_MEM_HOST_WRITE_ONLY, &image_format, &image_desc, NULL, NULL);
-        d.mem_in[1] = clCreateImage(d.context, CL_MEM_READ_ONLY | CL_MEM_HOST_WRITE_ONLY, &image_format, &image_desc, NULL, NULL);
-        d.mem_out = clCreateImage(d.context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY, &image_format, &image_desc_out, NULL, NULL);
+        d.mem_in[0] = clCreateImage(d.context, CL_MEM_READ_ONLY | CL_MEM_HOST_WRITE_ONLY, &image_format, &image_desc, NULL, &ret);
+        if (ret != CL_SUCCESS) { d.oclErrorCheck2("clCreateImage(d.mem_in[0])", ret, out, vsapi); return; }
+        d.mem_in[1] = clCreateImage(d.context, CL_MEM_READ_ONLY | CL_MEM_HOST_WRITE_ONLY, &image_format, &image_desc, NULL, &ret);
+        if (ret != CL_SUCCESS) { d.oclErrorCheck2("clCreateImage(d.mem_in[1])", ret, out, vsapi); return; }
+        d.mem_out = clCreateImage(d.context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY, &image_format, &image_desc_out, NULL, &ret);
+        if (ret != CL_SUCCESS) { d.oclErrorCheck2("clCreateImage(d.mem_out)", ret, out, vsapi); return; }
     } else {
-        d.mem_in[0] = clCreateImage(d.context, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, &image_format, &image_desc, NULL, NULL);
-        d.mem_in[1] = clCreateImage(d.context, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, &image_format, &image_desc, NULL, NULL);
-        d.mem_out = clCreateImage(d.context, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, &image_format, &image_desc_out, NULL, NULL);
+        d.mem_in[0] = clCreateImage(d.context, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, &image_format, &image_desc, NULL, &ret);
+        if (ret != CL_SUCCESS) { d.oclErrorCheck2("clCreateImage(d.mem_in[0])", ret, out, vsapi); return; }
+        d.mem_in[1] = clCreateImage(d.context, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, &image_format, &image_desc, NULL, &ret);
+        if (ret != CL_SUCCESS) { d.oclErrorCheck2("clCreateImage(d.mem_in[1])", ret, out, vsapi); return; }
+        d.mem_out = clCreateImage(d.context, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, &image_format, &image_desc_out, NULL, &ret);
+        if (ret != CL_SUCCESS) { d.oclErrorCheck2("clCreateImage(d.mem_out)", ret, out, vsapi); return; }
     }
     const cl_image_format image_format_u = { CL_LUMINANCE, CL_HALF_FLOAT };
     const size_t size_u0 = sizeof(cl_float) * d.idmn[0] * d.idmn[1] * ((d.clip_t & COLOR_GRAY) ? 2 : 4);
     const size_t size_u3 = sizeof(cl_float) * d.idmn[0] * d.idmn[1];
-    d.mem_U[0] = clCreateBuffer(d.context, CL_MEM_READ_WRITE | CL_MEM_HOST_WRITE_ONLY, size_u0, NULL, NULL);
-    d.mem_U[1] = clCreateImage(d.context, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, &image_format_u, &image_desc, NULL, NULL);
-    d.mem_U[2] = clCreateImage(d.context, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, &image_format_u, &image_desc, NULL, NULL);
-    d.mem_U[3] = clCreateBuffer(d.context, CL_MEM_READ_WRITE | CL_MEM_HOST_WRITE_ONLY, size_u3, NULL, NULL);
+    d.mem_U[0] = clCreateBuffer(d.context, CL_MEM_READ_WRITE | CL_MEM_HOST_WRITE_ONLY, size_u0, NULL, &ret);
+    if (ret != CL_SUCCESS) { d.oclErrorCheck2("clCreateBuffer(d.mem_U[0])", ret, out, vsapi); return; }
+    d.mem_U[1] = clCreateImage(d.context, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, &image_format_u, &image_desc, NULL, &ret);
+    if (ret != CL_SUCCESS) { d.oclErrorCheck2("clCreateImage(d.mem_U[1])", ret, out, vsapi); return; }
+    d.mem_U[2] = clCreateImage(d.context, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, &image_format_u, &image_desc, NULL, &ret);
+    if (ret != CL_SUCCESS) { d.oclErrorCheck2("clCreateImage(d.mem_U[2])", ret, out, vsapi); return; }
+    d.mem_U[3] = clCreateBuffer(d.context, CL_MEM_READ_WRITE | CL_MEM_HOST_WRITE_ONLY, size_u3, NULL, &ret);
+    if (ret != CL_SUCCESS) { d.oclErrorCheck2("clCreateBuffer(d.mem_U[3])", ret, out, vsapi); return; }
     if (d.bit_shift) {
         const cl_image_format image_format_p = { CL_R, CL_UNSIGNED_INT16 };
-        d.mem_P[0] = clCreateImage(d.context, CL_MEM_READ_WRITE, &image_format_p, &image_desc_out, NULL, NULL);
-        d.mem_P[1] = clCreateImage(d.context, CL_MEM_READ_WRITE, &image_format_p, &image_desc_out, NULL, NULL);
-        d.mem_P[2] = clCreateImage(d.context, CL_MEM_READ_WRITE, &image_format_p, &image_desc_out, NULL, NULL);
+        d.mem_P[0] = clCreateImage(d.context, CL_MEM_READ_WRITE, &image_format_p, &image_desc_out, NULL, &ret);
+        if (ret != CL_SUCCESS) { d.oclErrorCheck2("clCreateImage(d.mem_P[0])", ret, out, vsapi); return; }
+        d.mem_P[1] = clCreateImage(d.context, CL_MEM_READ_WRITE, &image_format_p, &image_desc_out, NULL, &ret);
+        if (ret != CL_SUCCESS) { d.oclErrorCheck2("clCreateImage(d.mem_P[1])", ret, out, vsapi); return; }
+        d.mem_P[2] = clCreateImage(d.context, CL_MEM_READ_WRITE, &image_format_p, &image_desc_out, NULL, &ret);
+        if (ret != CL_SUCCESS) { d.oclErrorCheck2("clCreateImage(d.mem_P[2])", ret, out, vsapi); return; }
     } else {
         const cl_image_format image_format_p = { CL_LUMINANCE, channel_type };
-        d.mem_P[0] = clCreateImage(d.context, CL_MEM_READ_WRITE, &image_format_p, &image_desc_out, NULL, NULL);
-        d.mem_P[1] = clCreateImage(d.context, CL_MEM_READ_WRITE, &image_format_p, &image_desc_out, NULL, NULL);
-        d.mem_P[2] = clCreateImage(d.context, CL_MEM_READ_WRITE, &image_format_p, &image_desc_out, NULL, NULL);
+        d.mem_P[0] = clCreateImage(d.context, CL_MEM_READ_WRITE, &image_format_p, &image_desc_out, NULL, &ret);
+        if (ret != CL_SUCCESS) { d.oclErrorCheck2("clCreateImage(d.mem_P[0])", ret, out, vsapi); return; }
+        d.mem_P[1] = clCreateImage(d.context, CL_MEM_READ_WRITE, &image_format_p, &image_desc_out, NULL, &ret);
+        if (ret != CL_SUCCESS) { d.oclErrorCheck2("clCreateImage(d.mem_P[1])", ret, out, vsapi); return; }
+        d.mem_P[2] = clCreateImage(d.context, CL_MEM_READ_WRITE, &image_format_p, &image_desc_out, NULL, &ret);
+        if (ret != CL_SUCCESS) { d.oclErrorCheck2("clCreateImage(d.mem_P[2])", ret, out, vsapi); return; }
     }
 
     // Creates and Build a program executable from the program source.
@@ -1435,7 +1494,7 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
         H_BLOCK_X, H_BLOCK_Y, V_BLOCK_X, V_BLOCK_Y, d.clip_t, int64ToIntS(d.s),
         int64ToIntS(d.wmode), int64ToIntS(d.d), 65025.0 / (3 * d.h*d.h*(2 * d.s + 1)*(2 * d.s + 1)), d.bit_shift);
 #endif
-    ret = clBuildProgram(d.program, 1, &d.deviceID, options, NULL, NULL);
+    ret |= clBuildProgram(d.program, 1, &d.deviceID, options, NULL, NULL);
     if (ret != CL_SUCCESS) {
         size_t options_size, log_size;
         clGetProgramBuildInfo(d.program, d.deviceID, CL_PROGRAM_BUILD_OPTIONS, 0, NULL, &options_size);
@@ -1454,7 +1513,7 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
         outfile << log << std::endl;
         outfile.close();
         free(log);
-        vsapi->setError(out, "knlm.KNLMeansCL: VapourSynthCreate error (clBuildProgram)!\n Please report Log-KNLMeansCL.txt.");
+        vsapi->setError(out, "knlm.KNLMeansCL: fatal error!\n (clBuildProgram: please report Log-KNLMeansCL.txt.)");
         vsapi->freeNode(d.node);
         vsapi->freeNode(d.knot);
         return;
@@ -1462,24 +1521,38 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
     setlocale(LC_ALL, "");
 
     // Creates kernel objects.
-    d.kernel[nlmSpatialDistance] = clCreateKernel(d.program, "nlmSpatialDistance", NULL);
-    d.kernel[nlmSpatialHorizontal] = clCreateKernel(d.program, "nlmSpatialHorizontal", NULL);
-    d.kernel[nlmSpatialVertical] = clCreateKernel(d.program, "nlmSpatialVertical", NULL);
-    d.kernel[nlmSpatialAccumulation] = clCreateKernel(d.program, "nlmSpatialAccumulation", NULL);
-    d.kernel[nlmSpatialFinish] = clCreateKernel(d.program, "nlmSpatialFinish", NULL);
-    d.kernel[nlmDistanceLeft] = clCreateKernel(d.program, "nlmDistanceLeft", NULL);
-    d.kernel[nlmDistanceRight] = clCreateKernel(d.program, "nlmDistanceRight", NULL);
-    d.kernel[nlmHorizontal] = clCreateKernel(d.program, "nlmHorizontal", NULL);
-    d.kernel[nlmVertical] = clCreateKernel(d.program, "nlmVertical", NULL);
-    d.kernel[nlmAccumulation] = clCreateKernel(d.program, "nlmAccumulation", NULL);
-    d.kernel[nlmFinish] = clCreateKernel(d.program, "nlmFinish", NULL);
-    d.kernel[nlmSpatialPack] = clCreateKernel(d.program, "nlmSpatialPack", NULL);
-    d.kernel[nlmPack] = clCreateKernel(d.program, "nlmPack", NULL);
-    d.kernel[nlmUnpack] = clCreateKernel(d.program, "nlmUnpack", NULL);
+    d.kernel[nlmSpatialDistance] = clCreateKernel(d.program, "nlmSpatialDistance", &ret);
+    if (ret != CL_SUCCESS) { d.oclErrorCheck2("clCreateKernel(nlmSpatialDistance)", ret, out, vsapi); return; }
+    d.kernel[nlmSpatialHorizontal] = clCreateKernel(d.program, "nlmSpatialHorizontal", &ret);
+    if (ret != CL_SUCCESS) { d.oclErrorCheck2("clCreateKernel(nlmSpatialHorizontal)", ret, out, vsapi); return; }
+    d.kernel[nlmSpatialVertical] = clCreateKernel(d.program, "nlmSpatialVertical", &ret);
+    if (ret != CL_SUCCESS) { d.oclErrorCheck2("clCreateKernel(nlmSpatialVertical)", ret, out, vsapi); return; }
+    d.kernel[nlmSpatialAccumulation] = clCreateKernel(d.program, "nlmSpatialAccumulation", &ret);
+    if (ret != CL_SUCCESS) { d.oclErrorCheck2("clCreateKernel(nlmSpatialAccumulation)", ret, out, vsapi); return; }
+    d.kernel[nlmSpatialFinish] = clCreateKernel(d.program, "nlmSpatialFinish", &ret);
+    if (ret != CL_SUCCESS) { d.oclErrorCheck2("clCreateKernel(nlmSpatialFinish)", ret, out, vsapi); return; }
+    d.kernel[nlmDistanceLeft] = clCreateKernel(d.program, "nlmDistanceLeft", &ret);
+    if (ret != CL_SUCCESS) { d.oclErrorCheck2("clCreateKernel(nlmDistanceLeft)", ret, out, vsapi); return; }
+    d.kernel[nlmDistanceRight] = clCreateKernel(d.program, "nlmDistanceRight", &ret);
+    if (ret != CL_SUCCESS) { d.oclErrorCheck2("clCreateKernel(nlmDistanceRight)", ret, out, vsapi); return; }
+    d.kernel[nlmHorizontal] = clCreateKernel(d.program, "nlmHorizontal", &ret);
+    if (ret != CL_SUCCESS) { d.oclErrorCheck2("clCreateKernel(nlmHorizontal)", ret, out, vsapi); return; }
+    d.kernel[nlmVertical] = clCreateKernel(d.program, "nlmVertical", &ret);
+    if (ret != CL_SUCCESS) { d.oclErrorCheck2("clCreateKernel(nlmVertical)", ret, out, vsapi); return; }
+    d.kernel[nlmAccumulation] = clCreateKernel(d.program, "nlmAccumulation", &ret);
+    if (ret != CL_SUCCESS) { d.oclErrorCheck2("clCreateKernel(nlmAccumulation)", ret, out, vsapi); return; }
+    d.kernel[nlmFinish] = clCreateKernel(d.program, "nlmFinish", &ret);
+    if (ret != CL_SUCCESS) { d.oclErrorCheck2("clCreateKernel(nlmFinish)", ret, out, vsapi); return; }
+    d.kernel[nlmSpatialPack] = clCreateKernel(d.program, "nlmSpatialPack", &ret);
+    if (ret != CL_SUCCESS) { d.oclErrorCheck2("clCreateKernel(nlmSpatialPack)", ret, out, vsapi); return; }
+    d.kernel[nlmPack] = clCreateKernel(d.program, "nlmPack", &ret);
+    if (ret != CL_SUCCESS) { d.oclErrorCheck2("clCreateKernel(nlmPack)", ret, out, vsapi); return; }
+    d.kernel[nlmUnpack] = clCreateKernel(d.program, "nlmUnpack", &ret);
+    if (ret != CL_SUCCESS) { d.oclErrorCheck2("clCreateKernel(nlmUnpack)", ret, out, vsapi); return; }
 
     // Sets kernel arguments.
     if (d.d) {
-        ret = clSetKernelArg(d.kernel[nlmDistanceLeft], 0, sizeof(cl_mem), &d.mem_in[(d.clip_t & EXTRA_NONE) ? 0 : 1]);
+        ret |= clSetKernelArg(d.kernel[nlmDistanceLeft], 0, sizeof(cl_mem), &d.mem_in[(d.clip_t & EXTRA_NONE) ? 0 : 1]);
         ret |= clSetKernelArg(d.kernel[nlmDistanceLeft], 1, sizeof(cl_mem), &d.mem_U[1]);
         ret |= clSetKernelArg(d.kernel[nlmDistanceLeft], 2, 2 * sizeof(cl_int), &d.idmn);
         ret |= clSetKernelArg(d.kernel[nlmDistanceRight], 0, sizeof(cl_mem), &d.mem_in[(d.clip_t & EXTRA_NONE) ? 0 : 1]);
@@ -1506,7 +1579,7 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
         ret |= clSetKernelArg(d.kernel[nlmPack], 2, sizeof(cl_mem), &d.mem_P[2]);
         ret |= clSetKernelArg(d.kernel[nlmPack], 5, 2 * sizeof(cl_int), &d.idmn);    
     } else {
-        ret = clSetKernelArg(d.kernel[nlmSpatialDistance], 0, sizeof(cl_mem), &d.mem_in[(d.clip_t & EXTRA_NONE) ? 0 : 1]);
+        ret |= clSetKernelArg(d.kernel[nlmSpatialDistance], 0, sizeof(cl_mem), &d.mem_in[(d.clip_t & EXTRA_NONE) ? 0 : 1]);
         ret |= clSetKernelArg(d.kernel[nlmSpatialDistance], 1, sizeof(cl_mem), &d.mem_U[1]);
         ret |= clSetKernelArg(d.kernel[nlmSpatialDistance], 2, 2 * sizeof(cl_int), &d.idmn);
         ret |= clSetKernelArg(d.kernel[nlmSpatialHorizontal], 0, sizeof(cl_mem), &d.mem_U[1]);
@@ -1536,7 +1609,7 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
     ret |= clSetKernelArg(d.kernel[nlmUnpack], 3, sizeof(cl_mem), &d.mem_out);
     ret |= clSetKernelArg(d.kernel[nlmUnpack], 4, 2 * sizeof(cl_int), &d.idmn);
     if (ret != CL_SUCCESS) {
-        vsapi->setError(out, "knlm.KNLMeansCL: VapourSynthCreate error (clSetKernelArg)!");
+        vsapi->setError(out, "knlm.KNLMeansCL: fatal error!\n (clSetKernelArg)");
         vsapi->freeNode(d.node);
         vsapi->freeNode(d.knot);
         return;
@@ -1546,12 +1619,12 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
     KNLMeansData *data = (KNLMeansData*) malloc(sizeof(d));
     if(data) *data = d;
     else {
-        vsapi->setError(out, "knlm.KNLMeansCL: VapourSynthCreate error (malloc fail)!");
+        vsapi->setError(out, "knlm.KNLMeansCL: fatal error!\n (malloc fail)");
         vsapi->freeNode(d.node);
         vsapi->freeNode(d.knot);
         return;
     }
-    vsapi->createFilter(in, out, "KNLMeansCL", VapourSynthInit, VapourSynthPluginGetFrame,
+    vsapi->createFilter(in, out, "KNLMeansCL", VapourSynthPluginInit, VapourSynthPluginGetFrame,
         VapourSynthPluginFree, fmParallelRequests, 0, data, core);
 }
 #endif //__VAPOURSYNTH_H__
