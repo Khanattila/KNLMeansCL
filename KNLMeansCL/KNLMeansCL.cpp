@@ -116,14 +116,10 @@ KNLMeansClass::KNLMeansClass(PClip _child, const int _d, const int _a, const int
         device_type = CL_DEVICE_TYPE_GPU;
     } else if (!strcasecmp(ocl_device, "ACCELERATOR")) {
         device_type = CL_DEVICE_TYPE_ACCELERATOR;
-    } else if (!strcasecmp(ocl_device, "ALL")) {
-        device_type = CL_DEVICE_TYPE_ALL;
-    } else if (!strcasecmp(ocl_device, "DEFAULT")) {
-        device_type = CL_DEVICE_TYPE_DEFAULT;
     } else if (!strcasecmp(ocl_device, "AUTO")) {
         device_auto = true;
     } else {
-        env->ThrowError("KNLMeansCL: device_type must be cpu, gpu, accelerator, all, default or auto!");
+        env->ThrowError("KNLMeansCL: device_type must be cpu, gpu, accelerator or auto!");
     }
     if (ocl_id < 0)
         env->ThrowError("KNLMeansCL: device_id must be greater than or equal to 0!");
@@ -140,19 +136,9 @@ KNLMeansClass::KNLMeansClass(PClip _child, const int _d, const int _a, const int
             ret |= oclGetDevicesList(device_type, NULL, &num_devices, OCL_MIN_VERSION);
             if (num_devices == 0) {
                 device_type = CL_DEVICE_TYPE_CPU;
-                ret |= oclGetDevicesList(device_type, NULL, &num_devices, OCL_MIN_VERSION);
-                if (num_devices == 0) {
-                    device_type = CL_DEVICE_TYPE_DEFAULT;
-                    ret |= oclGetDevicesList(device_type, NULL, &num_devices, OCL_MIN_VERSION);
-                    if (num_devices == 0) {
-                        device_type = CL_DEVICE_TYPE_ALL;
-                        ret |= oclGetDevicesList(device_type, NULL, &num_devices, OCL_MIN_VERSION);
-                        if (num_devices == 0) 
-                            env->ThrowError("KNLMeansCL: no compatible opencl platforms available! (OpenCL " OCL_MIN_VERSION " API)");
-                    } else if (ocl_id >= (int) num_devices)
-                        env->ThrowError("KNLMeansCL: selected device is not available!");
-                } else if (ocl_id >= (int) num_devices)
-                    env->ThrowError("KNLMeansCL: selected device is not available!");
+                ret |= oclGetDevicesList(device_type, NULL, &num_devices, OCL_MIN_VERSION);               
+                if (num_devices == 0) 
+                    env->ThrowError("KNLMeansCL: no compatible opencl platforms available! (OpenCL " OCL_MIN_VERSION " API)");                    
             } else if (ocl_id >= (int) num_devices)
                 env->ThrowError("KNLMeansCL: selected device is not available!");
         } else if (ocl_id >= (int) num_devices)
@@ -1308,15 +1294,11 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
     } else if (!strcasecmp(d.ocl_device, "GPU")) {
         device_type = CL_DEVICE_TYPE_GPU;
     } else if (!strcasecmp(d.ocl_device, "ACCELERATOR")) {
-        device_type = CL_DEVICE_TYPE_ACCELERATOR;
-    } else if (!strcasecmp(d.ocl_device, "ALL")) {
-        device_type = CL_DEVICE_TYPE_ALL;
-    } else if (!strcasecmp(d.ocl_device, "DEFAULT")) {
-        device_type = CL_DEVICE_TYPE_DEFAULT;
+        device_type = CL_DEVICE_TYPE_ACCELERATOR;    
     } else if (!strcasecmp(d.ocl_device, "AUTO")) {
         device_auto = true;
     } else {
-        vsapi->setError(out, "knlm.KNLMeansCL: device_type must be cpu, gpu, accelerator, all, default or auto!");
+        vsapi->setError(out, "knlm.KNLMeansCL: device_type must be cpu, gpu, accelerator or auto!");
         vsapi->freeNode(d.node);
         vsapi->freeNode(d.knot);
         return;
@@ -1340,29 +1322,11 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
                 device_type = CL_DEVICE_TYPE_CPU;
                 ret |= oclGetDevicesList(device_type, NULL, &d.num_devices, OCL_MIN_VERSION);
                 if (d.num_devices == 0) {
-                    device_type = CL_DEVICE_TYPE_DEFAULT;
-                    ret |= oclGetDevicesList(device_type, NULL, &d.num_devices, OCL_MIN_VERSION);
-                    if (d.num_devices == 0) {
-                        device_type = CL_DEVICE_TYPE_ALL;
-                        ret |= oclGetDevicesList(device_type, NULL, &d.num_devices, OCL_MIN_VERSION);
-                        if (d.num_devices == 0) {
-                            vsapi->setError(out, 
-                                "knlm.KNLMeansCL: no compatible opencl platforms available! (OpenCL " OCL_MIN_VERSION " API)");
-                            vsapi->freeNode(d.node);
-                            vsapi->freeNode(d.knot);
-                            return;
-                        } else if (d.ocl_id >= (int) d.num_devices) {
-                            vsapi->setError(out, "knlm.KNLMeansCL: selected device is not available!");
-                            vsapi->freeNode(d.node);
-                            vsapi->freeNode(d.knot);
-                            return;
-                        }
-                    } else if (d.ocl_id >= (int) d.num_devices) {
-                        vsapi->setError(out, "knlm.KNLMeansCL: selected device is not available!");
-                        vsapi->freeNode(d.node);
-                        vsapi->freeNode(d.knot);
-                        return;
-                    }
+                    vsapi->setError(out, 
+                        "knlm.KNLMeansCL: no compatible opencl platforms available! (OpenCL " OCL_MIN_VERSION " API)");
+                    vsapi->freeNode(d.node);
+                    vsapi->freeNode(d.knot);
+                    return;                                            
                 } else if (d.ocl_id >= (int) d.num_devices) {
                     vsapi->setError(out, "knlm.KNLMeansCL: selected device is not available!");
                     vsapi->freeNode(d.node);
@@ -1428,11 +1392,11 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
     const cl_image_desc image_desc_out = { CL_MEM_OBJECT_IMAGE2D, (size_t) d.idmn[0], (size_t) d.idmn[1], 1, 1, 0, 0, 0, 0, NULL };
     if ((d.clip_t & COLOR_GRAY) && !d.bit_shift) {
         d.mem_in[0] = clCreateImage(d.context, CL_MEM_READ_ONLY | CL_MEM_HOST_WRITE_ONLY, &image_format, &image_desc, NULL, NULL);
-        d.mem_in[1] = clCreateImage(d.context, CL_MEM_READ_ONLY | CL_MEM_HOST_WRITE_ONLY, &image_format, &image_desc, NULL, NULL);       
+        d.mem_in[1] = clCreateImage(d.context, CL_MEM_READ_ONLY | CL_MEM_HOST_WRITE_ONLY, &image_format, &image_desc, NULL, NULL);
         d.mem_out = clCreateImage(d.context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY, &image_format, &image_desc_out, NULL, NULL);
     } else {
         d.mem_in[0] = clCreateImage(d.context, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, &image_format, &image_desc, NULL, NULL);
-        d.mem_in[1] = clCreateImage(d.context, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, &image_format, &image_desc, NULL, NULL);       
+        d.mem_in[1] = clCreateImage(d.context, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, &image_format, &image_desc, NULL, NULL);
         d.mem_out = clCreateImage(d.context, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, &image_format, &image_desc_out, NULL, NULL);
     }
     const cl_image_format image_format_u = { CL_LUMINANCE, CL_HALF_FLOAT };
