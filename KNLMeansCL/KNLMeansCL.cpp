@@ -351,7 +351,7 @@ KNLMeansClass::KNLMeansClass(PClip _child, const int _d, const int _a, const int
 //////////////////////////////////////////
 // VapourSynthInit
 #ifdef VAPOURSYNTH_H
-static void VS_CC VapourSynthPluginInit(VSMap *in, VSMap *out, void **instanceData,
+static void VS_CC VapourSynthPluginViInit(VSMap *in, VSMap *out, void **instanceData,
     VSNode *node, VSCore *core, const VSAPI *vsapi) {
 
     KNLMeansData *d = (KNLMeansData*) *instanceData;
@@ -1624,7 +1624,7 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
         vsapi->freeNode(d.knot);
         return;
     }
-    vsapi->createFilter(in, out, "KNLMeansCL", VapourSynthPluginInit, VapourSynthPluginGetFrame,
+    vsapi->createFilter(in, out, "KNLMeansCL", VapourSynthPluginViInit, VapourSynthPluginGetFrame,
         VapourSynthPluginFree, fmParallelRequests, 0, data, core);
 }
 #endif //__VAPOURSYNTH_H__
