@@ -91,9 +91,7 @@ clip rclip              Extra reference clip option to do weighting calculation.
 string device_type      CPU := An OpenCL device that is the host processor.
                         GPU := An OpenCL device that is a GPU. 
                         ACCELERATOR := Dedicated OpenCL accelerators.
-                        DEFAULT := The default OpenCL device in the system.
-                        ALL := All OpenCL devices available in the system.
-                        AUTO := GPU -> ACCELERATOR -> CPU -> DEFAULT -> ALL.
+                        AUTO := GPU -> ACCELERATOR -> CPU.
 	
                         Default: AUTO.
                         
