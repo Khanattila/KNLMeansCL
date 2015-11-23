@@ -1,9 +1,7 @@
 #### First ####
-```
-'OpenCL.dll' is required ONLY if you have trouble with your 'OpenCL.dll'.
-Some NVIDIA users report the problem. Just repleace "C:\Windows\System32\OpenCL.dll"
-and/or "C:\Windows\SysWOW64\OpenCL.dll" with the one provided.
-```
+"OpenCL.dll" is required ONLY if you have trouble with your "OpenCL.dll". Some NVIDIA users report the problem.
+Just repleace "C:\Windows\System32\OpenCL.dll" and/or "C:\Windows\SysWOW64\OpenCL.dll" with the one provided.
+Or replace "C:\Windows\System32\OpenCL.dll" with "C:\Program Files\NVIDIA Corporation\OpenCL\OpenCL.dll".
 
 #### Syntax ####
 ```
