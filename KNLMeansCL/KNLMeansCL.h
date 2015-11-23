@@ -16,7 +16,7 @@
 *	along with KNLMeansCL. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#define VERSION "0.7.3-1"
+#define VERSION "0.7.4"
 #define OCL_MIN_VERSION "1.2"
 
 #ifdef _MSC_VER
