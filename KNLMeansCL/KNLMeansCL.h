@@ -20,7 +20,7 @@
 #define OCL_MIN_VERSION "1.2"
 
 #ifdef _MSC_VER
-    #pragma warning (disable : 4514 4710 4820)
+#	pragma warning (disable : 4514 4710 6031)
 #endif
 
 #include <cstdint>
@@ -32,9 +32,9 @@
 #include <fstream>
 
 #ifdef __APPLE__
-    #include <OpenCL/cl.h>
+#	include <OpenCL/cl.h>
 #else
-    #include <CL/cl.h>
+#	include <CL/cl.h>
 #endif
 
 #include "kernel.h"
@@ -42,7 +42,7 @@
 #include "shared/startchar.h"
 
 #ifdef _WIN32
-   #include <avisynth.h>
+#	include <avisynth.h>
 #endif
 
 #include <VapourSynth.h>
@@ -55,7 +55,7 @@ enum {
 };
 
 #ifdef __AVISYNTH_6_H__
-class KNLMeansClass : public GenericVideoFilter {
+struct _NLMAvisynth : public GenericVideoFilter {
 private:
     const int d, a, s, wmode, ocl_id;
     const double h;
@@ -74,16 +74,16 @@ private:
     bool equals(VideoInfo *v, VideoInfo *w);
     void oclErrorCheck(const char* function, cl_int errcode, IScriptEnvironment *env);
 public:
-    KNLMeansClass(PClip _child, const int _d, const int _a, const int _s, const bool _cmode, const int _wmode, 
-        const double _h, PClip _baby, const char* _ocl_device, const int _ocl_id, const bool _lsb, const bool _info, 
-        IScriptEnvironment *env);
-    ~KNLMeansClass();
+    _NLMAvisynth(PClip _child, const int _d, const int _a, const int _s, const bool _cmode, const int _wmode, const double _h, 
+        PClip _baby, const char* _ocl_device, const int _ocl_id, const bool _lsb, const bool _info, IScriptEnvironment *env);
+    ~_NLMAvisynth();
     PVideoFrame __stdcall GetFrame(int n, IScriptEnvironment *env);
 };
 #endif //__AVISYNTH_6_H__
 
 #ifdef VAPOURSYNTH_H
-typedef struct {
+typedef struct _NLMVapoursynth {
+public:
     VSNodeRef *node, *knot;
     const VSVideoInfo *vi;
     int64_t d, a, s, cmode, wmode, ocl_id, info;
@@ -99,6 +99,6 @@ typedef struct {
     cl_kernel kernel[nlmNumberKernels];
     cl_mem mem_in[2], mem_out, mem_U[4], mem_P[3];
     bool equals(const VSVideoInfo *v, const VSVideoInfo *w);
-    void oclErrorCheck2(const char* function, cl_int errcode, VSMap *out, const VSAPI *vsapi);
-} KNLMeansData;
+    void oclErrorCheck(const char* function, cl_int errcode, VSMap *out, const VSAPI *vsapi);
+} NLMVapoursynth;
 #endif //__VAPOURSYNTH_H__
