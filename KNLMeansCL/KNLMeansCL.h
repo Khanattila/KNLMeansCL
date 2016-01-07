@@ -61,7 +61,7 @@ private:
     const double h;
     PClip baby;
     const char* ocl_device;
-    const bool cmode, lsb, info;
+    const bool cmode, wref, lsb, info;
     unsigned int clip_t;
     cl_int idmn[3];
     cl_uint num_devices;
@@ -74,8 +74,9 @@ private:
     bool equals(VideoInfo *v, VideoInfo *w);
     void oclErrorCheck(const char* function, cl_int errcode, IScriptEnvironment *env);
 public:
-    _NLMAvisynth(PClip _child, const int _d, const int _a, const int _s, const bool _cmode, const int _wmode, const double _h, 
-        PClip _baby, const char* _ocl_device, const int _ocl_id, const bool _lsb, const bool _info, IScriptEnvironment *env);
+    _NLMAvisynth(PClip _child, const int _d, const int _a, const int _s, const bool _cmode, const int _wmode, const bool _wref, 
+        const double _h, PClip _baby, const char* _ocl_device, const int _ocl_id, const bool _lsb, const bool _info, 
+        IScriptEnvironment *env);
     ~_NLMAvisynth();
     PVideoFrame __stdcall GetFrame(int n, IScriptEnvironment *env);
 };
@@ -86,7 +87,7 @@ typedef struct _NLMVapoursynth {
 public:
     VSNodeRef *node, *knot;
     const VSVideoInfo *vi;
-    int64_t d, a, s, cmode, wmode, ocl_id, info;
+    int64_t d, a, s, cmode, wmode, wref, ocl_id, info;
     double h;
     const char* ocl_device;
     unsigned int bit_shift, clip_t;
