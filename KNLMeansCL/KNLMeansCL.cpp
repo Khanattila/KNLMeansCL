@@ -42,6 +42,7 @@ inline bool _NLMAvisynth::equals(VideoInfo *v, VideoInfo *w) {
     return v->width == w->width && v->height == w->height && v->fps_numerator == w->fps_numerator &&
         v->fps_denominator == w->fps_denominator && v->num_frames == w->num_frames;
 }
+
 inline void _NLMAvisynth::oclErrorCheck(const char* function, cl_int errcode, IScriptEnvironment *env) {
     if (errcode != CL_SUCCESS) {
         char buffer[2048];
@@ -58,6 +59,7 @@ inline bool _NLMVapoursynth::equals(const VSVideoInfo *v, const VSVideoInfo *w) 
     return v->width == w->width && v->height == w->height && v->fpsNum == w->fpsNum && 
         v->fpsDen == w->fpsDen && v->numFrames == w->numFrames && v->format == w->format;
 }
+
 inline void _NLMVapoursynth::oclErrorCheck(const char* function, cl_int errcode, VSMap *out, const VSAPI *vsapi) {
     char buffer[2048];
     snprintf(buffer, 2048, "knlm.KNLMeansCL: fatal error!\n (%s: %s)", function, oclErrorToString(errcode));
@@ -400,9 +402,7 @@ _NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _
 //////////////////////////////////////////
 // VapourSynthInit
 #ifdef VAPOURSYNTH_H
-static void VS_CC VapourSynthPluginViInit(VSMap *in, VSMap *out, void **instanceData,
-    VSNode *node, VSCore *core, const VSAPI *vsapi) {
-
+static void VS_CC VapourSynthPluginViInit(VSMap *in, VSMap *out, void **instanceData, VSNode *node, VSCore *core, const VSAPI *vsapi) {
 	NLMVapoursynth *d = (NLMVapoursynth*) *instanceData;
     vsapi->setVideoInfo(d->vi, 1, node);
 }
@@ -1336,8 +1336,10 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
     if (err) d.s = DFT_S;
     d.wmode = vsapi->propGetInt(in, "wmode", 0, &err);
     if (err) d.wmode = DFT_wmode;
+    d.wref = vsapi->propGetInt(in, "wref", 0, &err);
+    if (err) d.wref = DFT_wref;
     d.h = vsapi->propGetFloat(in, "h", 0, &err);
-    if (err) d.h = DFT_h;
+    if (err) d.h = DFT_h;  
     d.ocl_device = vsapi->propGetData(in, "device_type", 0, &err);
     if (err) d.ocl_device = DFT_ocl_device;
     d.ocl_id = vsapi->propGetInt(in, "device_id", 0, &err);
@@ -1534,19 +1536,19 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
     d.program = clCreateProgramWithSource(d.context, 1, &kernel_source_code, NULL, NULL);
     char options[2048];
     setlocale(LC_ALL, "C"); 
-#ifdef __APPLE__
-    snprintf(options, 2048, "-cl-denorms-are-zero -cl-fast-relaxed-math -cl-mad-enable "
-        "-D H_BLOCK_X=%i -D H_BLOCK_Y=%i -D V_BLOCK_X=%i -D V_BLOCK_Y=%i -D NLMK_TCLIP=%u -D NLMK_S=%i " 
-        "-D NLMK_WMODE=%i -D NLMK_WREF=%i -D NLMK_D=%i -D NLMK_H2_INV_NORM=%ff -D NLMK_BIT_SHIFT=%u",
-        H_BLOCK_X, H_BLOCK_Y, V_BLOCK_X, V_BLOCK_Y, d.clip_t, int64ToIntS(d.s),
-        int64ToIntS(d.wmode), int64ToIntS(d.wref), int64ToIntS(d.d), 65025.0 / (3*d.h*d.h*(2*d.s+1)*(2*d.s+1)), d.bit_shift);
-#else
-    snprintf(options, 2048, "-cl-single-precision-constant -cl-denorms-are-zero -cl-fast-relaxed-math -Werror "
-        "-D H_BLOCK_X=%i -D H_BLOCK_Y=%i -D V_BLOCK_X=%i -D V_BLOCK_Y=%i -D NLMK_TCLIP=%u -D NLMK_S=%i "
-        "-D NLMK_WMODE=%i -D NLMK_WREF=%i -D NLMK_D=%i -D NLMK_H2_INV_NORM=%f -D NLMK_BIT_SHIFT=%u",
-        H_BLOCK_X, H_BLOCK_Y, V_BLOCK_X, V_BLOCK_Y, d.clip_t, int64ToIntS(d.s),
-        int64ToIntS(d.wmode), int64ToIntS(d.wref), int64ToIntS(d.d), 65025.0 / (3 * d.h*d.h*(2 * d.s + 1)*(2 * d.s + 1)), d.bit_shift);
-#endif
+#   ifdef __APPLE__
+        snprintf(options, 2048, "-cl-denorms-are-zero -cl-fast-relaxed-math -cl-mad-enable "
+            "-D H_BLOCK_X=%i -D H_BLOCK_Y=%i -D V_BLOCK_X=%i -D V_BLOCK_Y=%i -D NLMK_TCLIP=%u -D NLMK_S=%i " 
+            "-D NLMK_WMODE=%i -D NLMK_WREF=%i -D NLMK_D=%i -D NLMK_H2_INV_NORM=%ff -D NLMK_BIT_SHIFT=%u",
+            H_BLOCK_X, H_BLOCK_Y, V_BLOCK_X, V_BLOCK_Y, d.clip_t, int64ToIntS(d.s),
+            int64ToIntS(d.wmode), int64ToIntS(d.wref), int64ToIntS(d.d), 65025.0 / (3*d.h*d.h*(2*d.s+1)*(2*d.s+1)), d.bit_shift);
+#   else
+        snprintf(options, 2048, "-cl-single-precision-constant -cl-denorms-are-zero -cl-fast-relaxed-math -Werror "
+            "-D H_BLOCK_X=%i -D H_BLOCK_Y=%i -D V_BLOCK_X=%i -D V_BLOCK_Y=%i -D NLMK_TCLIP=%u -D NLMK_S=%i "
+            "-D NLMK_WMODE=%i -D NLMK_WREF=%i -D NLMK_D=%i -D NLMK_H2_INV_NORM=%f -D NLMK_BIT_SHIFT=%u",
+            H_BLOCK_X, H_BLOCK_Y, V_BLOCK_X, V_BLOCK_Y, d.clip_t, int64ToIntS(d.s),
+            int64ToIntS(d.wmode), int64ToIntS(d.wref), int64ToIntS(d.d), 65025.0 / (3 * d.h*d.h*(2 * d.s + 1)*(2 * d.s + 1)), d.bit_shift);
+#   endif
     ret = clBuildProgram(d.program, 1, &d.deviceID, options, NULL, NULL);
     if (ret != CL_SUCCESS) {
         size_t options_size, log_size;
@@ -1734,7 +1736,6 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
 #ifdef __AVISYNTH_6_H__
 const AVS_Linkage *AVS_linkage = 0;
 extern "C" __declspec(dllexport) const char* __stdcall AvisynthPluginInit3(IScriptEnvironment* env, const AVS_Linkage* const vectors) {
-
     AVS_linkage = vectors;
     env->AddFunction("KNLMeansCL", "c[d]i[a]i[s]i[cmode]b[wmode]i[wref]b[h]f[rclip]c[device_type]s[device_id]i[lsb_inout]b[info]b",
         AviSynthPluginCreate, 0);
@@ -1746,9 +1747,8 @@ extern "C" __declspec(dllexport) const char* __stdcall AvisynthPluginInit3(IScri
 // VapourSynthPluginInit
 #ifdef VAPOURSYNTH_H
 VS_EXTERNAL_API(void) VapourSynthPluginInit(VSConfigPlugin configFunc, VSRegisterFunction registerFunc, VSPlugin *plugin) {
-
     configFunc("com.Khanattila.KNLMeansCL", "knlm", "KNLMeansCL for VapourSynth", VAPOURSYNTH_API_VERSION, 1, plugin);
-    registerFunc("KNLMeansCL", "clip:clip;d:int:opt;a:int:opt;s:int:opt;cmode:int:opt;wmode:int:opt;h:float:opt;rclip:clip:opt;\
-device_type:data:opt;device_id:int:opt;info:int:opt", VapourSynthPluginCreate, nullptr, plugin);
+    registerFunc("KNLMeansCL", "clip:clip;d:int:opt;a:int:opt;s:int:opt;cmode:int:opt;wmode:int:opt;wref:int:opt;h:float:opt;\
+rclip:clip:opt;device_type:data:opt;device_id:int:opt;info:int:opt", VapourSynthPluginCreate, nullptr, plugin);
 }
 #endif //__VAPOURSYNTH_H__

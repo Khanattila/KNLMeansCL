@@ -50,12 +50,13 @@ static const cl_uint H_BLOCK_X = 32, H_BLOCK_Y = 4, V_BLOCK_X = 32, V_BLOCK_Y = 
 // Kernel Source Code
 static const char* kernel_source_code =
 "                                                                                                                 \n" \
-"#define wRED    0.6664827524f                                                                                    \n" \
-"#define wGREEN  1.2866580779f                                                                                    \n" \
-"#define wBLUE   1.0468591696f                                                                                    \n" \
-"#define wALPHA  0.0f                                                                                             \n" \
-"#define wMSB    (256.0f / 257.0f)                                                                                \n" \
-"#define wLSB    (  1.0f / 257.0f)                                                                                \n" \
+"#define wRED       0.6664827524f                                                                                 \n" \
+"#define wGREEN     1.2866580779f                                                                                 \n" \
+"#define wBLUE      1.0468591696f                                                                                 \n" \
+"#define wALPHA     0.0f                                                                                          \n" \
+"#define wMSB       (256.0f / 257.0f)                                                                             \n" \
+"#define wLSB       (  1.0f / 257.0f)                                                                             \n" \
+"#define NLM_MIN    0x1.0p-24f                                                                                    \n" \
 "#define CHECK_FLAG(flag) ((NLMK_TCLIP & (flag)) == (flag))                                                       \n" \
 "                                                                                                                 \n" \
 "enum {                                                                                                           \n" \
@@ -149,13 +150,13 @@ static const char* kernel_source_code =
 "       sum += buffer[ly + V_BLOCK_Y + j][lx];                                                                    \n" \
 "                                                                                                                 \n" \
 "   if(NLMK_WMODE == 0) {                                                                                         \n" \
-"       const float val = native_recip(1.0f + sum * NLMK_H2_INV_NORM);                                            \n" \
+"       const float val = fmax(native_recip(1.0f + sum * NLMK_H2_INV_NORM), NLM_MIN);                             \n" \
 "       write_imagef(U4_out, p, (float4) val);                                                                    \n" \
 "   } else if (NLMK_WMODE == 1) {                                                                                 \n" \
-"       const float val = native_exp(- sum * NLMK_H2_INV_NORM);                                                   \n" \
+"       const float val = fmax(native_exp(- sum * NLMK_H2_INV_NORM), NLM_MIN);                                    \n" \
 "       write_imagef(U4_out, p, (float4) val);                                                                    \n" \
 "   } else if (NLMK_WMODE == 2) {                                                                                 \n" \
-"       const float val = pown(fdim(1.0f, sum * NLMK_H2_INV_NORM), 2);                                            \n" \
+"       const float val = fmax(pown(fdim(1.0f, sum * NLMK_H2_INV_NORM), 2), NLM_MIN);                             \n" \
 "       write_imagef(U4_out, p, (float4) val);                                                                    \n" \
 "   }                                                                                                             \n" \
 "}                                                                                                                \n" \
@@ -410,18 +411,32 @@ static const char* kernel_source_code =
 "                                                                                                                 \n" \
 "   if (CHECK_FLAG(COLOR_GRAY)) {                                                                                 \n" \
 "       __global float2* U2c = (__global float2*) U2;                                                             \n" \
-"       const float  u1  = read_imagef(U1_in, smp, p).x;                                                          \n" \
-"       const float  num = U2c[gidx].x + M[gidx] * u1;                                                            \n" \
-"       const float  den = U2c[gidx].y + M[gidx];                                                                 \n" \
-"       const float  val = native_divide(num, den);                                                               \n" \
-"       write_imagef(U1_out, s, (float4) val);                                                                    \n" \
-"   } else if (CHECK_FLAG(COLOR_YUV) | CHECK_FLAG(COLOR_RGB)) {                                                  \n" \
+"       if (NLMK_WREF == 0) {                                                                                     \n" \
+"           const float  num = U2c[gidx].x;                                                                       \n" \
+"           const float  den = U2c[gidx].y;                                                                       \n" \
+"           const float  val = native_divide(num, den);                                                           \n" \
+"           write_imagef(U1_out, s, (float4) val);                                                                \n" \
+"       } else if (NLMK_WREF == 1) {                                                                              \n" \
+"           const float  u1  = read_imagef(U1_in, smp, p).x;                                                      \n" \
+"           const float  num = U2c[gidx].x + M[gidx] * u1;                                                        \n" \
+"           const float  den = U2c[gidx].y + M[gidx];                                                             \n" \
+"           const float  val = native_divide(num, den);                                                           \n" \
+"           write_imagef(U1_out, s, (float4) val);                                                                \n" \
+"       }                                                                                                         \n" \
+"   } else if (CHECK_FLAG(COLOR_YUV) | CHECK_FLAG(COLOR_RGB)) {                                                   \n" \
 "       __global float4* U2c = (__global float4*) U2;                                                             \n" \
-"       const float4 u1  = read_imagef(U1_in, smp, p);                                                            \n" \
-"       const float4 num = U2c[gidx] + (float4) M[gidx] * u1;                                                     \n" \
-"       const float  den = U2c[gidx].w + M[gidx];                                                                 \n" \
-"       const float4 val = native_divide(num, (float4) den);                                                      \n" \
-"       write_imagef(U1_out, s, val);                                                                             \n" \
+"       if (NLMK_WREF == 0) {                                                                                     \n" \
+"           const float4 num = U2c[gidx];                                                                         \n" \
+"           const float  den = U2c[gidx].w;                                                                       \n" \
+"           const float4 val = native_divide(num, (float4) den);                                                  \n" \
+"           write_imagef(U1_out, s, val);                                                                         \n" \
+"       } else if (NLMK_WREF == 1) {                                                                              \n" \
+"           const float4 u1  = read_imagef(U1_in, smp, p);                                                        \n" \
+"           const float4 num = U2c[gidx] + (float4) M[gidx] * u1;                                                 \n" \
+"           const float  den = U2c[gidx].w + M[gidx];                                                             \n" \
+"           const float4 val = native_divide(num, (float4) den);                                                  \n" \
+"           write_imagef(U1_out, s, val);                                                                         \n" \
+"       }                                                                                                         \n" \
 "   }                                                                                                             \n" \
 "}                                                                                                                \n" \
 "                                                                                                                 \n" \
