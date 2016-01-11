@@ -1366,8 +1366,8 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
         vsapi->freeNode(d.knot);
         return;
     }
-    if (d.s < 0) {
-        vsapi->setError(out, "knlm.KNLMeansCL: 's' must be greater than or equal to 0!");
+    if (d.s < 0 || d.s > 4) {
+        vsapi->setError(out, "knlm.KNLMeansCL: 's' must be in range [0, 4]!");
         vsapi->freeNode(d.node);
         vsapi->freeNode(d.knot);
         return;
