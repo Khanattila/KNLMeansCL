@@ -128,60 +128,69 @@ inline cl_int oclVersionToInt(const char* platform_version) {
 cl_int oclGetDevicesList(cl_device_type device_type, ocl_device_packed* devices, cl_uint* num_devices, const char* version) {
     if (devices == NULL && num_devices != NULL) {
         char str[2048];
-        cl_uint num_platforms = 0, tmp_devices = 0, prt_devices;
+        cl_uint num_platforms = 0, tmp_devices = 0, avl_devices;
         cl_int ret = clGetPlatformIDs(0, NULL, &num_platforms);
         if (ret != CL_SUCCESS) return ret;
-        cl_platform_id *temp_platforms = (cl_platform_id*) malloc(sizeof(cl_platform_id) * num_platforms);
-        ret = clGetPlatformIDs(num_platforms, temp_platforms, NULL);
+        if (num_platforms == 0) {
+            *num_devices = 0;
+            return CL_SUCCESS;
+        }
+        cl_platform_id *tmp_platforms = (cl_platform_id*) malloc(sizeof(cl_platform_id) * num_platforms);
+        ret = clGetPlatformIDs(num_platforms, tmp_platforms, NULL);
         if (ret != CL_SUCCESS) return ret;
-        for (cl_uint i = 0; i < num_platforms; i++) {
-            ret = clGetPlatformInfo(temp_platforms[i], CL_PLATFORM_VERSION, sizeof(char) * 2048, str, NULL);
+        for (cl_uint p = 0; p < num_platforms; p++) {
+            ret = clGetPlatformInfo(tmp_platforms[p], CL_PLATFORM_VERSION, sizeof(char) * 2048, str, NULL);
             if (ret != CL_SUCCESS) return ret;
             if (oclPlatformToInt(str) >= oclVersionToInt(version)) {
-                prt_devices = 0;
-                ret = clGetDeviceIDs(temp_platforms[i], device_type, 0, 0, &prt_devices);
+                avl_devices = 0;
+                ret = clGetDeviceIDs(tmp_platforms[p], device_type, 0, 0, &avl_devices);
                 if (ret != CL_SUCCESS && ret != CL_DEVICE_NOT_FOUND) return ret;
-                tmp_devices += prt_devices;
+                tmp_devices += avl_devices;
             }
         }
-        free(temp_platforms);
+        free(tmp_platforms);
         *num_devices = tmp_devices;
         return CL_SUCCESS;
     } else if (devices != NULL && num_devices == NULL) {
         char str[2048];
-        cl_uint num_platforms = 0, tmp_devices = 0, index = 0, prt_devices, num_devices_platform;
-        cl_device_id tmp_device = 0;
+        cl_uint num_platforms = 0, tmp_devices = 0, avl_devices;       
         cl_int ret = clGetPlatformIDs(0, NULL, &num_platforms);
         if (ret != CL_SUCCESS) return ret;
-        if (num_platforms == 0) return CL_INVALID_PLATFORM;
-        cl_platform_id *temp_platforms = (cl_platform_id*) malloc(sizeof(cl_platform_id) * num_platforms);
-        ret = clGetPlatformIDs(num_platforms, temp_platforms, NULL);
+        if (num_platforms == 0) {
+            *num_devices = 0;
+            return CL_SUCCESS;
+        }
+        cl_platform_id *tmp_platforms = (cl_platform_id*)malloc(sizeof(cl_platform_id) * num_platforms);
+        ret = clGetPlatformIDs(num_platforms, tmp_platforms, NULL);
         if (ret != CL_SUCCESS) return ret;
-        for (cl_uint i = 0; i < num_platforms; i++) {
-            ret = clGetPlatformInfo(temp_platforms[i], CL_PLATFORM_VERSION, sizeof(char) * 2048, str, NULL);
+        for (cl_uint p = 0; p < num_platforms; p++) {
+            ret = clGetPlatformInfo(tmp_platforms[p], CL_PLATFORM_VERSION, sizeof(char) * 2048, str, NULL);
             if (ret != CL_SUCCESS) return ret;
             if (oclPlatformToInt(str) >= oclVersionToInt(version)) {
-                prt_devices = 0;
-                ret = clGetDeviceIDs(temp_platforms[i], device_type, 0, 0, &prt_devices);
+                avl_devices = 0;
+                ret = clGetDeviceIDs(tmp_platforms[p], device_type, 0, 0, &avl_devices);
                 if (ret != CL_SUCCESS && ret != CL_DEVICE_NOT_FOUND) return ret;
-                tmp_devices += prt_devices;
+                tmp_devices += avl_devices;
             }
         }
-        for (cl_uint i = 0; i < num_platforms; i++) {
-            ret = clGetPlatformInfo(temp_platforms[i], CL_PLATFORM_VERSION, sizeof(char) * 2048, str, NULL);
+        cl_uint index = 0;
+        cl_device_id rtn_device = 0;
+        for (cl_uint p = 0; p < num_platforms; p++) {
+            ret = clGetPlatformInfo(tmp_platforms[p], CL_PLATFORM_VERSION, sizeof(char) * 2048, str, NULL);
             if (ret != CL_SUCCESS) return ret;
             if (oclPlatformToInt(str) >= oclVersionToInt(version)) {
-                num_devices_platform = 0;
-                ret = clGetDeviceIDs(temp_platforms[i], device_type, 0, 0, &num_devices_platform);
+                avl_devices = 0;
+                ret = clGetDeviceIDs(tmp_platforms[p], device_type, 0, 0, &avl_devices);
                 if (ret != CL_SUCCESS && ret != CL_DEVICE_NOT_FOUND) return ret;
-                for (cl_uint j = 0; j < num_devices_platform; j++) {
-                    tmp_device = 0;
-                    ret = clGetDeviceIDs(temp_platforms[i], device_type, 1, &tmp_device, NULL);
+                for (cl_uint d = 0; d < avl_devices; d++) {
+                    rtn_device = 0;
+                    ret = clGetDeviceIDs(tmp_platforms[p], device_type, 1, &rtn_device, NULL);
                     if (ret != CL_SUCCESS && ret != CL_DEVICE_NOT_FOUND) return ret;
-                    devices[index++] = { temp_platforms[i], tmp_device };
+                    devices[index++] = { tmp_platforms[p], rtn_device };
                 }
             }
         }
+        free(tmp_platforms);
         return CL_SUCCESS;
     } else {
         return CL_INVALID_VALUE;
