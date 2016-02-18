@@ -56,7 +56,6 @@ static const char* kernel_source_code =
 "#define wALPHA     0.0f                                                                                          \n" \
 "#define wMSB       (256.0f / 257.0f)                                                                             \n" \
 "#define wLSB       (  1.0f / 257.0f)                                                                             \n" \
-"#define NLM_MIN    0x1.0p-24f                                                                                    \n" \
 "#define CHECK_FLAG(flag) ((NLMK_TCLIP & (flag)) == (flag))                                                       \n" \
 "                                                                                                                 \n" \
 "enum {                                                                                                           \n" \
@@ -150,13 +149,13 @@ static const char* kernel_source_code =
 "       sum += buffer[ly + V_BLOCK_Y + j][lx];                                                                    \n" \
 "                                                                                                                 \n" \
 "   if(NLMK_WMODE == 0) {                                                                                         \n" \
-"       const float val = fmax(native_recip(1.0f + sum * NLMK_H2_INV_NORM), NLM_MIN);                             \n" \
+"       const float val = native_recip(1.0f + sum * NLMK_H2_INV_NORM);                                            \n" \
 "       write_imagef(U4_out, p, (float4) val);                                                                    \n" \
 "   } else if (NLMK_WMODE == 1) {                                                                                 \n" \
-"       const float val = fmax(native_exp(- sum * NLMK_H2_INV_NORM), NLM_MIN);                                    \n" \
+"       const float val = native_exp(- sum * NLMK_H2_INV_NORM);                                                   \n" \
 "       write_imagef(U4_out, p, (float4) val);                                                                    \n" \
 "   } else if (NLMK_WMODE == 2) {                                                                                 \n" \
-"       const float val = fmax(pown(fdim(1.0f, sum * NLMK_H2_INV_NORM), 2), NLM_MIN);                             \n" \
+"       const float val = pown(fdim(1.0f, sum * NLMK_H2_INV_NORM), 2);                                            \n" \
 "       write_imagef(U4_out, p, (float4) val);                                                                    \n" \
 "   }                                                                                                             \n" \
 "}                                                                                                                \n" \
@@ -206,35 +205,22 @@ static const char* kernel_source_code =
 "   const sampler_t smp = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_NONE | CLK_FILTER_NEAREST;                    \n" \
 "   const int2 p = (int2) (x, y);                                                                                 \n" \
 "   const int gidx = mad24(y, dim.x, x);                                                                          \n" \
+"   const float wM = NLMK_WREF * M[gidx];                                                                         \n" \
 "                                                                                                                 \n" \
 "   if (CHECK_FLAG(COLOR_GRAY)) {                                                                                 \n" \
 "       __global float2* U2c = (__global float2*) U2;                                                             \n" \
-"       if (NLMK_WREF == 0) {                                                                                     \n" \
-"           const float  num = U2c[gidx].x;                                                                       \n" \
-"           const float  den = U2c[gidx].y;                                                                       \n" \
-"           const float  val = native_divide(num, den);                                                           \n" \
-"           write_imagef(U1_out, p, (float4) val);                                                                \n" \
-"       } else if (NLMK_WREF == 1) {                                                                              \n" \
 "           const float  u1  = read_imagef(U1_in, smp, p).x;                                                      \n" \
-"           const float  num = U2c[gidx].x + M[gidx] * u1;                                                        \n" \
-"           const float  den = U2c[gidx].y + M[gidx];                                                             \n" \
+"           const float  num = U2c[gidx].x + wM * u1;                                                             \n" \
+"           const float  den = U2c[gidx].y + wM;                                                                  \n" \
 "           const float  val = native_divide(num, den);                                                           \n" \
 "           write_imagef(U1_out, p, (float4) val);                                                                \n" \
-"       }                                                                                                         \n" \
 "   } else if (CHECK_FLAG(COLOR_YUV) | CHECK_FLAG(COLOR_RGB)) {                                                   \n" \
 "       __global float4* U2c = (__global float4*) U2;                                                             \n" \
-"       if (NLMK_WREF == 0) {                                                                                     \n" \
-"           const float4 num = U2c[gidx];                                                                         \n" \
-"           const float  den = U2c[gidx].w;                                                                       \n" \
-"           const float4 val = native_divide(num, (float4) den);                                                  \n" \
-"           write_imagef(U1_out, p, val);                                                                         \n" \
-"       } else if (NLMK_WREF == 1) {                                                                              \n" \
 "           const float4 u1  = read_imagef(U1_in, smp, p);                                                        \n" \
-"           const float4 num = U2c[gidx] + (float4) M[gidx] * u1;                                                 \n" \
-"           const float  den = U2c[gidx].w + M[gidx];                                                             \n" \
+"           const float4 num = U2c[gidx] + (float4) wM * u1;                                                      \n" \
+"           const float  den = U2c[gidx].w + wM;                                                                  \n" \
 "           const float4 val = native_divide(num, (float4) den);                                                  \n" \
 "           write_imagef(U1_out, p, val);                                                                         \n" \
-"       }                                                                                                         \n" \
 "   }                                                                                                             \n" \
 "}                                                                                                                \n" \
 "                                                                                                                 \n" \
@@ -408,35 +394,22 @@ static const char* kernel_source_code =
 "   const int4 p = (int4) (x, y, NLMK_D, 0);                                                                      \n" \
 "   const int2 s = (int2) (x, y);                                                                                 \n" \
 "   const int gidx = mad24(y, dim.x, x);                                                                          \n" \
+"   const float wM = NLMK_WREF * M[gidx];                                                                         \n" \
 "                                                                                                                 \n" \
 "   if (CHECK_FLAG(COLOR_GRAY)) {                                                                                 \n" \
 "       __global float2* U2c = (__global float2*) U2;                                                             \n" \
-"       if (NLMK_WREF == 0) {                                                                                     \n" \
-"           const float  num = U2c[gidx].x;                                                                       \n" \
-"           const float  den = U2c[gidx].y;                                                                       \n" \
-"           const float  val = native_divide(num, den);                                                           \n" \
-"           write_imagef(U1_out, s, (float4) val);                                                                \n" \
-"       } else if (NLMK_WREF == 1) {                                                                              \n" \
 "           const float  u1  = read_imagef(U1_in, smp, p).x;                                                      \n" \
-"           const float  num = U2c[gidx].x + M[gidx] * u1;                                                        \n" \
-"           const float  den = U2c[gidx].y + M[gidx];                                                             \n" \
+"           const float  num = U2c[gidx].x + wM * u1;                                                             \n" \
+"           const float  den = U2c[gidx].y + wM;                                                                  \n" \
 "           const float  val = native_divide(num, den);                                                           \n" \
 "           write_imagef(U1_out, s, (float4) val);                                                                \n" \
-"       }                                                                                                         \n" \
 "   } else if (CHECK_FLAG(COLOR_YUV) | CHECK_FLAG(COLOR_RGB)) {                                                   \n" \
 "       __global float4* U2c = (__global float4*) U2;                                                             \n" \
-"       if (NLMK_WREF == 0) {                                                                                     \n" \
-"           const float4 num = U2c[gidx];                                                                         \n" \
-"           const float  den = U2c[gidx].w;                                                                       \n" \
-"           const float4 val = native_divide(num, (float4) den);                                                  \n" \
-"           write_imagef(U1_out, s, val);                                                                         \n" \
-"       } else if (NLMK_WREF == 1) {                                                                              \n" \
 "           const float4 u1  = read_imagef(U1_in, smp, p);                                                        \n" \
-"           const float4 num = U2c[gidx] + (float4) M[gidx] * u1;                                                 \n" \
-"           const float  den = U2c[gidx].w + M[gidx];                                                             \n" \
+"           const float4 num = U2c[gidx] + (float4) wM * u1;                                                      \n" \
+"           const float  den = U2c[gidx].w + wM;                                                                  \n" \
 "           const float4 val = native_divide(num, (float4) den);                                                  \n" \
 "           write_imagef(U1_out, s, val);                                                                         \n" \
-"       }                                                                                                         \n" \
 "   }                                                                                                             \n" \
 "}                                                                                                                \n" \
 "                                                                                                                 \n" \
