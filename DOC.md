@@ -34,7 +34,7 @@ int d                   Set the number of past and future frame that the filter 
 
 
 int a                   Set the radius of the search window. a=0 uses 1 pixel, while a=1 
-                        use 9 pixels and son on. Usually, larger it the better the result
+                        uses 9 pixels and son on. Usually, larger it the better the result
                         of the denoising. Spatial size = (2 * a + 1)^2.
                         Total search window size = temporal size * spatial size.
 	
