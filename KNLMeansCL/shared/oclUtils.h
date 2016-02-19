@@ -170,7 +170,7 @@ cl_int oclGetDevicesList(cl_device_type device_type, ocl_device_packed* devices,
             *num_devices = 0;
             return CL_SUCCESS;
         }
-        cl_platform_id *lst_platforms = (cl_platform_id*)malloc(sizeof(cl_platform_id) * avl_platforms);
+        cl_platform_id *lst_platforms = (cl_platform_id*) malloc(sizeof(cl_platform_id) * avl_platforms);
         ret = clGetPlatformIDs(avl_platforms, lst_platforms, NULL);
         if (ret != CL_SUCCESS) return ret;
         for (cl_uint p = 0; p < avl_platforms; p++) {
@@ -181,7 +181,7 @@ cl_int oclGetDevicesList(cl_device_type device_type, ocl_device_packed* devices,
                 ret = clGetDeviceIDs(lst_platforms[p], device_type, 0, 0, &avl_devices);
                 if (ret != CL_SUCCESS && ret != CL_DEVICE_NOT_FOUND) return ret;
                 if (avl_devices > 0) {
-                    cl_device_id *lst_devices = (cl_device_id*)malloc(sizeof(cl_device_id) * avl_devices);
+                    cl_device_id *lst_devices = (cl_device_id*) malloc(sizeof(cl_device_id) * avl_devices);
                     ret = clGetDeviceIDs(lst_platforms[p], device_type, avl_devices, lst_devices, NULL);
                     for (cl_uint d = 0; d < avl_devices; d++) {
                         cl_bool image_support;
