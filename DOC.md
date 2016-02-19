@@ -1,19 +1,15 @@
-#### First ####
-"OpenCL.dll" is required ONLY if you have trouble with your "OpenCL.dll". Some NVIDIA users report the problem.
-Just repleace "C:\Windows\System32\OpenCL.dll" and/or "C:\Windows\SysWOW64\OpenCL.dll" with the one provided.
-Or replace "C:\Windows\System32\OpenCL.dll" with "C:\Program Files\NVIDIA Corporation\OpenCL\OpenCL.dll".
-
 #### Syntax ####
 ```
 AviSynth:               KNLMeansCL (clip, int d (0), int a (2), int s (4), 
-                                bool cmode(false),  int wmode (1), float h (1.2), 
-                                string device_type ("default"), int device_id (0),
-                                bool lsb_inout (false), bool info (false))
+                                float h (1.2), bool cmode(false),  int wmode (1), 
+                                float wref (1.0), string device_type ("default"),
+                                int device_id (0), bool lsb_inout (false), 
+                                bool info (false))
 
 VapourSynth:            knlm.KNLMeansCL (clip clip, int d (0), int a (2), int s (4), 
-                                int cmode(False), int wmode (1), float h (1.2), 
-                                string device_type ("default"), int device_id (0), 
-                                int info (False)) 
+                                float h (1.2), int cmode(False), int wmode (1), 
+                                float wref (1.0), string device_type ("default"),  
+                                int device_id (0), int info (False)) 
 ```
 
 #### Supported image format ####
@@ -51,6 +47,12 @@ int s                   Set the radius of the similarity neighborhood window. Th
 	
                         Default: 4.
 
+                        
+float h                 Controls the strength of the filtering. Larger values will 
+                        remove more noise.
+	                
+                        Default: 1.2.
+
 
 bool cmode              Use color distance instead of gray intensities. Normally 
                         KNLMeansCL processes only Luma and copy Chroma if present. If 
@@ -73,14 +75,14 @@ int wmode               0 := Cauchy weighting function has a very slow decay. It
                         exceeded).
 	
                         Default: 1.
-	
-	
-float h                 Controls the strength of the filtering. Larger values will 
-                        remove more noise.
+                        
+                       
+float wref              Amount of original pixel to contribute to the filter output, 
+                        relative to the weight of the most similar pixel found.
 	                
-                        Default: 1.2.
-
-
+                        Default: 1.0.
+                        
+	
 clip rclip              Extra reference clip option to do weighting calculation.
 	
                         Default: not set.
@@ -110,6 +112,9 @@ bool info               Display info on screen. It requires YUV color space.
 
                         Default: false.
 ```
+
+#### Troubleshooting ####
+Some NVIDIA users have reported a problem with the library 'OpenCL.dll'. Replace it (C:\Windows\System32\OpenCL.dll and/or C:\Windows\SysWOW64\OpenCL.dll) with the one provided in the .zip or replace it with the one provided by NVIDIA (C:\Program Files\NVIDIA Corporation\OpenCL\OpenCL.dll).
 
 #### Benchmark ####
 
