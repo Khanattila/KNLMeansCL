@@ -1,7 +1,7 @@
 ## Change Log ##
 **-v 0.7.5**
   - New 'wref' (default 1.0) parameter.
-  - Improved automatic selection of OpenCL device..
+  - Improved automatic selection of OpenCL device.
   - Changed parameters order. 
   - VapourSynth: fixed missing 's' value check. 
 
