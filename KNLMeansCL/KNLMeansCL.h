@@ -74,8 +74,8 @@ private:
     bool equals(VideoInfo *v, VideoInfo *w);
     void oclErrorCheck(const char* function, cl_int errcode, IScriptEnvironment *env);
 public:
-    _NLMAvisynth(PClip _child, const int _d, const int _a, const int _s, const bool _cmode, const int _wmode, const double _wref, 
-        const double _h, PClip _baby, const char* _ocl_device, const int _ocl_id, const bool _lsb, const bool _info, 
+    _NLMAvisynth(PClip _child, const int _d, const int _a, const int _s, const double _h, const bool _cmode, const int _wmode,
+        const double _wref, PClip _baby, const char* _ocl_device, const int _ocl_id, const bool _lsb, const bool _info,
         IScriptEnvironment *env);
     ~_NLMAvisynth();
     PVideoFrame __stdcall GetFrame(int n, IScriptEnvironment *env);

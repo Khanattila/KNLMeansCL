@@ -16,13 +16,13 @@
 *	along with KNLMeansCL. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#define DFT_D           1
-#define DFT_A           2
-#define DFT_S           4
+#define DFT_d           1
+#define DFT_a           2
+#define DFT_s           4
+#define DFT_h           1.2f
 #define DFT_cmode       false
 #define DFT_wmode       1
 #define DFT_wref        1.0f
-#define DFT_h           1.2f
 #define DFT_ocl_device "AUTO"
 #define DFT_ocl_id      0
 #define DFT_lsb         false
@@ -72,10 +72,10 @@ inline void _NLMVapoursynth::oclErrorCheck(const char* function, cl_int errcode,
 //////////////////////////////////////////
 // AviSynthInit
 #ifdef __AVISYNTH_6_H__
-_NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _s, const bool _cmode, const int _wmode, const double _wref,
-    const double _h, PClip _baby, const char* _ocl_device, const int _ocl_id, const bool _lsb, const bool _info, IScriptEnvironment* env) :
-    GenericVideoFilter(_child), d(_d), a(_a), s(_s), cmode(_cmode), wmode(_wmode), wref(_wref), h(_h), baby(_baby),
-    ocl_device(_ocl_device), ocl_id(_ocl_id), lsb(_lsb), info(_info) {
+_NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _s, const double _h, const bool _cmode, const int _wmode,
+    const double _wref, PClip _baby, const char* _ocl_device, const int _ocl_id, const bool _lsb, const bool _info, 
+    IScriptEnvironment *env) : GenericVideoFilter(_child), d(_d), a(_a), s(_s), h(_h), cmode(_cmode), wmode(_wmode), wref(_wref), 
+    baby(_baby), ocl_device(_ocl_device), ocl_id(_ocl_id), lsb(_lsb), info(_info) {
 
     // Checks AviSynth Version.
     env->CheckVersion(5);
@@ -117,10 +117,12 @@ _NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _
         env->ThrowError("KNLMeansCL: 'a' must be greater than or equal to 1!");
     if (s < 0 || s > 4)
         env->ThrowError("KNLMeansCL: 's' must be in range [0, 4]!");
-    if (wmode < 0 || wmode > 2)
-        env->ThrowError("KNLMeansCL: 'wmode' must be in range [0, 2]!");
     if (h <= 0.0f)
         env->ThrowError("KNLMeansCL: 'h' must be greater than 0!");
+    if (wmode < 0 || wmode > 2)
+        env->ThrowError("KNLMeansCL: 'wmode' must be in range [0, 2]!");
+    if (wref < 0.0f)
+        env->ThrowError("KNLMeansCL: 'wref' must be greater than or equal to 0!");
     cl_device_type device_type = 0;
     bool device_auto = false;
     if (!strcasecmp(ocl_device, "CPU")) {
@@ -1187,8 +1189,8 @@ static void VS_CC VapourSynthPluginFree(void *instanceData, VSCore *core, const 
 // AviSynthCreate
 #ifdef __AVISYNTH_6_H__
 AVSValue __cdecl AviSynthPluginCreate(AVSValue args, void* user_data, IScriptEnvironment* env) {
-    return new _NLMAvisynth(args[0].AsClip(), args[1].AsInt(DFT_D), args[2].AsInt(DFT_A), args[3].AsInt(DFT_S), args[4].AsBool(DFT_cmode),
-        args[5].AsInt(DFT_wmode), args[6].AsFloat(DFT_wref), args[7].AsFloat(DFT_h), args[8].Defined() ? args[8].AsClip() : nullptr,
+    return new _NLMAvisynth(args[0].AsClip(), args[1].AsInt(DFT_d), args[2].AsInt(DFT_a), args[3].AsInt(DFT_s), args[4].AsFloat(DFT_h), 
+        args[5].AsBool(DFT_cmode), args[6].AsInt(DFT_wmode), args[7].AsFloat(DFT_wref), args[8].Defined() ? args[8].AsClip() : nullptr,
         args[9].AsString(DFT_ocl_device), args[10].AsInt(DFT_ocl_id), args[11].AsBool(DFT_lsb), args[12].AsBool(DFT_info), env);
 }
 #endif //__AVISYNTH_6_H__
@@ -1329,17 +1331,17 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
 
     // Sets default value.
     d.d = vsapi->propGetInt(in, "d", 0, &err);
-    if (err) d.d = DFT_D;
+    if (err) d.d = DFT_d;
     d.a = vsapi->propGetInt(in, "a", 0, &err);
-    if (err) d.a = DFT_A;
+    if (err) d.a = DFT_a;
     d.s = vsapi->propGetInt(in, "s", 0, &err);
-    if (err) d.s = DFT_S;
+    if (err) d.s = DFT_s;
+    d.h = vsapi->propGetFloat(in, "h", 0, &err);
+    if (err) d.h = DFT_h;
     d.wmode = vsapi->propGetInt(in, "wmode", 0, &err);
     if (err) d.wmode = DFT_wmode;
     d.wref = vsapi->propGetFloat(in, "wref", 0, &err);
     if (err) d.wref = DFT_wref;
-    d.h = vsapi->propGetFloat(in, "h", 0, &err);
-    if (err) d.h = DFT_h;  
     d.ocl_device = vsapi->propGetData(in, "device_type", 0, &err);
     if (err) d.ocl_device = DFT_ocl_device;
     d.ocl_id = vsapi->propGetInt(in, "device_id", 0, &err);
@@ -1372,14 +1374,20 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
         vsapi->freeNode(d.knot);
         return;
     }
+    if (d.h <= 0.0) {
+        vsapi->setError(out, "knlm.KNLMeansCL: 'h' must be greater than 0!");
+        vsapi->freeNode(d.node);
+        vsapi->freeNode(d.knot);
+        return;
+    }
     if (d.wmode < 0 || d.wmode > 2) {
         vsapi->setError(out, "knlm.KNLMeansCL: 'wmode' must be in range [0, 2]!");
         vsapi->freeNode(d.node);
         vsapi->freeNode(d.knot);
         return;
     }
-    if (d.h <= 0.0) {
-        vsapi->setError(out, "knlm.KNLMeansCL: 'h' must be greater than 0!");
+    if (d.wref < 0.0) {
+        vsapi->setError(out, "knlm.KNLMeansCL: 'wref' must be greater than or equal to 0!");
         vsapi->freeNode(d.node);
         vsapi->freeNode(d.knot);
         return;
@@ -1539,7 +1547,7 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
 #   ifdef __APPLE__
         snprintf(options, 2048, "-cl-denorms-are-zero -cl-fast-relaxed-math -cl-mad-enable "
             "-D H_BLOCK_X=%i -D H_BLOCK_Y=%i -D V_BLOCK_X=%i -D V_BLOCK_Y=%i -D NLMK_TCLIP=%u -D NLMK_S=%i " 
-            "-D NLMK_WMODE=%i -D NLMK_WREF=%f -D NLMK_D=%i -D NLMK_H2_INV_NORM=%ff -D NLMK_BIT_SHIFT=%u",
+            "-D NLMK_WMODE=%i -D NLMK_WREF=%ff -D NLMK_D=%i -D NLMK_H2_INV_NORM=%ff -D NLMK_BIT_SHIFT=%u",
             H_BLOCK_X, H_BLOCK_Y, V_BLOCK_X, V_BLOCK_Y, d.clip_t, int64ToIntS(d.s),
             int64ToIntS(d.wmode), d.wref, int64ToIntS(d.d), 65025.0 / (3*d.h*d.h*(2*d.s+1)*(2*d.s+1)), d.bit_shift);
 #   else
@@ -1737,7 +1745,7 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
 const AVS_Linkage *AVS_linkage = 0;
 extern "C" __declspec(dllexport) const char* __stdcall AvisynthPluginInit3(IScriptEnvironment* env, const AVS_Linkage* const vectors) {
     AVS_linkage = vectors;
-    env->AddFunction("KNLMeansCL", "c[d]i[a]i[s]i[cmode]b[wmode]i[wref]f[h]f[rclip]c[device_type]s[device_id]i[lsb_inout]b[info]b",
+    env->AddFunction("KNLMeansCL", "c[d]i[a]i[s]i[h]f[cmode]b[wmode]i[wref]f[rclip]c[device_type]s[device_id]i[lsb_inout]b[info]b",
         AviSynthPluginCreate, 0);
     return "KNLMeansCL for AviSynth";
 }
@@ -1748,7 +1756,7 @@ extern "C" __declspec(dllexport) const char* __stdcall AvisynthPluginInit3(IScri
 #ifdef VAPOURSYNTH_H
 VS_EXTERNAL_API(void) VapourSynthPluginInit(VSConfigPlugin configFunc, VSRegisterFunction registerFunc, VSPlugin *plugin) {
     configFunc("com.Khanattila.KNLMeansCL", "knlm", "KNLMeansCL for VapourSynth", VAPOURSYNTH_API_VERSION, 1, plugin);
-    registerFunc("KNLMeansCL", "clip:clip;d:int:opt;a:int:opt;s:int:opt;cmode:int:opt;wmode:int:opt;wref:float:opt;h:float:opt;\
+    registerFunc("KNLMeansCL", "clip:clip;d:int:opt;a:int:opt;s:int:opt;h:float:opt;cmode:int:opt;wmode:int:opt;wref:float:opt;\
 rclip:clip:opt;device_type:data:opt;device_id:int:opt;info:int:opt", VapourSynthPluginCreate, nullptr, plugin);
 }
 #endif //__VAPOURSYNTH_H__
