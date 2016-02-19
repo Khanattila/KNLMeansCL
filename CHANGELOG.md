@@ -1,18 +1,23 @@
 ## Change Log ##
+**-v 0.7.5**
+  - New 'wref' (default 1.0) parameter.
+  - Improved automatic selection of OpenCL device..
+  - Changed parameters order. 
+  - VapourSynth: fixed missing 's' value check. 
+
 **- v0.7.4**
   - Workaround for GeForce 900 Series.
    
 **- v0.7.3**
-  - Removed 'default' and 'all' device_type.
-  - More controls of the OpenCL platform.
-  - Better error handling.
+  - Removed 'default' and 'all' from 'device_type'.
+  - Improved OpenCL platform control.
   - VapourSynth: fixed frame properties.
 
 **- v0.7.2**
   - VapourSynth: fixed memory leak.
   
 **- v0.7.1**
-  - Fixed clSetKernelArg error in some configuration.
+  - Fixed 'clSetKernelArg' error in some configuration.
   
 **- v0.7.0**
   - Performance increase: temporal up to 35% faster.
@@ -25,8 +30,8 @@
   
 **- v0.6.11**
   - Performance increase: up to 50% faster.
-  - AviSynth: OpenMP no more needed.
   - Fixed bad processing borders.
+  - AviSynth: OpenMP no more needed.
   - VapourSynth: fixed bad support of P9/P10 rclip.
 
 **- v0.6.4**
