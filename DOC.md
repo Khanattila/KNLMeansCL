@@ -2,13 +2,13 @@
 ```
 AviSynth:               KNLMeansCL (clip, int d (0), int a (2), int s (4), 
                                 float h (1.2), bool cmode(false),  int wmode (1), 
-                                float wref (1.0), string device_type ("default"),
+                                float wref (1.0), string device_type ("auto"),
                                 int device_id (0), bool lsb_inout (false), 
                                 bool info (false))
 
 VapourSynth:            knlm.KNLMeansCL (clip clip, int d (0), int a (2), int s (4), 
                                 float h (1.2), int cmode(False), int wmode (1), 
-                                float wref (1.0), string device_type ("default"),  
+                                float wref (1.0), string device_type ("auto"),  
                                 int device_id (0), int info (False)) 
 ```
 
