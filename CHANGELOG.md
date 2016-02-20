@@ -3,6 +3,7 @@
   - New 'wref' (default 1.0) parameter.
   - Improved automatic selection of OpenCL device.
   - Changed parameters order. 
+  - Update to Visual Studio 2015.
   - VapourSynth: fixed missing 's' value check. 
 
 **- v0.7.4**
