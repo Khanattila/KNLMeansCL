@@ -44,6 +44,7 @@ typedef enum _nlm_kernel_function {
     nlmNumberKernels
 } nlm_kernel_function;
 
+// MAX(s) = min(H_BLOCK_X, V_BLOCK_Y)
 static const cl_uint H_BLOCK_X = 32, H_BLOCK_Y = 4, V_BLOCK_X = 32, V_BLOCK_Y = 4;
 
 //////////////////////////////////////////
