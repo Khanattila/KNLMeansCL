@@ -879,9 +879,7 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
                             2, NULL, global_work, NULL, 0, NULL, NULL);
                         break;
                     default:
-                        vsapi->setFilterError("knlm.KNLMeansCL: fatal error!\n (VapourSynthGetFrame)", frameCtx);
-                        vsapi->freeNode(d->node);
-                        vsapi->freeNode(d->knot);
+                        vsapi->setFilterError("knlm.KNLMeansCL: fatal error!\n (VapourSynthGetFrame)", frameCtx);                        
                         return 0;
                 }
                 vsapi->freeFrame(src);
@@ -992,9 +990,7 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
                         2, NULL, global_work, NULL, 0, NULL, NULL);
                     break;
                 default:
-                    vsapi->setFilterError("knlm.KNLMeansCL: fatal error!\n (VapourSynthGetFrame)", frameCtx);
-                    vsapi->freeNode(d->node);
-                    vsapi->freeNode(d->knot);
+                    vsapi->setFilterError("knlm.KNLMeansCL: fatal error!\n (VapourSynthGetFrame)", frameCtx);                    
                     return 0;
             }
             vsapi->freeFrame(src);
@@ -1049,17 +1045,13 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
                     (size_t) vsapi->getStride(dst, 2), 0, vsapi->getWritePtr(dst, 2), 0, NULL, NULL);                             
                 break;
             default:
-                vsapi->setFilterError("knlm.KNLMeansCL: fatal error!\n (VapourSynthGetFrame)", frameCtx);
-                vsapi->freeNode(d->node);
-                vsapi->freeNode(d->knot);
+                vsapi->setFilterError("knlm.KNLMeansCL: fatal error!\n (VapourSynthGetFrame)", frameCtx);                
                 return 0;
         }     
         ret |= clFinish(command_queue);
         ret |= clReleaseCommandQueue(command_queue);
         if (ret != CL_SUCCESS) {
-            vsapi->setFilterError("knlm.KNLMeansCL: fatal error!\n (VapourSynthGetFrame)", frameCtx);
-            vsapi->freeNode(d->node);
-            vsapi->freeNode(d->knot);
+            vsapi->setFilterError("knlm.KNLMeansCL: fatal error!\n (VapourSynthGetFrame)", frameCtx);            
             return 0;
         }
 
@@ -1103,9 +1095,7 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
             snprintf(buffer, 2048, " Version: %s %s", str, str1);
             DrawString(frm, pitch, 0, y++, buffer);
             if (ret != CL_SUCCESS) {
-                vsapi->setFilterError("knlm.KNLMeansCL: fatal error!\n (VapourSynthInfo)", frameCtx);
-                vsapi->freeNode(d->node);
-                vsapi->freeNode(d->knot);
+                vsapi->setFilterError("knlm.KNLMeansCL: fatal error!\n (VapourSynthInfo)", frameCtx);               
                 return 0;
             }
         }
