@@ -1,19 +1,19 @@
 /*
 *	This file is part of KNLMeansCL,
-*	Copyright(C) 2015  Edoardo Brunetti.
+*	Copyright(C) 2015-2016  Edoardo Brunetti.
 *
 *	KNLMeansCL is free software: you can redistribute it and/or modify
-*	it under the terms of the GNU Lesser General Public License as published by
-*	the Free Software Foundation, either version 3 of the License, or
-*	(at your option) any later version.
+*   it under the terms of the GNU General Public License as published by
+*   the Free Software Foundation, either version 3 of the License, or
+*   (at your option) any later version.
 *
 *	KNLMeansCL is distributed in the hope that it will be useful,
 *	but WITHOUT ANY WARRANTY; without even the implied warranty of
 *	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-*	GNU Lesser General Public License for more details.
+*	GNU General Public License for more details.
 *
-*	You should have received a copy of the GNU Lesser General Public License
-*	along with KNLMeansCL. If not, see <http://www.gnu.org/licenses/>.
+*	You should have received a copy of the GNU General Public License
+*   along with KNLMeansCL. If not, see <http://www.gnu.org/licenses/>.
 */
 
 #ifndef __OCL_UTILS_H__
@@ -136,6 +136,7 @@ cl_int oclGetDevicesList(cl_device_type device_type, ocl_device_packed* devices,
             return CL_SUCCESS;
         }
         cl_platform_id *lst_platforms = (cl_platform_id*) malloc(sizeof(cl_platform_id) * avl_platforms);
+        if (lst_platforms == NULL) return CL_INVALID_VALUE;
         ret = clGetPlatformIDs(avl_platforms, lst_platforms, NULL);
         if (ret != CL_SUCCESS) return ret;
         for (cl_uint p = 0; p < avl_platforms; p++) {
@@ -147,6 +148,7 @@ cl_int oclGetDevicesList(cl_device_type device_type, ocl_device_packed* devices,
                 if (ret != CL_SUCCESS && ret != CL_DEVICE_NOT_FOUND) return ret;
                 if (avl_devices > 0) {
                     cl_device_id *lst_devices = (cl_device_id*) malloc(sizeof(cl_device_id) * avl_devices);
+                    if (lst_devices == NULL) return CL_INVALID_VALUE;
                     ret = clGetDeviceIDs(lst_platforms[p], device_type, avl_devices, lst_devices, NULL);
                     for (cl_uint d = 0; d < avl_devices; d++) {
                         cl_bool image_support;
@@ -171,6 +173,7 @@ cl_int oclGetDevicesList(cl_device_type device_type, ocl_device_packed* devices,
             return CL_SUCCESS;
         }
         cl_platform_id *lst_platforms = (cl_platform_id*) malloc(sizeof(cl_platform_id) * avl_platforms);
+        if (lst_platforms == NULL) return CL_INVALID_VALUE;
         ret = clGetPlatformIDs(avl_platforms, lst_platforms, NULL);
         if (ret != CL_SUCCESS) return ret;
         for (cl_uint p = 0; p < avl_platforms; p++) {
@@ -182,6 +185,7 @@ cl_int oclGetDevicesList(cl_device_type device_type, ocl_device_packed* devices,
                 if (ret != CL_SUCCESS && ret != CL_DEVICE_NOT_FOUND) return ret;
                 if (avl_devices > 0) {
                     cl_device_id *lst_devices = (cl_device_id*) malloc(sizeof(cl_device_id) * avl_devices);
+                    if (lst_devices == NULL) return CL_INVALID_VALUE;
                     ret = clGetDeviceIDs(lst_platforms[p], device_type, avl_devices, lst_devices, NULL);
                     for (cl_uint d = 0; d < avl_devices; d++) {
                         cl_bool image_support;
