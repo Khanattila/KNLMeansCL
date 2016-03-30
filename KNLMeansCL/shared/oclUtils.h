@@ -168,10 +168,7 @@ cl_int oclGetDevicesList(cl_device_type device_type, ocl_device_packed* devices,
         cl_uint avl_platforms = 0, index = 0;
         cl_int ret = clGetPlatformIDs(0, NULL, &avl_platforms);
         if (ret != CL_SUCCESS) return ret;
-        if (avl_platforms == 0) {
-            *num_devices = 0;
-            return CL_SUCCESS;
-        }
+        if (avl_platforms == 0) return CL_SUCCESS;  
         cl_platform_id *lst_platforms = (cl_platform_id*) malloc(sizeof(cl_platform_id) * avl_platforms);
         if (lst_platforms == NULL) return CL_INVALID_VALUE;
         ret = clGetPlatformIDs(avl_platforms, lst_platforms, NULL);
