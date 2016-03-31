@@ -48,10 +48,10 @@
 #include <VapourSynth.h>
 #include <VSHelper.h>
 
-enum { 
-    COLOR_GRAY    = 1 << 0, COLOR_YUV     = 1 << 1, COLOR_RGB     = 1 << 2,
-    CLIP_UNORM    = 1 << 3, CLIP_UNSIGNED = 1 << 4, CLIP_STACKED  = 1 << 5,
-    EXTRA_NONE    = 1 << 6, EXTRA_CLIP    = 1 << 7
+enum {
+    COLOR_GRAY = 1 << 0, COLOR_YUV = 1 << 1, COLOR_RGB = 1 << 2,
+    CLIP_UNORM = 1 << 3, CLIP_UNSIGNED = 1 << 4, CLIP_STACKED = 1 << 5,
+    EXTRA_NONE = 1 << 6, EXTRA_CLIP = 1 << 7
 };
 
 #ifdef __AVISYNTH_6_H__
