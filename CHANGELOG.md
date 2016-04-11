@@ -1,4 +1,8 @@
 ## Change Log ##
+**-v 0.7.6**
+  - Fixed wrong version displaying.
+  - VapourSynth: fixed wrong API usage.
+
 **-v 0.7.5**
   - New 'wref' (default 1.0) parameter.
   - Improved automatic selection of OpenCL device.
