@@ -12,5 +12,13 @@ For end user KNLMeansCL is a plugin for [AviSynth](http://avisynth.nl) / [AviSyn
 - AMD HD 5800 Series GPU or greater. At least [AMD Catalyst™ software 11.12](http://support.amd.com).
 - Intel Graphics 2500/4000 or greater. At least [OpenCL™ Drivers 2013](http://software.intel.com/en-us/articles/opencl-drivers).
 - NVIDIA GeForce GT 640 or greater. At least [NVIDIA driver 350.12 WHQL](http://www.nvidia.com/download/find.aspx).
-- If you have an older device, you can use this [version](http://github.com/Khanattila/KNLMeansCL/releases/tag/v0.6.11).
+- CPU fallback is still available. Install [AMD APP SDK](http://developer.amd.com/tools-and-sdks/opencl-zone/amd-accelerated-parallel-processing-app-sdk/) or [Intel OpenCL™ Runtime](http://software.intel.com/en-us/articles/opencl-drivers).
 - [Visual C++ Redistributable Package for Visual Studio 2015](http://www.microsoft.com/en-us/download/details.aspx?id=48145).
+
+### Legacy ###
+- [Version 0.6.11](https://github.com/Khanattila/KNLMeansCL/releases/tag/v0.6.11)
+- AMD HD 5400 Series GPU or greater.
+- Intel Graphics 2500/4000 or greater.
+- NVIDIA GeForce 8400 GS or greater.
+- CPU fallback is still available. Install [AMD APP SDK](http://developer.amd.com/tools-and-sdks/opencl-zone/amd-accelerated-parallel-processing-app-sdk/) or [Intel OpenCL™ Runtime](http://software.intel.com/en-us/articles/opencl-drivers).
+- [Visual C++ Redistributable Package for Visual Studio 2013](http://www.microsoft.com/en-US/download/details.aspx?id=40784).
