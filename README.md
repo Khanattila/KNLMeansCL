@@ -15,8 +15,7 @@ For end user KNLMeansCL is a plugin for [AviSynth](http://avisynth.nl) / [AviSyn
 - CPU fallback is still available. Install [AMD APP SDK](http://developer.amd.com/tools-and-sdks/opencl-zone/amd-accelerated-parallel-processing-app-sdk/) or [Intel OpenCL™ Runtime](http://software.intel.com/en-us/articles/opencl-drivers).
 - [Visual C++ Redistributable Package for Visual Studio 2015](http://www.microsoft.com/en-us/download/details.aspx?id=48145).
 
-### Legacy ###
-- [Version 0.6.11](https://github.com/Khanattila/KNLMeansCL/releases/tag/v0.6.11)
+### Legacy - [v0.6.11](https://github.com/Khanattila/KNLMeansCL/releases/tag/v0.6.11)###
 - AMD HD 5400 Series GPU or greater.
 - Intel Graphics 2500/4000 or greater.
 - NVIDIA GeForce 8400 GS or greater.
