@@ -226,7 +226,7 @@ _NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _
     oclErrorCheck("clCreateImage(mem_P[2])", ret, env);
 
     // Creates and Build a program executable from the program source.
-    program = clCreateProgramWithSource(context, 1, &kernel_source_code_spatiotemporal, NULL, NULL);
+    program = clCreateProgramWithSource(context, 1, d ? &kernel_source_code : &kernel_source_code_spatial, NULL, NULL);
     char options[2048];
     setlocale(LC_ALL, "C");
     snprintf(options, 2048, "-cl-single-precision-constant -cl-denorms-are-zero -cl-fast-relaxed-math -Werror "
@@ -259,34 +259,39 @@ _NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _
     setlocale(LC_ALL, "");
 
     // Creates kernel objects.
-    kernel[nlmSpatialDistance] = clCreateKernel(program, "nlmSpatialDistance", &ret);
-    oclErrorCheck("clCreateKernel(nlmSpatialDistance)", ret, env);
-    kernel[nlmSpatialHorizontal] = clCreateKernel(program, "nlmSpatialHorizontal", &ret);
-    oclErrorCheck("clCreateKernel(nlmSpatialHorizontal)", ret, env);
-    kernel[nlmSpatialVertical] = clCreateKernel(program, "nlmSpatialVertical", &ret);
-    oclErrorCheck("clCreateKernel(nlmSpatialVertical)", ret, env);
-    kernel[nlmSpatialAccumulation] = clCreateKernel(program, "nlmSpatialAccumulation", &ret);
-    oclErrorCheck("clCreateKernel(nlmSpatialAccumulation)", ret, env);
-    kernel[nlmSpatialFinish] = clCreateKernel(program, "nlmSpatialFinish", &ret);
-    oclErrorCheck("clCreateKernel(nlmSpatialFinish)", ret, env);
-    kernel[nlmDistanceLeft] = clCreateKernel(program, "nlmDistanceLeft", &ret);
-    oclErrorCheck("clCreateKernel(nlmDistanceLeft)", ret, env);
-    kernel[nlmDistanceRight] = clCreateKernel(program, "nlmDistanceRight", &ret);
-    oclErrorCheck("clCreateKernel(nlmDistanceRight)", ret, env);
-    kernel[nlmHorizontal] = clCreateKernel(program, "nlmHorizontal", &ret);
-    oclErrorCheck("clCreateKernel(nlmHorizontal)", ret, env);
-    kernel[nlmVertical] = clCreateKernel(program, "nlmVertical", &ret);
-    oclErrorCheck("clCreateKernel(nlmVertical)", ret, env);
-    kernel[nlmAccumulation] = clCreateKernel(program, "nlmAccumulation", &ret);
-    oclErrorCheck("clCreateKernel(nlmAccumulation)", ret, env);
-    kernel[nlmFinish] = clCreateKernel(program, "nlmFinish", &ret);
-    oclErrorCheck("clCreateKernel(nlmFinish)", ret, env);
-    kernel[nlmSpatialPack] = clCreateKernel(program, "nlmSpatialPack", &ret);
-    oclErrorCheck("clCreateKernel(nlmSpatialPack)", ret, env);
-    kernel[nlmPack] = clCreateKernel(program, "nlmPack", &ret);
-    oclErrorCheck("clCreateKernel(nlmPack)", ret, env);
-    kernel[nlmUnpack] = clCreateKernel(program, "nlmUnpack", &ret);
-    oclErrorCheck("clCreateKernel(nlmUnpack)", ret, env);
+    if (d) {
+        kernel[nlmDistanceLeft] = clCreateKernel(program, "nlmDistanceLeft", &ret);
+        oclErrorCheck("clCreateKernel(nlmDistanceLeft)", ret, env);
+        kernel[nlmDistanceRight] = clCreateKernel(program, "nlmDistanceRight", &ret);
+        oclErrorCheck("clCreateKernel(nlmDistanceRight)", ret, env);
+        kernel[nlmHorizontal] = clCreateKernel(program, "nlmHorizontal", &ret);
+        oclErrorCheck("clCreateKernel(nlmHorizontal)", ret, env);
+        kernel[nlmVertical] = clCreateKernel(program, "nlmVertical", &ret);
+        oclErrorCheck("clCreateKernel(nlmVertical)", ret, env);
+        kernel[nlmAccumulation] = clCreateKernel(program, "nlmAccumulation", &ret);
+        oclErrorCheck("clCreateKernel(nlmAccumulation)", ret, env);
+        kernel[nlmFinish] = clCreateKernel(program, "nlmFinish", &ret);
+        oclErrorCheck("clCreateKernel(nlmFinish)", ret, env);
+        kernel[nlmPack] = clCreateKernel(program, "nlmPack", &ret);
+        oclErrorCheck("clCreateKernel(nlmPack)", ret, env);
+        kernel[nlmUnpack] = clCreateKernel(program, "nlmUnpack", &ret);
+        oclErrorCheck("clCreateKernel(nlmUnpack)", ret, env);
+    } else {
+        kernel[nlmSpatialDistance] = clCreateKernel(program, "nlmSpatialDistance", &ret);
+        oclErrorCheck("clCreateKernel(nlmSpatialDistance)", ret, env);
+        kernel[nlmSpatialHorizontal] = clCreateKernel(program, "nlmSpatialHorizontal", &ret);
+        oclErrorCheck("clCreateKernel(nlmSpatialHorizontal)", ret, env);
+        kernel[nlmSpatialVertical] = clCreateKernel(program, "nlmSpatialVertical", &ret);
+        oclErrorCheck("clCreateKernel(nlmSpatialVertical)", ret, env);
+        kernel[nlmSpatialAccumulation] = clCreateKernel(program, "nlmSpatialAccumulation", &ret);
+        oclErrorCheck("clCreateKernel(nlmSpatialAccumulation)", ret, env);
+        kernel[nlmSpatialFinish] = clCreateKernel(program, "nlmSpatialFinish", &ret);
+        oclErrorCheck("clCreateKernel(nlmSpatialFinish)", ret, env);
+        kernel[nlmSpatialPack] = clCreateKernel(program, "nlmSpatialPack", &ret);
+        oclErrorCheck("clCreateKernel(nlmSpatialPack)", ret, env);
+        kernel[nlmSpatialUnpack] = clCreateKernel(program, "nlmSpatialUnpack", &ret);
+        oclErrorCheck("clCreateKernel(nlmSpatialUnpack)", ret, env);
+    }
 
     // Sets kernel arguments.
     if (d) {
@@ -342,6 +347,14 @@ _NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _
         oclErrorCheck("clSetKernelArg(nlmPack[2])", ret, env);
         ret = clSetKernelArg(kernel[nlmPack], 5, 2 * sizeof(cl_int), &idmn);
         oclErrorCheck("clSetKernelArg(nlmPack[5])", ret, env);
+        ret = clSetKernelArg(kernel[nlmUnpack], 0, sizeof(cl_mem), &mem_P[0]);
+        oclErrorCheck("clSetKernelArg(nlmUnpack[0])", ret, env);
+        ret = clSetKernelArg(kernel[nlmUnpack], 1, sizeof(cl_mem), &mem_P[1]);
+        oclErrorCheck("clSetKernelArg(nlmUnpack[1])", ret, env);
+        ret = clSetKernelArg(kernel[nlmUnpack], 2, sizeof(cl_mem), &mem_P[2]);
+        oclErrorCheck("clSetKernelArg(nlmUnpack[2])", ret, env);
+        ret = clSetKernelArg(kernel[nlmUnpack], 4, 2 * sizeof(cl_int), &idmn);
+        oclErrorCheck("clSetKernelArg(nlmUnpack[4])", ret, env);
     } else {
         ret = clSetKernelArg(kernel[nlmSpatialDistance], 0, sizeof(cl_mem), &mem_in[(clip_t & EXTRA_NONE) ? 0 : 1]);
         oclErrorCheck("clSetKernelArg(nlmSpatialDistance[0])", ret, env);
@@ -389,15 +402,16 @@ _NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _
         oclErrorCheck("clSetKernelArg(nlmSpatialPack[2])", ret, env);
         ret = clSetKernelArg(kernel[nlmSpatialPack], 4, 2 * sizeof(cl_int), &idmn);
         oclErrorCheck("clSetKernelArg(nlmSpatialPack[4])", ret, env);
+        ret = clSetKernelArg(kernel[nlmSpatialUnpack], 0, sizeof(cl_mem), &mem_P[0]);
+        oclErrorCheck("clSetKernelArg(nlmSpatialUnpack[0])", ret, env);
+        ret = clSetKernelArg(kernel[nlmSpatialUnpack], 1, sizeof(cl_mem), &mem_P[1]);
+        oclErrorCheck("clSetKernelArg(nlmSpatialUnpack[1])", ret, env);
+        ret = clSetKernelArg(kernel[nlmSpatialUnpack], 2, sizeof(cl_mem), &mem_P[2]);
+        oclErrorCheck("clSetKernelArg(nlmSpatialUnpack[2])", ret, env);
+        ret = clSetKernelArg(kernel[nlmSpatialUnpack], 4, 2 * sizeof(cl_int), &idmn);
+        oclErrorCheck("clSetKernelArg(nlmSpatialUnpack[4])", ret, env);
     }
-    ret = clSetKernelArg(kernel[nlmUnpack], 0, sizeof(cl_mem), &mem_P[0]);
-    oclErrorCheck("clSetKernelArg(nlmUnpack[0])", ret, env);
-    ret = clSetKernelArg(kernel[nlmUnpack], 1, sizeof(cl_mem), &mem_P[1]);
-    oclErrorCheck("clSetKernelArg(nlmUnpack[1])", ret, env);
-    ret = clSetKernelArg(kernel[nlmUnpack], 2, sizeof(cl_mem), &mem_P[2]);
-    oclErrorCheck("clSetKernelArg(nlmUnpack[2])", ret, env);
-    ret = clSetKernelArg(kernel[nlmUnpack], 4, 2 * sizeof(cl_int), &idmn);
-    oclErrorCheck("clSetKernelArg(nlmUnpack[4])", ret, env);
+    
 }
 #endif //__AVISYNTH_6_H__
 
@@ -1124,20 +1138,24 @@ _NLMAvisynth::~_NLMAvisynth() {
     clReleaseMemObject(mem_out);
     clReleaseMemObject(mem_in[1]);
     clReleaseMemObject(mem_in[0]);
-    clReleaseKernel(kernel[nlmUnpack]);
-    clReleaseKernel(kernel[nlmPack]);
-    clReleaseKernel(kernel[nlmSpatialPack]);
-    clReleaseKernel(kernel[nlmFinish]);
-    clReleaseKernel(kernel[nlmAccumulation]);
-    clReleaseKernel(kernel[nlmVertical]);
-    clReleaseKernel(kernel[nlmHorizontal]);
-    clReleaseKernel(kernel[nlmDistanceRight]);
-    clReleaseKernel(kernel[nlmDistanceLeft]);
-    clReleaseKernel(kernel[nlmSpatialFinish]);
-    clReleaseKernel(kernel[nlmSpatialAccumulation]);
-    clReleaseKernel(kernel[nlmSpatialVertical]);
-    clReleaseKernel(kernel[nlmSpatialHorizontal]);
-    clReleaseKernel(kernel[nlmSpatialDistance]);
+    if (d) {
+        clReleaseKernel(kernel[nlmUnpack]);
+        clReleaseKernel(kernel[nlmPack]);
+        clReleaseKernel(kernel[nlmFinish]);
+        clReleaseKernel(kernel[nlmAccumulation]);
+        clReleaseKernel(kernel[nlmVertical]);
+        clReleaseKernel(kernel[nlmHorizontal]);
+        clReleaseKernel(kernel[nlmDistanceRight]);
+        clReleaseKernel(kernel[nlmDistanceLeft]);
+    } else {
+        clReleaseKernel(kernel[nlmSpatialUnpack]);
+        clReleaseKernel(kernel[nlmSpatialPack]);
+        clReleaseKernel(kernel[nlmSpatialFinish]);
+        clReleaseKernel(kernel[nlmSpatialAccumulation]);
+        clReleaseKernel(kernel[nlmSpatialVertical]);
+        clReleaseKernel(kernel[nlmSpatialHorizontal]);
+        clReleaseKernel(kernel[nlmSpatialDistance]);
+    } 
     clReleaseProgram(program);
     clReleaseContext(context);
 }
@@ -1160,20 +1178,24 @@ static void VS_CC VapourSynthPluginFree(void *instanceData, VSCore *core, const 
     clReleaseMemObject(d->mem_out);
     clReleaseMemObject(d->mem_in[1]);
     clReleaseMemObject(d->mem_in[0]);
-    clReleaseKernel(d->kernel[nlmUnpack]);
-    clReleaseKernel(d->kernel[nlmPack]);
-    clReleaseKernel(d->kernel[nlmSpatialPack]);
-    clReleaseKernel(d->kernel[nlmFinish]);
-    clReleaseKernel(d->kernel[nlmAccumulation]);
-    clReleaseKernel(d->kernel[nlmVertical]);
-    clReleaseKernel(d->kernel[nlmHorizontal]);
-    clReleaseKernel(d->kernel[nlmDistanceRight]);
-    clReleaseKernel(d->kernel[nlmDistanceLeft]);
-    clReleaseKernel(d->kernel[nlmSpatialFinish]);
-    clReleaseKernel(d->kernel[nlmSpatialAccumulation]);
-    clReleaseKernel(d->kernel[nlmSpatialVertical]);
-    clReleaseKernel(d->kernel[nlmSpatialHorizontal]);
-    clReleaseKernel(d->kernel[nlmSpatialDistance]);
+    if (d->d) {
+        clReleaseKernel(d->kernel[nlmUnpack]);
+        clReleaseKernel(d->kernel[nlmPack]);  
+        clReleaseKernel(d->kernel[nlmFinish]);
+        clReleaseKernel(d->kernel[nlmAccumulation]);
+        clReleaseKernel(d->kernel[nlmVertical]);
+        clReleaseKernel(d->kernel[nlmHorizontal]);
+        clReleaseKernel(d->kernel[nlmDistanceRight]);
+        clReleaseKernel(d->kernel[nlmDistanceLeft]);
+    } else {
+        clReleaseKernel(d->kernel[nlmSpatialUnpack]);
+        clReleaseKernel(d->kernel[nlmSpatialPack]);
+        clReleaseKernel(d->kernel[nlmSpatialFinish]);
+        clReleaseKernel(d->kernel[nlmSpatialAccumulation]);
+        clReleaseKernel(d->kernel[nlmSpatialVertical]);
+        clReleaseKernel(d->kernel[nlmSpatialHorizontal]);
+        clReleaseKernel(d->kernel[nlmSpatialDistance]);
+    }
     clReleaseProgram(d->program);
     clReleaseContext(d->context);
     free(d);
@@ -1536,7 +1558,7 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
     }
 
     // Creates and Build a program executable from the program source.
-    d.program = clCreateProgramWithSource(d.context, 1, &kernel_source_code_spatiotemporal, NULL, NULL);
+    d.program = clCreateProgramWithSource(d.context, 1, d.d ? &kernel_source_code : &kernel_source_code_spatial, NULL, NULL);
     char options[2048];
     setlocale(LC_ALL, "C");
 #   ifdef __APPLE__
@@ -1580,34 +1602,39 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
     setlocale(LC_ALL, "");
 
     // Creates kernel objects.
-    d.kernel[nlmSpatialDistance] = clCreateKernel(d.program, "nlmSpatialDistance", &ret);
-    if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateKernel(nlmSpatialDistance)", ret, out, vsapi); return; }
-    d.kernel[nlmSpatialHorizontal] = clCreateKernel(d.program, "nlmSpatialHorizontal", &ret);
-    if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateKernel(nlmSpatialHorizontal)", ret, out, vsapi); return; }
-    d.kernel[nlmSpatialVertical] = clCreateKernel(d.program, "nlmSpatialVertical", &ret);
-    if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateKernel(nlmSpatialVertical)", ret, out, vsapi); return; }
-    d.kernel[nlmSpatialAccumulation] = clCreateKernel(d.program, "nlmSpatialAccumulation", &ret);
-    if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateKernel(nlmSpatialAccumulation)", ret, out, vsapi); return; }
-    d.kernel[nlmSpatialFinish] = clCreateKernel(d.program, "nlmSpatialFinish", &ret);
-    if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateKernel(nlmSpatialFinish)", ret, out, vsapi); return; }
-    d.kernel[nlmDistanceLeft] = clCreateKernel(d.program, "nlmDistanceLeft", &ret);
-    if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateKernel(nlmDistanceLeft)", ret, out, vsapi); return; }
-    d.kernel[nlmDistanceRight] = clCreateKernel(d.program, "nlmDistanceRight", &ret);
-    if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateKernel(nlmDistanceRight)", ret, out, vsapi); return; }
-    d.kernel[nlmHorizontal] = clCreateKernel(d.program, "nlmHorizontal", &ret);
-    if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateKernel(nlmHorizontal)", ret, out, vsapi); return; }
-    d.kernel[nlmVertical] = clCreateKernel(d.program, "nlmVertical", &ret);
-    if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateKernel(nlmVertical)", ret, out, vsapi); return; }
-    d.kernel[nlmAccumulation] = clCreateKernel(d.program, "nlmAccumulation", &ret);
-    if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateKernel(nlmAccumulation)", ret, out, vsapi); return; }
-    d.kernel[nlmFinish] = clCreateKernel(d.program, "nlmFinish", &ret);
-    if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateKernel(nlmFinish)", ret, out, vsapi); return; }
-    d.kernel[nlmSpatialPack] = clCreateKernel(d.program, "nlmSpatialPack", &ret);
-    if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateKernel(nlmSpatialPack)", ret, out, vsapi); return; }
-    d.kernel[nlmPack] = clCreateKernel(d.program, "nlmPack", &ret);
-    if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateKernel(nlmPack)", ret, out, vsapi); return; }
-    d.kernel[nlmUnpack] = clCreateKernel(d.program, "nlmUnpack", &ret);
-    if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateKernel(nlmUnpack)", ret, out, vsapi); return; }
+    if (d.d) {
+        d.kernel[nlmDistanceLeft] = clCreateKernel(d.program, "nlmDistanceLeft", &ret);
+        if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateKernel(nlmDistanceLeft)", ret, out, vsapi); return; }
+        d.kernel[nlmDistanceRight] = clCreateKernel(d.program, "nlmDistanceRight", &ret);
+        if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateKernel(nlmDistanceRight)", ret, out, vsapi); return; }
+        d.kernel[nlmHorizontal] = clCreateKernel(d.program, "nlmHorizontal", &ret);
+        if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateKernel(nlmHorizontal)", ret, out, vsapi); return; }
+        d.kernel[nlmVertical] = clCreateKernel(d.program, "nlmVertical", &ret);
+        if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateKernel(nlmVertical)", ret, out, vsapi); return; }
+        d.kernel[nlmAccumulation] = clCreateKernel(d.program, "nlmAccumulation", &ret);
+        if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateKernel(nlmAccumulation)", ret, out, vsapi); return; }
+        d.kernel[nlmFinish] = clCreateKernel(d.program, "nlmFinish", &ret);
+        if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateKernel(nlmFinish)", ret, out, vsapi); return; }
+        d.kernel[nlmPack] = clCreateKernel(d.program, "nlmPack", &ret);
+        if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateKernel(nlmPack)", ret, out, vsapi); return; }
+        d.kernel[nlmUnpack] = clCreateKernel(d.program, "nlmUnpack", &ret);
+        if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateKernel(nlmUnpack)", ret, out, vsapi); return; }      
+    } else {
+        d.kernel[nlmSpatialDistance] = clCreateKernel(d.program, "nlmSpatialDistance", &ret);
+        if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateKernel(nlmSpatialDistance)", ret, out, vsapi); return; }
+        d.kernel[nlmSpatialHorizontal] = clCreateKernel(d.program, "nlmSpatialHorizontal", &ret);
+        if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateKernel(nlmSpatialHorizontal)", ret, out, vsapi); return; }
+        d.kernel[nlmSpatialVertical] = clCreateKernel(d.program, "nlmSpatialVertical", &ret);
+        if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateKernel(nlmSpatialVertical)", ret, out, vsapi); return; }
+        d.kernel[nlmSpatialAccumulation] = clCreateKernel(d.program, "nlmSpatialAccumulation", &ret);
+        if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateKernel(nlmSpatialAccumulation)", ret, out, vsapi); return; }
+        d.kernel[nlmSpatialFinish] = clCreateKernel(d.program, "nlmSpatialFinish", &ret);
+        if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateKernel(nlmSpatialFinish)", ret, out, vsapi); return; }
+        d.kernel[nlmSpatialPack] = clCreateKernel(d.program, "nlmSpatialPack", &ret);
+        if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateKernel(nlmSpatialPack)", ret, out, vsapi); return; }
+        d.kernel[nlmSpatialUnpack] = clCreateKernel(d.program, "nlmSpatialUnpack", &ret);
+        if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateKernel(nlmSpatialUnpack)", ret, out, vsapi); return; }
+    }
 
     // Sets kernel arguments.
     if (d.d) {
@@ -1663,6 +1690,14 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
         if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateKernel(nlmPack[2])", ret, out, vsapi); return; }
         ret = clSetKernelArg(d.kernel[nlmPack], 5, 2 * sizeof(cl_int), &d.idmn);
         if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateKernel(nlmPack[5])", ret, out, vsapi); return; }
+        ret = clSetKernelArg(d.kernel[nlmUnpack], 0, sizeof(cl_mem), &d.mem_P[0]);
+        if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateKernel(nlmUnpack[0])", ret, out, vsapi); return; }
+        ret = clSetKernelArg(d.kernel[nlmUnpack], 1, sizeof(cl_mem), &d.mem_P[1]);
+        if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateKernel(nlmUnpack[1])", ret, out, vsapi); return; }
+        ret = clSetKernelArg(d.kernel[nlmUnpack], 2, sizeof(cl_mem), &d.mem_P[2]);
+        if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateKernel(nlmUnpack[2])", ret, out, vsapi); return; }
+        ret = clSetKernelArg(d.kernel[nlmUnpack], 4, 2 * sizeof(cl_int), &d.idmn);
+        if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateKernel(nlmUnpack[4])", ret, out, vsapi); return; }
     } else {
         ret = clSetKernelArg(d.kernel[nlmSpatialDistance], 0, sizeof(cl_mem), &d.mem_in[(d.clip_t & EXTRA_NONE) ? 0 : 1]);
         if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateKernel(nlmSpatialDistance[0])", ret, out, vsapi); return; }
@@ -1710,15 +1745,15 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
         if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateKernel(nlmSpatialPack[2])", ret, out, vsapi); return; }
         ret = clSetKernelArg(d.kernel[nlmSpatialPack], 4, 2 * sizeof(cl_int), &d.idmn);
         if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateKernel(nlmSpatialPack[4])", ret, out, vsapi); return; }
+        ret = clSetKernelArg(d.kernel[nlmSpatialUnpack], 0, sizeof(cl_mem), &d.mem_P[0]);
+        if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateKernel(nlmSpatialUnpack[0])", ret, out, vsapi); return; }
+        ret = clSetKernelArg(d.kernel[nlmSpatialUnpack], 1, sizeof(cl_mem), &d.mem_P[1]);
+        if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateKernel(nlmSpatialUnpack[1])", ret, out, vsapi); return; }
+        ret = clSetKernelArg(d.kernel[nlmSpatialUnpack], 2, sizeof(cl_mem), &d.mem_P[2]);
+        if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateKernel(nlmSpatialUnpack[2])", ret, out, vsapi); return; }
+        ret = clSetKernelArg(d.kernel[nlmSpatialUnpack], 4, 2 * sizeof(cl_int), &d.idmn);
+        if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateKernel(nlmSpatialUnpack[4])", ret, out, vsapi); return; }
     }
-    ret = clSetKernelArg(d.kernel[nlmUnpack], 0, sizeof(cl_mem), &d.mem_P[0]);
-    if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateKernel(nlmUnpack[0])", ret, out, vsapi); return; }
-    ret = clSetKernelArg(d.kernel[nlmUnpack], 1, sizeof(cl_mem), &d.mem_P[1]);
-    if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateKernel(nlmUnpack[1])", ret, out, vsapi); return; }
-    ret = clSetKernelArg(d.kernel[nlmUnpack], 2, sizeof(cl_mem), &d.mem_P[2]);
-    if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateKernel(nlmUnpack[2])", ret, out, vsapi); return; }
-    ret = clSetKernelArg(d.kernel[nlmUnpack], 4, 2 * sizeof(cl_int), &d.idmn);
-    if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateKernel(nlmUnpack[4])", ret, out, vsapi); return; }
 
     // Creates a new filter and returns a reference to it.
     NLMVapoursynth *data = (NLMVapoursynth*) malloc(sizeof(d));
