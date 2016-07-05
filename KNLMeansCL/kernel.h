@@ -32,15 +32,18 @@ typedef enum _nlm_kernel_function {
     nlmSpatialVertical,
     nlmSpatialAccumulation,
     nlmSpatialFinish,
+    nlmSpatialPack,
+    nlmSpatialUnpack,
+
     nlmDistanceLeft,
     nlmDistanceRight,
     nlmHorizontal,
     nlmVertical,
     nlmAccumulation,
-    nlmFinish,
-    nlmSpatialPack,
+    nlmFinish, 
     nlmPack,
     nlmUnpack,
+
     nlmNumberKernels
 } nlm_kernel_function;
 
@@ -281,7 +284,7 @@ static const char* kernel_source_code_spatial =
 "}                                                                                                                \n" \
 "                                                                                                                 \n" \
 "__kernel                                                                                                         \n" \
-"void nlmUnpack(__write_only image2d_t R, __write_only image2d_t G, __write_only image2d_t B,                     \n" \
+"void nlmSpatialUnpack(__write_only image2d_t R, __write_only image2d_t G, __write_only image2d_t B,              \n" \
 "__read_only image2d_t U1, const int2 dim) {                                                                      \n" \
 "                                                                                                                 \n" \
 "   const int x = get_global_id(0);                                                                               \n" \
