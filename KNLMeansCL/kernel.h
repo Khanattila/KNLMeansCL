@@ -47,8 +47,8 @@ typedef enum _nlm_kernel_function {
     nlmNumberKernels
 } nlm_kernel_function;
 
-// MAX(s) = min(H_BLOCK_X, V_BLOCK_Y)
-static const cl_uint H_BLOCK_X = 32, H_BLOCK_Y = 4, V_BLOCK_X = 32, V_BLOCK_Y = 4;
+// MAX(s) = min(HRZ_BLOCK_X, VTR_BLOCK_Y)
+static const cl_uint HRZ_BLOCK_X = 32, HRZ_BLOCK_Y = 4, VRT_BLOCK_X = 32, VRT_BLOCK_Y = 4;
 
 //////////////////////////////////////////
 // Kernel Source Code
@@ -106,10 +106,10 @@ static const char* kernel_source_code_spatial =
 "   }                                                                                                             \n" \
 "}                                                                                                                \n" \
 "                                                                                                                 \n" \
-"__kernel __attribute__((reqd_work_group_size(H_BLOCK_X, H_BLOCK_Y, 1)))                                          \n" \
+"__kernel __attribute__((reqd_work_group_size(HRZ_BLOCK_X, HRZ_BLOCK_Y, 1)))                                      \n" \
 "void nlmSpatialHorizontal(__read_only image2d_t U4_in, __write_only image2d_t U4_out, const int2 dim) {          \n" \
 "                                                                                                                 \n" \
-"   __local float buffer[H_BLOCK_Y][3*H_BLOCK_X];                                                                 \n" \
+"   __local float buffer[HRZ_BLOCK_Y][3*HRZ_BLOCK_X];                                                             \n" \
 "   const int x = get_global_id(0);                                                                               \n" \
 "   const int y = get_global_id(1);                                                                               \n" \
 "   const int lx = get_local_id(0);                                                                               \n" \
@@ -118,22 +118,22 @@ static const char* kernel_source_code_spatial =
 "   const sampler_t smp = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP | CLK_FILTER_NEAREST;                   \n" \
 "   const int2 p = (int2) (x, y);                                                                                 \n" \
 "                                                                                                                 \n" \
-"   buffer[ly][lx + H_BLOCK_X]   = read_imagef(U4_in, smp, p                        ).x;                          \n" \
-"   buffer[ly][lx]               = read_imagef(U4_in, smp, p - (int2) (H_BLOCK_X, 0)).x;                          \n" \
-"   buffer[ly][lx + 2*H_BLOCK_X] = read_imagef(U4_in, smp, p + (int2) (H_BLOCK_X, 0)).x;                          \n" \
+"   buffer[ly][lx + HRZ_BLOCK_X]   = read_imagef(U4_in, smp, p                        ).x;                        \n" \
+"   buffer[ly][lx]               = read_imagef(U4_in, smp, p - (int2) (HRZ_BLOCK_X, 0)).x;                        \n" \
+"   buffer[ly][lx + 2*HRZ_BLOCK_X] = read_imagef(U4_in, smp, p + (int2) (HRZ_BLOCK_X, 0)).x;                      \n" \
 "   barrier(CLK_LOCAL_MEM_FENCE);                                                                                 \n" \
 "                                                                                                                 \n" \
 "   if(x >= dim.x || y >= dim.y) return;                                                                          \n" \
 "   float sum = 0.0f;                                                                                             \n" \
 "   for(int i = -NLMK_S; i <= NLMK_S; i++)                                                                        \n" \
-"       sum += buffer[ly][lx + H_BLOCK_X + i];                                                                    \n" \
+"       sum += buffer[ly][lx + HRZ_BLOCK_X + i];                                                                  \n" \
 "   write_imagef(U4_out, p, (float4) sum);                                                                        \n" \
 "}                                                                                                                \n" \
 "                                                                                                                 \n" \
-"__kernel __attribute__((reqd_work_group_size(V_BLOCK_X, V_BLOCK_Y, 1)))                                          \n" \
+"__kernel __attribute__((reqd_work_group_size(VTR_BLOCK_X, VTR_BLOCK_Y, 1)))                                      \n" \
 "void nlmSpatialVertical(__read_only image2d_t U4_in, __write_only image2d_t U4_out, const int2 dim) {            \n" \
 "                                                                                                                 \n" \
-"   __local float buffer[3*V_BLOCK_Y][V_BLOCK_X];                                                                 \n" \
+"   __local float buffer[3*VTR_BLOCK_Y][VTR_BLOCK_X];                                                             \n" \
 "   const int x = get_global_id(0);                                                                               \n" \
 "   const int y = get_global_id(1);                                                                               \n" \
 "   const int lx = get_local_id(0);                                                                               \n" \
@@ -142,15 +142,15 @@ static const char* kernel_source_code_spatial =
 "   const sampler_t smp = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP | CLK_FILTER_NEAREST;                   \n" \
 "   const int2 p = (int2) (x, y);                                                                                 \n" \
 "                                                                                                                 \n" \
-"   buffer[ly + V_BLOCK_Y][lx]   = read_imagef(U4_in, smp, p                        ).x;                          \n" \
-"   buffer[ly][lx]               = read_imagef(U4_in, smp, p - (int2) (0, V_BLOCK_Y)).x;                          \n" \
-"   buffer[ly + 2*V_BLOCK_Y][lx] = read_imagef(U4_in, smp, p + (int2) (0, V_BLOCK_Y)).x;                          \n" \
+"   buffer[ly + VTR_BLOCK_Y][lx]   = read_imagef(U4_in, smp, p                        ).x;                        \n" \
+"   buffer[ly][lx]               = read_imagef(U4_in, smp, p - (int2) (0, VTR_BLOCK_Y)).x;                        \n" \
+"   buffer[ly + 2*VTR_BLOCK_Y][lx] = read_imagef(U4_in, smp, p + (int2) (0, VTR_BLOCK_Y)).x;                      \n" \
 "   barrier(CLK_LOCAL_MEM_FENCE);                                                                                 \n" \
 "                                                                                                                 \n" \
 "   if(x >= dim.x || y >= dim.y) return;                                                                          \n" \
 "   float sum = 0.0f;                                                                                             \n" \
 "   for(int j = -NLMK_S; j <= NLMK_S; j++)                                                                        \n" \
-"       sum += buffer[ly + V_BLOCK_Y + j][lx];                                                                    \n" \
+"       sum += buffer[ly + VTR_BLOCK_Y + j][lx];                                                                  \n" \
 "                                                                                                                 \n" \
 "   if(NLMK_WMODE == 0) {                                                                                         \n" \
 "       const float val = native_recip(1.0f + sum * NLMK_H2_INV_NORM);                                            \n" \
@@ -429,11 +429,11 @@ static const char* kernel_source_code =
 "   }                                                                                                             \n" \
 "}                                                                                                                \n" \
 "                                                                                                                 \n" \
-"__kernel __attribute__((reqd_work_group_size(H_BLOCK_X, H_BLOCK_Y, 1)))                                          \n" \
+"__kernel __attribute__((reqd_work_group_size(HRZ_BLOCK_X, HRZ_BLOCK_Y, 1)))                                      \n" \
 "void nlmHorizontal(__read_only image2d_array_t U4_in, __write_only image2d_array_t U4_out,                       \n" \
 "const int t, const int2 dim) {                                                                                   \n" \
 "                                                                                                                 \n" \
-"   __local float buffer[H_BLOCK_Y][3*H_BLOCK_X];                                                                 \n" \
+"   __local float buffer[HRZ_BLOCK_Y][3*HRZ_BLOCK_X];                                                             \n" \
 "   const int x = get_global_id(0);                                                                               \n" \
 "   const int y = get_global_id(1);                                                                               \n" \
 "   const int lx = get_local_id(0);                                                                               \n" \
@@ -442,23 +442,23 @@ static const char* kernel_source_code =
 "   const sampler_t smp = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP | CLK_FILTER_NEAREST;                   \n" \
 "   const int4 p = (int4) (x, y, t, 0);                                                                           \n" \
 "                                                                                                                 \n" \
-"   buffer[ly][lx + H_BLOCK_X]   = read_imagef(U4_in, smp, p                              ).x;                    \n" \
-"   buffer[ly][lx]               = read_imagef(U4_in, smp, p - (int4) (H_BLOCK_X, 0, 0, 0)).x;                    \n" \
-"   buffer[ly][lx + 2*H_BLOCK_X] = read_imagef(U4_in, smp, p + (int4) (H_BLOCK_X, 0, 0, 0)).x;                    \n" \
+"   buffer[ly][lx + HRZ_BLOCK_X]   = read_imagef(U4_in, smp, p                              ).x;                  \n" \
+"   buffer[ly][lx]               = read_imagef(U4_in, smp, p - (int4) (HRZ_BLOCK_X, 0, 0, 0)).x;                  \n" \
+"   buffer[ly][lx + 2*HRZ_BLOCK_X] = read_imagef(U4_in, smp, p + (int4) (HRZ_BLOCK_X, 0, 0, 0)).x;                \n" \
 "   barrier(CLK_LOCAL_MEM_FENCE);                                                                                 \n" \
 "                                                                                                                 \n" \
 "   if(x >= dim.x || y >= dim.y) return;                                                                          \n" \
 "   float sum = 0.0f;                                                                                             \n" \
 "   for(int i = -NLMK_S; i <= NLMK_S; i++)                                                                        \n" \
-"       sum += buffer[ly][lx + H_BLOCK_X + i];                                                                    \n" \
+"       sum += buffer[ly][lx + HRZ_BLOCK_X + i];                                                                  \n" \
 "   write_imagef(U4_out, p, (float4) sum);                                                                        \n" \
 "}                                                                                                                \n" \
 "                                                                                                                 \n" \
-"__kernel __attribute__((reqd_work_group_size(V_BLOCK_X, V_BLOCK_Y, 1)))                                          \n" \
+"__kernel __attribute__((reqd_work_group_size(VTR_BLOCK_X, VTR_BLOCK_Y, 1)))                                      \n" \
 "void nlmVertical(__read_only image2d_array_t U4_in, __write_only image2d_array_t U4_out,                         \n" \
 "const int t, const int2 dim) {                                                                                   \n" \
 "                                                                                                                 \n" \
-"   __local float buffer[3*V_BLOCK_Y][V_BLOCK_X];                                                                 \n" \
+"   __local float buffer[3*VTR_BLOCK_Y][VTR_BLOCK_X];                                                             \n" \
 "   const int x = get_global_id(0);                                                                               \n" \
 "   const int y = get_global_id(1);                                                                               \n" \
 "   const int lx = get_local_id(0);                                                                               \n" \
@@ -467,15 +467,15 @@ static const char* kernel_source_code =
 "   const sampler_t smp = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP | CLK_FILTER_NEAREST;                   \n" \
 "   const int4 p = (int4) (x, y, t, 0);                                                                           \n" \
 "                                                                                                                 \n" \
-"   buffer[ly + V_BLOCK_Y][lx]   = read_imagef(U4_in, smp, p                              ).x;                    \n" \
-"   buffer[ly][lx]               = read_imagef(U4_in, smp, p - (int4) (0, V_BLOCK_Y, 0, 0)).x;                    \n" \
-"   buffer[ly + 2*V_BLOCK_Y][lx] = read_imagef(U4_in, smp, p + (int4) (0, V_BLOCK_Y, 0, 0)).x;                    \n" \
+"   buffer[ly + VTR_BLOCK_Y][lx]   = read_imagef(U4_in, smp, p                              ).x;                  \n" \
+"   buffer[ly][lx]               = read_imagef(U4_in, smp, p - (int4) (0, VTR_BLOCK_Y, 0, 0)).x;                  \n" \
+"   buffer[ly + 2*VTR_BLOCK_Y][lx] = read_imagef(U4_in, smp, p + (int4) (0, VTR_BLOCK_Y, 0, 0)).x;                \n" \
 "   barrier(CLK_LOCAL_MEM_FENCE);                                                                                 \n" \
 "                                                                                                                 \n" \
 "   if(x >= dim.x || y >= dim.y) return;                                                                          \n" \
 "   float sum = 0.0f;                                                                                             \n" \
 "   for(int j = -NLMK_S; j <= NLMK_S; j++)                                                                        \n" \
-"       sum += buffer[ly + V_BLOCK_Y + j][lx];                                                                    \n" \
+"       sum += buffer[ly + VTR_BLOCK_Y + j][lx];                                                                  \n" \
 "                                                                                                                 \n" \
 "   if(NLMK_WMODE == 0) {                                                                                         \n" \
 "       const float val = native_recip(1.0f + sum * NLMK_H2_INV_NORM);                                            \n" \

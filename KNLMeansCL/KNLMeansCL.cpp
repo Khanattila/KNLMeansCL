@@ -230,9 +230,9 @@ _NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _
     char options[2048];
     setlocale(LC_ALL, "C");
     snprintf(options, 2048, "-cl-single-precision-constant -cl-denorms-are-zero -cl-fast-relaxed-math -Werror "
-        "-D H_BLOCK_X=%i -D H_BLOCK_Y=%i -D V_BLOCK_X=%i -D V_BLOCK_Y=%i -D NLMK_TCLIP=%u -D NLMK_S=%i "
+        "-D HRZ_BLOCK_X=%i -D HRZ_BLOCK_Y=%i -D VRT_BLOCK_X=%i -D VRT_BLOCK_Y=%i -D NLMK_TCLIP=%u -D NLMK_S=%i "
         "-D NLMK_WMODE=%i -D NLMK_WREF=%f -D NLMK_D=%i -D NLMK_H2_INV_NORM=%f -D NLMK_BIT_SHIFT=%u",
-        H_BLOCK_X, H_BLOCK_Y, V_BLOCK_X, V_BLOCK_Y, clip_t, s,
+        HRZ_BLOCK_X, HRZ_BLOCK_Y, VRT_BLOCK_X, VRT_BLOCK_Y, clip_t, s,
         wmode, wref, d, 65025.0 / (3 * h*h*(2 * s + 1)*(2 * s + 1)), 0u);
     ret = clBuildProgram(program, 1, &deviceID, options, NULL, NULL);
     if (ret != CL_SUCCESS) {
@@ -442,11 +442,11 @@ PVideoFrame __stdcall _NLMAvisynth::GetFrame(int n, IScriptEnvironment* env) {
     const size_t region[3] = { (size_t) idmn[0], (size_t) idmn[1], 1 };
     const size_t region_p[3] = { (size_t) idmn[0], (size_t) idmn[2], 1 };
     const size_t global_work[2] = {
-        mrounds((size_t) idmn[0], fastmax(H_BLOCK_X, V_BLOCK_X)),
-        mrounds((size_t) idmn[1], fastmax(H_BLOCK_Y, V_BLOCK_Y))
+        mrounds((size_t) idmn[0], fastmax(HRZ_BLOCK_X, VRT_BLOCK_X)),
+        mrounds((size_t) idmn[1], fastmax(HRZ_BLOCK_Y, VRT_BLOCK_Y))
     };
-    const size_t local_horiz[2] = { H_BLOCK_X, H_BLOCK_Y };
-    const size_t local_vert[2] = { V_BLOCK_X, V_BLOCK_Y };
+    const size_t local_horiz[2] = { HRZ_BLOCK_X, HRZ_BLOCK_Y };
+    const size_t local_vert[2] = { VRT_BLOCK_X, VRT_BLOCK_Y };
 
     // Copy chroma.   
     if (!vi.IsY8() && (clip_t & COLOR_GRAY)) {
@@ -792,11 +792,11 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
         const size_t origin[3] = { 0, 0, 0 };
         const size_t region[3] = { (size_t) d->idmn[0], (size_t) d->idmn[1], 1 };
         const size_t global_work[2] = {
-            mrounds((size_t) d->idmn[0], fastmax(H_BLOCK_X, V_BLOCK_X)),
-            mrounds((size_t) d->idmn[1], fastmax(H_BLOCK_Y, V_BLOCK_Y))
+            mrounds((size_t) d->idmn[0], fastmax(HRZ_BLOCK_X, VRT_BLOCK_X)),
+            mrounds((size_t) d->idmn[1], fastmax(HRZ_BLOCK_Y, VRT_BLOCK_Y))
         };
-        const size_t local_horiz[2] = { H_BLOCK_X, H_BLOCK_Y };
-        const size_t local_vert[2] = { V_BLOCK_X, V_BLOCK_Y };
+        const size_t local_horiz[2] = { HRZ_BLOCK_X, HRZ_BLOCK_Y };
+        const size_t local_vert[2] = { VRT_BLOCK_X, VRT_BLOCK_Y };
 
         //Copy chroma.  
         if (fi->colorFamily == cmYUV && (d->clip_t & COLOR_GRAY)) {
@@ -1569,9 +1569,9 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
         int64ToIntS(d.wmode), d.wref, int64ToIntS(d.d), 65025.0 / (3 * d.h*d.h*(2 * d.s + 1)*(2 * d.s + 1)), d.bit_shift);
 #   else
     snprintf(options, 2048, "-cl-single-precision-constant -cl-denorms-are-zero -cl-fast-relaxed-math -Werror "
-        "-D H_BLOCK_X=%i -D H_BLOCK_Y=%i -D V_BLOCK_X=%i -D V_BLOCK_Y=%i -D NLMK_TCLIP=%u -D NLMK_S=%i "
+        "-D HRZ_BLOCK_X=%i -D HRZ_BLOCK_Y=%i -D VRT_BLOCK_X=%i -D VRT_BLOCK_Y=%i -D NLMK_TCLIP=%u -D NLMK_S=%i "
         "-D NLMK_WMODE=%i -D NLMK_WREF=%f -D NLMK_D=%i -D NLMK_H2_INV_NORM=%f -D NLMK_BIT_SHIFT=%u",
-        H_BLOCK_X, H_BLOCK_Y, V_BLOCK_X, V_BLOCK_Y, d.clip_t, int64ToIntS(d.s),
+        HRZ_BLOCK_X, HRZ_BLOCK_Y, VRT_BLOCK_X, VRT_BLOCK_Y, d.clip_t, int64ToIntS(d.s),
         int64ToIntS(d.wmode), d.wref, int64ToIntS(d.d), 65025.0 / (3 * d.h*d.h*(2 * d.s + 1)*(2 * d.s + 1)), d.bit_shift);
 #   endif
     ret = clBuildProgram(d.program, 1, &d.deviceID, options, NULL, NULL);
