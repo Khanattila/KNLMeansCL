@@ -1,28 +1,28 @@
 /*
-*   This file is part of KNLMeansCL,
-*   Copyright(C) 2015-2016  Edoardo Brunetti.
+*    This file is part of KNLMeansCL,
+*    Copyright(C) 2015-2016  Edoardo Brunetti.
 *
-*	KNLMeansCL is free software: you can redistribute it and/or modify
-*   it under the terms of the GNU General Public License as published by
-*   the Free Software Foundation, either version 3 of the License, or
-*   (at your option) any later version.
+*    KNLMeansCL is free software: you can redistribute it and/or modify
+*    it under the terms of the GNU General Public License as published by
+*    the Free Software Foundation, either version 3 of the License, or
+*    (at your option) any later version.
 *
-*	KNLMeansCL is distributed in the hope that it will be useful,
-*	but WITHOUT ANY WARRANTY; without even the implied warranty of
-*	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-*	GNU General Public License for more details.
+*    KNLMeansCL is distributed in the hope that it will be useful,
+*    but WITHOUT ANY WARRANTY; without even the implied warranty of
+*    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+*    GNU General Public License for more details.
 *
-*	You should have received a copy of the GNU General Public License
-*   along with KNLMeansCL. If not, see <http://www.gnu.org/licenses/>.
+*    You should have received a copy of the GNU General Public License
+*    along with KNLMeansCL. If not, see <http://www.gnu.org/licenses/>.
 *
-*   To speed up processing I use an algorithm proposed by B. Goossens,
-*   H.Q. Luong, J. Aelterman, A. Pizurica,  and W. Philips, "A GPU-Accelerated
-*   Real-Time NLMeans Algorithm for Denoising Color Video Sequences",
-*   in Proc. ACIVS (2), 2010, pp.46-57.
+*    To speed up processing I use an algorithm proposed by B. Goossens,
+*    H.Q. Luong, J. Aelterman, A. Pizurica,  and W. Philips, "A GPU-Accelerated
+*    Real-Time NLMeans Algorithm for Denoising Color Video Sequences",
+*    in Proc. ACIVS (2), 2010, pp.46-57.
 */
 
 #ifndef __KERNEL_H__
-#define __KERNEL_H__
+#    define __KERNEL_H__
 
 //////////////////////////////////////////
 // Type Definition
@@ -40,7 +40,7 @@ typedef enum _nlm_kernel_function {
     nlmHorizontal,
     nlmVertical,
     nlmAccumulation,
-    nlmFinish, 
+    nlmFinish,
     nlmPack,
     nlmUnpack,
 
@@ -52,7 +52,7 @@ static const cl_uint HRZ_BLOCK_X = 32, HRZ_BLOCK_Y = 4, VRT_BLOCK_X = 32, VRT_BL
 
 //////////////////////////////////////////
 // Kernel Source Code
-static const char* kernel_source_code_spatial = 
+static const char* kernel_source_code_spatial =
 "                                                                                                                 \n" \
 "#define wRED       0.6664827524f                                                                                 \n" \
 "#define wGREEN     1.2866580779f                                                                                 \n" \

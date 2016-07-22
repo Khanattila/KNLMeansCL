@@ -1,26 +1,27 @@
 /*
-*	This file is part of KNLMeansCL,
-*	Copyright(C) 2015-2016  Edoardo Brunetti.
+*    This file is part of KNLMeansCL,
+*    Copyright(C) 2015-2016  Edoardo Brunetti.
 *
-*	KNLMeansCL is free software: you can redistribute it and/or modify
-*   it under the terms of the GNU General Public License as published by
-*   the Free Software Foundation, either version 3 of the License, or
-*   (at your option) any later version.
+*    KNLMeansCL is free software: you can redistribute it and/or modify
+*    it under the terms of the GNU General Public License as published by
+*    the Free Software Foundation, either version 3 of the License, or
+*    (at your option) any later version.
 *
-*	KNLMeansCL is distributed in the hope that it will be useful,
-*	but WITHOUT ANY WARRANTY; without even the implied warranty of
-*	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-*	GNU General Public License for more details.
+*    KNLMeansCL is distributed in the hope that it will be useful,
+*    but WITHOUT ANY WARRANTY; without even the implied warranty of
+*    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+*    GNU General Public License for more details.
 *
-*	You should have received a copy of the GNU General Public License
-*   along with KNLMeansCL. If not, see <http://www.gnu.org/licenses/>.
+*    You should have received a copy of the GNU General Public License
+*    along with KNLMeansCL. If not, see <http://www.gnu.org/licenses/>.
 */
 
 #define VERSION "0.7.6"
 #define OCL_MIN_VERSION "1.2"
+#define CL_USE_DEPRECATED_OPENCL_1_2_APIS
 
 #ifdef _MSC_VER
-#	pragma warning (disable : 4514 4710 6031)
+#    pragma warning (disable : 4514 4710 6031)
 #endif
 
 #include <cstdint>
@@ -32,9 +33,9 @@
 #include <fstream>
 
 #ifdef __APPLE__
-#	include <OpenCL/cl.h>
+#    include <OpenCL/cl.h>
 #else
-#	include <CL/cl.h>
+#    include <CL/cl.h>
 #endif
 
 #include "kernel.h"
@@ -42,7 +43,7 @@
 #include "shared/startchar.h"
 
 #ifdef _WIN32
-#	include <avisynth.h>
+#    include <avisynth.h>
 #endif
 
 #include <VapourSynth.h>

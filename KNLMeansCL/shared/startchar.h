@@ -1,26 +1,26 @@
 /*
-*	This file is part of KNLMeansCL,
-*	Copyright(C) 2002		thejam79,
-*	Copyright(C) 2003		minamina,
-*	Copyright(C) 2007		Donald A. Graft,
-*	Copyright(C) 2014-2016  Edoardo Brunetti.
+*    This file is part of KNLMeansCL,
+*    Copyright(C) 2002		thejam79,
+*    Copyright(C) 2003		minamina,
+*    Copyright(C) 2007		Donald A. Graft,
+*    Copyright(C) 2014-2016  Edoardo Brunetti.
 *
-*	KNLMeansCL is free software: you can redistribute it and/or modify
-*   it under the terms of the GNU General Public License as published by
-*   the Free Software Foundation, either version 3 of the License, or
-*   (at your option) any later version.
+*    KNLMeansCL is free software: you can redistribute it and/or modify
+*    it under the terms of the GNU General Public License as published by
+*    the Free Software Foundation, either version 3 of the License, or
+*    (at your option) any later version.
 *
-*	KNLMeansCL is distributed in the hope that it will be useful,
-*	but WITHOUT ANY WARRANTY; without even the implied warranty of
-*	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-*	GNU General Public License for more details.
+*    KNLMeansCL is distributed in the hope that it will be useful,
+*    but WITHOUT ANY WARRANTY; without even the implied warranty of
+*    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+*    GNU General Public License for more details.
 *
-*	You should have received a copy of the GNU General Public License
-*   along with KNLMeansCL. If not, see <http://www.gnu.org/licenses/>.
+*    You should have received a copy of the GNU General Public License
+*    along with KNLMeansCL. If not, see <http://www.gnu.org/licenses/>.
 */
 
 #ifndef __STARTCHAR_H__
-#define __STARTCHAR_H__
+#    define __STARTCHAR_H__
 
 //////////////////////////////////////////
 // DrawString
@@ -1564,7 +1564,9 @@ static unsigned short font[][20] = {
 };
 
 inline void DrawDigit(uint8_t* dst, int pitch, int x, int y, int num) {
-    uint8_t *dp; x = x * 10; y = y * 20;
+    uint8_t *dp;
+    x = x * 10;
+    y = y * 20;
     for (int tx = 0; tx < 10; tx++) {
         for (int ty = 0; ty < 20; ty++) {
             dp = &dst[((x + tx) / 1) + ((y + ty) / 1) * pitch];
