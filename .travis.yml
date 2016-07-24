@@ -5,21 +5,20 @@ branches:
   - master
   
 before_install:
-- sudo add-apt-repository "deb http://archive.ubuntu.com/ubuntu/ trusty main universe" -y
-- sudo add-apt-repository "deb http://archive.ubuntu.com/ubuntu/ trusty-security main universe" -y
-- sudo add-apt-repository "deb http://archive.ubuntu.com/ubuntu/ trusty-updates main universe" -y
-- sudo add-apt-repository "deb http://ppa.launchpad.net/djcj/vapoursynth/ubuntu trusty main" -y
+- sudo add-apt-repository "deb http://archive.ubuntu.com/ubuntu/ xenial main universe" -y
+- sudo add-apt-repository "deb http://archive.ubuntu.com/ubuntu/ xenial-security main universe" -y
+- sudo add-apt-repository "deb http://archive.ubuntu.com/ubuntu/ xenial-updates main universe" -y
+- sudo add-apt-repository "deb http://ppa.launchpad.net/djcj/vapoursynth/ubuntu xenial main" -y
 - sudo apt-get update -qq
-- sudo apt-get install -qq -t trusty gcc-4.8 g++-4.8 make pkg-config
+- sudo apt-get install -qq -t xenial g++-5 make pkg-config
 - sudo mv /etc/default/rcS /etc/default/rcS.backup
-- export CC="gcc-4.8" CXX="g++-4.8" 
   
 install:
-- sudo apt-get install -qq -t trusty opencl-headers ocl-icd-libopencl1 ocl-icd-opencl-dev 
-- sudo apt-get install -qq -t trusty libvapoursynth libvapoursynth-dev libpango-1.0-0 libpangocairo-1.0-0
+- sudo apt-get install -qq -t xenial opencl-headers ocl-icd-libopencl1 ocl-icd-opencl-dev 
+- sudo apt-get install -qq -t xenial libvapoursynth libvapoursynth-dev libpango-1.0-0 libpangocairo-1.0-0
 
 script: 
-- ./configure --install=/usr/lib/x86_64-linux-gnu/vapoursynth --cxx=$CXX && make && sudo make install
+- ./configure --cxx=g++-5 --install=/usr/lib/x86_64-linux-gnu/vapoursynth && make && sudo make install
 
 notifications:
   email:
