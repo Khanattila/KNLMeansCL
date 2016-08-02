@@ -3,5 +3,6 @@
 
 **KNLMeansCL** is an optimized OpenCL implementation of the Non-local means de-noising algorithm. The NLMeans filter, originally proposed by Buades et al., is a very popular filter for the removal of white Gaussian noise, due to its simplicity and excellent performance. The strength of this algorithm is to exploit the repetitive character of the image in order to de-noise the image unlike conventional de-noising algorithms, which typically operate in a local neighbourhood.
 
-### AviSynth(+) and VapourSynth ###
-For end user KNLMeansCL is a plugin for [AviSynth](http://avisynth.nl) / [AviSynth+](http://avs-plus.net/) and for [VapourSynth](http://www.vapoursynth.com). Windows, OS X and Linux are supported. For documentation and small benchmark see the [doc](https://github.com/Khanattila/KNLMeansCL/blob/master/DOC.md).
+For end user **KNLMeansCL** is a plugin for **[AviSynth](http://avisynth.nl)** or **[AviSynth+](http://avs-plus.net/)** and for **[VapourSynth](http://www.vapoursynth.com)**. Windows, OS X and Linux are supported.
+
+You can find the documentation in the [Wiki](/Khanattila/KNLMeansCL/wiki).
