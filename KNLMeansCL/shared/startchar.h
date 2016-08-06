@@ -19,9 +19,6 @@
 *    along with KNLMeansCL. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef __STARTCHAR_H__
-#    define __STARTCHAR_H__
-
 //////////////////////////////////////////
 // DrawString
 static unsigned short font[][20] = {
@@ -1579,5 +1576,3 @@ inline void DrawDigit(uint8_t* dst, int pitch, int x, int y, int num) {
 inline void DrawString(uint8_t* dst, int pitch, int x, int y, const char *s) {
     for (int xx = 0; *s; ++s, ++xx) DrawDigit(dst, pitch, x + xx, y, *s - ' ');
 }
-
-#endif //__STARTCHAR_H__
