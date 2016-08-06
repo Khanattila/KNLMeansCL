@@ -21,9 +21,6 @@
 *    in Proc. ACIVS (2), 2010, pp.46-57.
 */
 
-#ifndef __KERNEL_H__
-#    define __KERNEL_H__
-
 //////////////////////////////////////////
 // Type Definition
 typedef enum _nlm_kernel_function {
@@ -47,11 +44,9 @@ typedef enum _nlm_kernel_function {
     nlmNumberKernels
 } nlm_kernel_function;
 
-// MAX(s) = min(HRZ_BLOCK_X, VTR_BLOCK_Y)
-static const cl_uint HRZ_BLOCK_X = 32, HRZ_BLOCK_Y = 4, VRT_BLOCK_X = 32, VRT_BLOCK_Y = 4;
-
 //////////////////////////////////////////
-// Kernel Source Code
+// Kernel Definition
+static const cl_uint HRZ_BLOCK_X = 32, HRZ_BLOCK_Y = 4, VRT_BLOCK_X = 32, VRT_BLOCK_Y = 4;
 static const char* kernel_source_code_spatial =
 "                                                                                                                 \n" \
 "#define wRED       0.6664827524f                                                                                 \n" \
@@ -118,8 +113,8 @@ static const char* kernel_source_code_spatial =
 "   const sampler_t smp = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP | CLK_FILTER_NEAREST;                   \n" \
 "   const int2 p = (int2) (x, y);                                                                                 \n" \
 "                                                                                                                 \n" \
-"   buffer[ly][lx + HRZ_BLOCK_X]   = read_imagef(U4_in, smp, p                        ).x;                        \n" \
-"   buffer[ly][lx]               = read_imagef(U4_in, smp, p - (int2) (HRZ_BLOCK_X, 0)).x;                        \n" \
+"   buffer[ly][lx + HRZ_BLOCK_X]   = read_imagef(U4_in, smp, p                          ).x;                      \n" \
+"   buffer[ly][lx]                 = read_imagef(U4_in, smp, p - (int2) (HRZ_BLOCK_X, 0)).x;                      \n" \
 "   buffer[ly][lx + 2*HRZ_BLOCK_X] = read_imagef(U4_in, smp, p + (int2) (HRZ_BLOCK_X, 0)).x;                      \n" \
 "   barrier(CLK_LOCAL_MEM_FENCE);                                                                                 \n" \
 "                                                                                                                 \n" \
@@ -142,8 +137,8 @@ static const char* kernel_source_code_spatial =
 "   const sampler_t smp = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP | CLK_FILTER_NEAREST;                   \n" \
 "   const int2 p = (int2) (x, y);                                                                                 \n" \
 "                                                                                                                 \n" \
-"   buffer[ly + VTR_BLOCK_Y][lx]   = read_imagef(U4_in, smp, p                        ).x;                        \n" \
-"   buffer[ly][lx]               = read_imagef(U4_in, smp, p - (int2) (0, VTR_BLOCK_Y)).x;                        \n" \
+"   buffer[ly + VTR_BLOCK_Y][lx]   = read_imagef(U4_in, smp, p                          ).x;                      \n" \
+"   buffer[ly][lx]                 = read_imagef(U4_in, smp, p - (int2) (0, VTR_BLOCK_Y)).x;                      \n" \
 "   buffer[ly + 2*VTR_BLOCK_Y][lx] = read_imagef(U4_in, smp, p + (int2) (0, VTR_BLOCK_Y)).x;                      \n" \
 "   barrier(CLK_LOCAL_MEM_FENCE);                                                                                 \n" \
 "                                                                                                                 \n" \
@@ -442,8 +437,8 @@ static const char* kernel_source_code =
 "   const sampler_t smp = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP | CLK_FILTER_NEAREST;                   \n" \
 "   const int4 p = (int4) (x, y, t, 0);                                                                           \n" \
 "                                                                                                                 \n" \
-"   buffer[ly][lx + HRZ_BLOCK_X]   = read_imagef(U4_in, smp, p                              ).x;                  \n" \
-"   buffer[ly][lx]               = read_imagef(U4_in, smp, p - (int4) (HRZ_BLOCK_X, 0, 0, 0)).x;                  \n" \
+"   buffer[ly][lx + HRZ_BLOCK_X]   = read_imagef(U4_in, smp, p                                ).x;                \n" \
+"   buffer[ly][lx]                 = read_imagef(U4_in, smp, p - (int4) (HRZ_BLOCK_X, 0, 0, 0)).x;                \n" \
 "   buffer[ly][lx + 2*HRZ_BLOCK_X] = read_imagef(U4_in, smp, p + (int4) (HRZ_BLOCK_X, 0, 0, 0)).x;                \n" \
 "   barrier(CLK_LOCAL_MEM_FENCE);                                                                                 \n" \
 "                                                                                                                 \n" \
@@ -467,8 +462,8 @@ static const char* kernel_source_code =
 "   const sampler_t smp = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP | CLK_FILTER_NEAREST;                   \n" \
 "   const int4 p = (int4) (x, y, t, 0);                                                                           \n" \
 "                                                                                                                 \n" \
-"   buffer[ly + VTR_BLOCK_Y][lx]   = read_imagef(U4_in, smp, p                              ).x;                  \n" \
-"   buffer[ly][lx]               = read_imagef(U4_in, smp, p - (int4) (0, VTR_BLOCK_Y, 0, 0)).x;                  \n" \
+"   buffer[ly + VTR_BLOCK_Y][lx]   = read_imagef(U4_in, smp, p                                ).x;                \n" \
+"   buffer[ly][lx]                 = read_imagef(U4_in, smp, p - (int4) (0, VTR_BLOCK_Y, 0, 0)).x;                \n" \
 "   buffer[ly + 2*VTR_BLOCK_Y][lx] = read_imagef(U4_in, smp, p + (int4) (0, VTR_BLOCK_Y, 0, 0)).x;                \n" \
 "   barrier(CLK_LOCAL_MEM_FENCE);                                                                                 \n" \
 "                                                                                                                 \n" \
@@ -668,5 +663,3 @@ static const char* kernel_source_code =
 "       write_imageui(B, s,    (uint4) val.z);                                                                    \n" \
 "   }                                                                                                             \n" \
 "}                                                                                                                ";
-
-#endif //__KERNEL_H__

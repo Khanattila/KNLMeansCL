@@ -16,9 +16,6 @@
 *    along with KNLMeansCL. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef __OCL_UTILS_H__
-#    define __OCL_UTILS_H__
-
 //////////////////////////////////////////
 // Type Definition
 typedef struct _ocl_device_packed {
@@ -200,5 +197,3 @@ cl_int oclGetDevicesList(cl_device_type device_type, ocl_device_packed* devices,
         return CL_INVALID_VALUE;
     }
 }
-
-#endif //__OCL_UTILS_H__
