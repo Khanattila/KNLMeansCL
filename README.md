@@ -5,4 +5,4 @@
 
 For end user **KNLMeansCL** is a plugin for **[AviSynth](http://avisynth.nl)** or **[AviSynth+](http://avs-plus.net/)** and for **[VapourSynth](http://www.vapoursynth.com)**. Windows, OS X and Linux are supported.
 
-You can find the documentation in the [Wiki](/Khanattila/KNLMeansCL/wiki).
+You can find the documentation in the **[Wiki](https://github.com/Khanattila/KNLMeansCL/wiki)**.
