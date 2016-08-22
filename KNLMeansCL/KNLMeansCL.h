@@ -16,7 +16,7 @@
 *    along with KNLMeansCL. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#define VERSION "0.7.6"
+#define VERSION "0.7.7"
 #define OCL_MIN_VERSION "1.2"
 #define CL_USE_DEPRECATED_OPENCL_1_2_APIS
 
@@ -65,7 +65,7 @@ private:
     const bool cmode, lsb, info;
     unsigned int clip_t;
     cl_int idmn[3];
-    cl_uint num_devices;
+    cl_uint num_devices, HRZ_BLOCK_X, HRZ_BLOCK_Y, VRT_BLOCK_X, VRT_BLOCK_Y;
     cl_platform_id platformID;
     cl_device_id deviceID;
     cl_context context;
@@ -76,7 +76,7 @@ private:
     void oclErrorCheck(const char* function, cl_int errcode, IScriptEnvironment *env);
 public:
     _NLMAvisynth(PClip _child, const int _d, const int _a, const int _s, const double _h, const bool _cmode, const int _wmode,
-        const double _wref, PClip _baby, const char* _ocl_device, const int _ocl_id, const bool _lsb, const bool _info,
+        const double _wref, PClip _baby, const char* _ocl_device, const int _ocl_id, const bool _lsb, const bool _info, 
         IScriptEnvironment *env);
     ~_NLMAvisynth();
     PVideoFrame __stdcall GetFrame(int n, IScriptEnvironment *env);
@@ -93,7 +93,7 @@ public:
     const char* ocl_device;
     unsigned int bit_shift, clip_t;
     cl_int idmn[2];
-    cl_uint num_devices;
+    cl_uint num_devices, HRZ_BLOCK_X, HRZ_BLOCK_Y, VRT_BLOCK_X, VRT_BLOCK_Y;
     cl_platform_id platformID;
     cl_device_id deviceID;
     cl_context context;

@@ -46,9 +46,7 @@ typedef enum _nlm_kernel_function {
 
 //////////////////////////////////////////
 // Kernel Definition
-static const cl_uint HRZ_BLOCK_X = 32, HRZ_BLOCK_Y = 4, VRT_BLOCK_X = 32, VRT_BLOCK_Y = 4;
 static const char* kernel_source_code_spatial =
-"                                                                                                                 \n" \
 "#define wRED       0.6664827524f                                                                                 \n" \
 "#define wGREEN     1.2866580779f                                                                                 \n" \
 "#define wBLUE      1.0468591696f                                                                                 \n" \
@@ -125,7 +123,7 @@ static const char* kernel_source_code_spatial =
 "   write_imagef(U4_out, p, (float4) sum);                                                                        \n" \
 "}                                                                                                                \n" \
 "                                                                                                                 \n" \
-"__kernel __attribute__((reqd_work_group_size(VTR_BLOCK_X, VTR_BLOCK_Y, 1)))                                      \n" \
+"__kernel __attribute__((reqd_work_group_size(VRT_BLOCK_X, VRT_BLOCK_Y, 1)))                                      \n" \
 "void nlmSpatialVertical(__read_only image2d_t U4_in, __write_only image2d_t U4_out, const int2 dim) {            \n" \
 "                                                                                                                 \n" \
 "   __local float buffer[3*VTR_BLOCK_Y][VTR_BLOCK_X];                                                             \n" \
@@ -137,15 +135,15 @@ static const char* kernel_source_code_spatial =
 "   const sampler_t smp = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP | CLK_FILTER_NEAREST;                   \n" \
 "   const int2 p = (int2) (x, y);                                                                                 \n" \
 "                                                                                                                 \n" \
-"   buffer[ly + VTR_BLOCK_Y][lx]   = read_imagef(U4_in, smp, p                          ).x;                      \n" \
-"   buffer[ly][lx]                 = read_imagef(U4_in, smp, p - (int2) (0, VTR_BLOCK_Y)).x;                      \n" \
-"   buffer[ly + 2*VTR_BLOCK_Y][lx] = read_imagef(U4_in, smp, p + (int2) (0, VTR_BLOCK_Y)).x;                      \n" \
+"   buffer[ly + VRT_BLOCK_Y][lx]   = read_imagef(U4_in, smp, p                          ).x;                      \n" \
+"   buffer[ly][lx]                 = read_imagef(U4_in, smp, p - (int2) (0, VRT_BLOCK_Y)).x;                      \n" \
+"   buffer[ly + 2*VRT_BLOCK_Y][lx] = read_imagef(U4_in, smp, p + (int2) (0, VRT_BLOCK_Y)).x;                      \n" \
 "   barrier(CLK_LOCAL_MEM_FENCE);                                                                                 \n" \
 "                                                                                                                 \n" \
 "   if(x >= dim.x || y >= dim.y) return;                                                                          \n" \
 "   float sum = 0.0f;                                                                                             \n" \
 "   for(int j = -NLMK_S; j <= NLMK_S; j++)                                                                        \n" \
-"       sum += buffer[ly + VTR_BLOCK_Y + j][lx];                                                                  \n" \
+"       sum += buffer[ly + VRT_BLOCK_Y + j][lx];                                                                  \n" \
 "                                                                                                                 \n" \
 "   if(NLMK_WMODE == 0) {                                                                                         \n" \
 "       const float val = native_recip(1.0f + sum * NLMK_H2_INV_NORM);                                            \n" \
@@ -338,7 +336,6 @@ static const char* kernel_source_code_spatial =
 "}                                                                                                                ";
 
 static const char* kernel_source_code =
-"                                                                                                                 \n" \
 "#define wRED       0.6664827524f                                                                                 \n" \
 "#define wGREEN     1.2866580779f                                                                                 \n" \
 "#define wBLUE      1.0468591696f                                                                                 \n" \
@@ -449,11 +446,11 @@ static const char* kernel_source_code =
 "   write_imagef(U4_out, p, (float4) sum);                                                                        \n" \
 "}                                                                                                                \n" \
 "                                                                                                                 \n" \
-"__kernel __attribute__((reqd_work_group_size(VTR_BLOCK_X, VTR_BLOCK_Y, 1)))                                      \n" \
+"__kernel __attribute__((reqd_work_group_size(VRT_BLOCK_X, VRT_BLOCK_Y, 1)))                                      \n" \
 "void nlmVertical(__read_only image2d_array_t U4_in, __write_only image2d_array_t U4_out,                         \n" \
 "const int t, const int2 dim) {                                                                                   \n" \
 "                                                                                                                 \n" \
-"   __local float buffer[3*VTR_BLOCK_Y][VTR_BLOCK_X];                                                             \n" \
+"   __local float buffer[3*VRT_BLOCK_Y][VRT_BLOCK_X];                                                             \n" \
 "   const int x = get_global_id(0);                                                                               \n" \
 "   const int y = get_global_id(1);                                                                               \n" \
 "   const int lx = get_local_id(0);                                                                               \n" \
@@ -462,15 +459,15 @@ static const char* kernel_source_code =
 "   const sampler_t smp = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP | CLK_FILTER_NEAREST;                   \n" \
 "   const int4 p = (int4) (x, y, t, 0);                                                                           \n" \
 "                                                                                                                 \n" \
-"   buffer[ly + VTR_BLOCK_Y][lx]   = read_imagef(U4_in, smp, p                                ).x;                \n" \
-"   buffer[ly][lx]                 = read_imagef(U4_in, smp, p - (int4) (0, VTR_BLOCK_Y, 0, 0)).x;                \n" \
-"   buffer[ly + 2*VTR_BLOCK_Y][lx] = read_imagef(U4_in, smp, p + (int4) (0, VTR_BLOCK_Y, 0, 0)).x;                \n" \
+"   buffer[ly + VRT_BLOCK_Y][lx]   = read_imagef(U4_in, smp, p                                ).x;                \n" \
+"   buffer[ly][lx]                 = read_imagef(U4_in, smp, p - (int4) (0, VRT_BLOCK_Y, 0, 0)).x;                \n" \
+"   buffer[ly + 2*VRT_BLOCK_Y][lx] = read_imagef(U4_in, smp, p + (int4) (0, VRT_BLOCK_Y, 0, 0)).x;                \n" \
 "   barrier(CLK_LOCAL_MEM_FENCE);                                                                                 \n" \
 "                                                                                                                 \n" \
 "   if(x >= dim.x || y >= dim.y) return;                                                                          \n" \
 "   float sum = 0.0f;                                                                                             \n" \
 "   for(int j = -NLMK_S; j <= NLMK_S; j++)                                                                        \n" \
-"       sum += buffer[ly + VTR_BLOCK_Y + j][lx];                                                                  \n" \
+"       sum += buffer[ly + VRT_BLOCK_Y + j][lx];                                                                  \n" \
 "                                                                                                                 \n" \
 "   if(NLMK_WMODE == 0) {                                                                                         \n" \
 "       const float val = native_recip(1.0f + sum * NLMK_H2_INV_NORM);                                            \n" \

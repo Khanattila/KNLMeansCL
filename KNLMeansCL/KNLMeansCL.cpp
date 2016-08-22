@@ -180,6 +180,22 @@ _NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _
         free(devices);
     }
 
+    // Sets local work size
+    switch (device_type) {
+        case CL_DEVICE_TYPE_GPU:
+        case CL_DEVICE_TYPE_ACCELERATOR:
+            HRZ_BLOCK_X = 16; HRZ_BLOCK_Y = 8;
+            VRT_BLOCK_X = 8; VRT_BLOCK_Y = 16;
+            break;
+        case CL_DEVICE_TYPE_CPU:
+            HRZ_BLOCK_X = 4; HRZ_BLOCK_Y = 8;
+            VRT_BLOCK_X = 8; VRT_BLOCK_Y = 4;
+            break;
+        default:
+            env->ThrowError("KNLMeansCL: fatal error!\n (BLOCK SIZE)");
+            break;
+    }
+
     // Creates an OpenCL context, 2D images and buffers object.
     idmn[0] = vi.width;
     idmn[1] = lsb ? (vi.height / 2) : (vi.height);
@@ -792,11 +808,11 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
         const size_t origin[3] = { 0, 0, 0 };
         const size_t region[3] = { (size_t) d->idmn[0], (size_t) d->idmn[1], 1 };
         const size_t global_work[2] = {
-            mrounds((size_t) d->idmn[0], fastmax(HRZ_BLOCK_X, VRT_BLOCK_X)),
-            mrounds((size_t) d->idmn[1], fastmax(HRZ_BLOCK_Y, VRT_BLOCK_Y))
+            mrounds((size_t) d->idmn[0], fastmax(d->HRZ_BLOCK_X, d->VRT_BLOCK_X)),
+            mrounds((size_t) d->idmn[1], fastmax(d->HRZ_BLOCK_Y, d->VRT_BLOCK_Y))
         };
-        const size_t local_horiz[2] = { HRZ_BLOCK_X, HRZ_BLOCK_Y };
-        const size_t local_vert[2] = { VRT_BLOCK_X, VRT_BLOCK_Y };
+        const size_t local_horiz[2] = { d->HRZ_BLOCK_X, d->HRZ_BLOCK_Y };
+        const size_t local_vert[2] = { d->VRT_BLOCK_X, d->VRT_BLOCK_Y };
 
         //Copy chroma.  
         if (fi->colorFamily == cmYUV && (d->clip_t & COLOR_GRAY)) {
@@ -1446,8 +1462,7 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
                 device_type = CL_DEVICE_TYPE_CPU;
                 ret |= oclGetDevicesList(device_type, NULL, &d.num_devices, OCL_MIN_VERSION);
                 if (d.num_devices == 0) {
-                    vsapi->setError(out,
-                        "knlm.KNLMeansCL: no compatible opencl platforms available!\n (OpenCL " OCL_MIN_VERSION " API)");
+                    vsapi->setError(out, "knlm.KNLMeansCL: no compatible opencl platforms available!\n (OpenCL " OCL_MIN_VERSION " API)");
                     vsapi->freeNode(d.node);
                     vsapi->freeNode(d.knot);
                     return;
@@ -1504,6 +1519,28 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
         d.platformID = devices[d.ocl_id].platform;
         d.deviceID = devices[d.ocl_id].device;
         free(devices);
+    }
+
+    // Sets local work size
+    switch (device_type) {
+        case CL_DEVICE_TYPE_GPU:
+        case CL_DEVICE_TYPE_ACCELERATOR:
+            d.HRZ_BLOCK_X = 16; 
+            d.HRZ_BLOCK_Y = 8;
+            d.VRT_BLOCK_X = 8; 
+            d.VRT_BLOCK_Y = 16;
+            break;
+        case CL_DEVICE_TYPE_CPU:
+            d.HRZ_BLOCK_X = 4; 
+            d.HRZ_BLOCK_Y = 8;
+            d.VRT_BLOCK_X = 8; 
+            d.VRT_BLOCK_Y = 4;
+            break;
+        default:
+            vsapi->setError(out, "knlm.KNLMeansCL: fatal error!\n (oclGetDevicesList)");
+            vsapi->freeNode(d.node);
+            vsapi->freeNode(d.knot);
+            return;
     }
 
     // Creates an OpenCL context, 2D images and buffers object.
@@ -1616,15 +1653,15 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
     setlocale(LC_ALL, "C");
 #    ifdef __APPLE__
     snprintf(options, 2048, "-cl-denorms-are-zero -cl-fast-relaxed-math -cl-mad-enable "
-        "-D H_BLOCK_X=%i -D H_BLOCK_Y=%i -D V_BLOCK_X=%i -D V_BLOCK_Y=%i -D NLMK_TCLIP=%u -D NLMK_S=%i "
+        "-D HRZ_BLOCK_X=%u -D HRZ_BLOCK_Y=%u -D VRT_BLOCK_X=%u -D VRT_BLOCK_Y=%u -D NLMK_TCLIP=%u -D NLMK_S=%i "
         "-D NLMK_WMODE=%i -D NLMK_WREF=%ff -D NLMK_D=%i -D NLMK_H2_INV_NORM=%ff -D NLMK_BIT_SHIFT=%u",
-        H_BLOCK_X, H_BLOCK_Y, V_BLOCK_X, V_BLOCK_Y, d.clip_t, int64ToIntS(d.s),
+        d.H_BLOCK_X, d.H_BLOCK_Y, d.V_BLOCK_X, d.V_BLOCK_Y, d.clip_t, int64ToIntS(d.s),
         int64ToIntS(d.wmode), d.wref, int64ToIntS(d.d), 65025.0 / (3 * d.h * d.h * (2 * d.s + 1)*(2 * d.s + 1)), d.bit_shift);
 #    else
     snprintf(options, 2048, "-cl-single-precision-constant -cl-denorms-are-zero -cl-fast-relaxed-math -Werror "
-        "-D HRZ_BLOCK_X=%i -D HRZ_BLOCK_Y=%i -D VRT_BLOCK_X=%i -D VRT_BLOCK_Y=%i -D NLMK_TCLIP=%u -D NLMK_S=%i "
+        "-D HRZ_BLOCK_X=%u -D HRZ_BLOCK_Y=%u -D VRT_BLOCK_X=%u -D VRT_BLOCK_Y=%u -D NLMK_TCLIP=%u -D NLMK_S=%i "
         "-D NLMK_WMODE=%i -D NLMK_WREF=%f -D NLMK_D=%i -D NLMK_H2_INV_NORM=%f -D NLMK_BIT_SHIFT=%u",
-        HRZ_BLOCK_X, HRZ_BLOCK_Y, VRT_BLOCK_X, VRT_BLOCK_Y, d.clip_t, int64ToIntS(d.s),
+        d.HRZ_BLOCK_X, d.HRZ_BLOCK_Y, d.VRT_BLOCK_X, d.VRT_BLOCK_Y, d.clip_t, int64ToIntS(d.s),
         int64ToIntS(d.wmode), d.wref, int64ToIntS(d.d), 65025.0 / (3 * d.h * d.h * (2 * d.s + 1)*(2 * d.s + 1)), d.bit_shift);
 #    endif
     ret = clBuildProgram(d.program, 1, &d.deviceID, options, NULL, NULL);
