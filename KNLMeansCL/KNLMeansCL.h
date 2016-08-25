@@ -25,6 +25,7 @@
 #include <clocale>
 #include <cmath>
 #include <cstring>
+#include <algorithm>
 #include <fstream>
 
 #ifdef __APPLE__

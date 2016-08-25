@@ -37,12 +37,8 @@ typedef cl_bitfield                          ocl_utils_device_type;
 
 //////////////////////////////////////////
 // Common
-inline size_t mrounds(const size_t num, const size_t mul) {
-    return (size_t) ceil((double) num / (double) mul) * mul;
-}
-
-template <typename T>T inline fastmax(const T& left, const T& right) {
-    return left > right ? left : right;
+inline size_t mrounds(const size_t number, const size_t multiple) {
+    return ((number + multiple - 1) / multiple) * multiple;
 }
 
 template <typename T>T inline clamp(const T& value, const T& low, const T& high) {
@@ -186,9 +182,9 @@ cl_int oclUtilsGetPlaformDeviceIDs(cl_uint ver_opencl, ocl_utils_device_type dev
                     *type = CL_DEVICE_TYPE_CPU;
                     return oclUtilsGetIDs(ver_opencl, CL_DEVICE_TYPE_CPU, shf_device, platform, device);
                 } else if (ret != CL_SUCCESS) break;
-            } else if (ret != CL_SUCCESS) break;
-            return CL_SUCCESS;
+            } else if (ret != CL_SUCCESS) break;           
         }
+        return CL_SUCCESS;
         default:
             return OCL_UTILS_INVALID_DEVICE_TYPE;
     }
