@@ -16,17 +16,17 @@
 *    along with KNLMeansCL. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#define DFT_d           1
-#define DFT_a           2
-#define DFT_s           4
-#define DFT_h           1.2f
-#define DFT_cmode       false
-#define DFT_wmode       1
-#define DFT_wref        1.0f
-#define DFT_ocl_device "AUTO"
-#define DFT_ocl_id      0
-#define DFT_lsb         false
-#define DFT_info        false
+#define DFT_d             1
+#define DFT_a             2
+#define DFT_s             4
+#define DFT_h             1.2f
+#define DFT_cmode         false
+#define DFT_wmode         1
+#define DFT_wref          1.0f
+#define DFT_ocl_device    "AUTO"
+#define DFT_ocl_id        0
+#define DFT_lsb           false
+#define DFT_info          false
 
 #ifdef _MSC_VER
 #    define _stdcall __stdcall
@@ -46,7 +46,7 @@ inline bool _NLMAvisynth::equals(VideoInfo *v, VideoInfo *w) {
 inline void _NLMAvisynth::oclErrorCheck(const char* function, cl_int errcode, IScriptEnvironment *env) {
     if (errcode != CL_SUCCESS) {
         char buffer[2048];
-        snprintf(buffer, 2048, "KNLMeansCL: fatal error!\n (%s: %s)", function, oclErrorToString(errcode));
+        snprintf(buffer, 2048, "KNLMeansCL: fatal error!\n (%s: %s)", function, oclUtilsErrorToString(errcode));
         env->ThrowError(buffer);
     }
 }
@@ -62,7 +62,7 @@ inline bool _NLMVapoursynth::equals(const VSVideoInfo *v, const VSVideoInfo *w) 
 
 inline void _NLMVapoursynth::oclErrorCheck(const char* function, cl_int errcode, VSMap *out, const VSAPI *vsapi) {
     char buffer[2048];
-    snprintf(buffer, 2048, "knlm.KNLMeansCL: fatal error!\n (%s: %s)", function, oclErrorToString(errcode));
+    snprintf(buffer, 2048, "knlm.KNLMeansCL: fatal error!\n (%s: %s)", function, oclUtilsErrorToString(errcode));
     vsapi->setError(out, buffer);
     vsapi->freeNode(node);
     vsapi->freeNode(knot);
@@ -123,16 +123,15 @@ _NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _
         env->ThrowError("KNLMeansCL: 'wmode' must be in range [0, 2]!");
     if (wref < 0.0f)
         env->ThrowError("KNLMeansCL: 'wref' must be greater than or equal to 0!");
-    cl_device_type device_type = 0;
-    bool device_auto = false;
+    ocl_utils_device_type ocl_device_type = 0;   
     if (!strcasecmp(ocl_device, "CPU")) {
-        device_type = CL_DEVICE_TYPE_CPU;
+        ocl_device_type = OCL_UTILS_DEVICE_TYPE_CPU;
     } else if (!strcasecmp(ocl_device, "GPU")) {
-        device_type = CL_DEVICE_TYPE_GPU;
+        ocl_device_type = OCL_UTILS_DEVICE_TYPE_GPU;
     } else if (!strcasecmp(ocl_device, "ACCELERATOR")) {
-        device_type = CL_DEVICE_TYPE_ACCELERATOR;
+        ocl_device_type = OCL_UTILS_DEVICE_TYPE_ACCELERATOR;
     } else if (!strcasecmp(ocl_device, "AUTO")) {
-        device_auto = true;
+        ocl_device_type = OCL_UTILS_DEVICE_TYPE_AUTO;
     } else {
         env->ThrowError("KNLMeansCL: 'device_type' must be 'cpu', 'gpu', 'accelerator' or 'auto'!");
     }
@@ -142,57 +141,24 @@ _NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _
         env->ThrowError("KNLMeansCL: 'info' requires YUV color space!");
 
     // Gets PlatformID and DeviceID.
-    cl_int ret = CL_SUCCESS;
-    if (device_auto) {
-        device_type = CL_DEVICE_TYPE_GPU;
-        ret |= oclGetDevicesList(device_type, NULL, &num_devices, OCL_MIN_VERSION);
-        if (num_devices == 0) {
-            device_type = CL_DEVICE_TYPE_ACCELERATOR;
-            ret |= oclGetDevicesList(device_type, NULL, &num_devices, OCL_MIN_VERSION);
-            if (num_devices == 0) {
-                device_type = CL_DEVICE_TYPE_CPU;
-                ret |= oclGetDevicesList(device_type, NULL, &num_devices, OCL_MIN_VERSION);
-                if (num_devices == 0)
-                    env->ThrowError("KNLMeansCL: no compatible opencl platforms available!\n (OpenCL " OCL_MIN_VERSION " API)");
-            } else if (ocl_id >= (int) num_devices)
-                env->ThrowError("KNLMeansCL: selected device is not available!");
-        } else if (ocl_id >= (int) num_devices)
-            env->ThrowError("KNLMeansCL: selected device is not available!");
-        ocl_device_packed *devices = (ocl_device_packed*) malloc(sizeof(ocl_device_packed) * num_devices);
-        ret |= oclGetDevicesList(device_type, devices, NULL, OCL_MIN_VERSION);
-        if (ret != CL_SUCCESS)
-            env->ThrowError("KNLMeansCL: fatal error!\n (oclGetDevicesList)");
-        platformID = devices[ocl_id].platform;
-        deviceID = devices[ocl_id].device;
-        free(devices);
-    } else {
-        ret |= oclGetDevicesList(device_type, NULL, &num_devices, OCL_MIN_VERSION);
-        if (num_devices == 0)
-            env->ThrowError("KNLMeansCL: no compatible opencl platforms available!\n (OpenCL " OCL_MIN_VERSION " API)");
-        else if (ocl_id >= (int) num_devices)
-            env->ThrowError("KNLMeansCL: selected device is not available!");
-        ocl_device_packed *devices = (ocl_device_packed*) malloc(sizeof(ocl_device_packed) * num_devices);
-        ret |= oclGetDevicesList(device_type, devices, NULL, OCL_MIN_VERSION);
-        if (ret != CL_SUCCESS)
-            env->ThrowError("KNLMeansCL: fatal error!\n (oclGetDevicesList)");
-        platformID = devices[ocl_id].platform;
-        deviceID = devices[ocl_id].device;
-        free(devices);
-    }
+    cl_device_type deviceTYPE;
+    cl_int ret = oclUtilsGetPlaformDeviceIDs(OCL_UTILS_OPENCL_1_2, ocl_device_type, (cl_uint) ocl_id, &platformID, &deviceID, &deviceTYPE);
+    if (ret == OCL_UTILS_NO_DEVICE_AVAILABLE) env->ThrowError("KNLMeansCL: no compatible opencl platforms available!");
+    else if (ret != CL_SUCCESS) oclErrorCheck("oclUtilsGetPlaformDeviceIDs", ret, env);
 
     // Sets local work size
-    switch (device_type) {
-        case CL_DEVICE_TYPE_GPU:
-        case CL_DEVICE_TYPE_ACCELERATOR:
-            HRZ_BLOCK_X = 16; HRZ_BLOCK_Y = 8;
-            VRT_BLOCK_X = 8; VRT_BLOCK_Y = 16;
-            break;
+    switch (deviceTYPE) {
         case CL_DEVICE_TYPE_CPU:
             HRZ_BLOCK_X = 4; HRZ_BLOCK_Y = 8;
             VRT_BLOCK_X = 8; VRT_BLOCK_Y = 4;
             break;
+        case CL_DEVICE_TYPE_GPU:
+        case CL_DEVICE_TYPE_ACCELERATOR:
+            HRZ_BLOCK_X = 16; HRZ_BLOCK_Y = 8;
+            VRT_BLOCK_X = 8; VRT_BLOCK_Y = 16;
+            break;  
         default:
-            env->ThrowError("KNLMeansCL: fatal error!\n (BLOCK SIZE)");
+            env->ThrowError("KNLMeansCL: fatal error!\n (Local work size)");
             break;
     }
 
@@ -1427,16 +1393,15 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
         vsapi->freeNode(d.knot);
         return;
     }
-    cl_device_type device_type = 0;
-    bool device_auto = false;
+    ocl_utils_device_type ocl_device_type = 0;
     if (!strcasecmp(d.ocl_device, "CPU")) {
-        device_type = CL_DEVICE_TYPE_CPU;
+        ocl_device_type = OCL_UTILS_DEVICE_TYPE_CPU;
     } else if (!strcasecmp(d.ocl_device, "GPU")) {
-        device_type = CL_DEVICE_TYPE_GPU;
+        ocl_device_type = OCL_UTILS_DEVICE_TYPE_GPU;
     } else if (!strcasecmp(d.ocl_device, "ACCELERATOR")) {
-        device_type = CL_DEVICE_TYPE_ACCELERATOR;
+        ocl_device_type = OCL_UTILS_DEVICE_TYPE_ACCELERATOR;
     } else if (!strcasecmp(d.ocl_device, "AUTO")) {
-        device_auto = true;
+        ocl_device_type = OCL_UTILS_DEVICE_TYPE_AUTO;
     } else {
         vsapi->setError(out, "knlm.KNLMeansCL: 'device_type' must be 'cpu', 'gpu', 'accelerator' or 'auto'!");
         vsapi->freeNode(d.node);
@@ -1451,93 +1416,38 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
     }
 
     // Gets PlatformID and DeviceID.
-    cl_int ret = CL_SUCCESS;
-    if (device_auto) {
-        device_type = CL_DEVICE_TYPE_GPU;
-        ret |= oclGetDevicesList(device_type, NULL, &d.num_devices, OCL_MIN_VERSION);
-        if (d.num_devices == 0) {
-            device_type = CL_DEVICE_TYPE_ACCELERATOR;
-            ret |= oclGetDevicesList(device_type, NULL, &d.num_devices, OCL_MIN_VERSION);
-            if (d.num_devices == 0) {
-                device_type = CL_DEVICE_TYPE_CPU;
-                ret |= oclGetDevicesList(device_type, NULL, &d.num_devices, OCL_MIN_VERSION);
-                if (d.num_devices == 0) {
-                    vsapi->setError(out, "knlm.KNLMeansCL: no compatible opencl platforms available!\n (OpenCL " OCL_MIN_VERSION " API)");
-                    vsapi->freeNode(d.node);
-                    vsapi->freeNode(d.knot);
-                    return;
-                } else if (d.ocl_id >= (int) d.num_devices) {
-                    vsapi->setError(out, "knlm.KNLMeansCL: selected device is not available!");
-                    vsapi->freeNode(d.node);
-                    vsapi->freeNode(d.knot);
-                    return;
-                }
-            } else if (d.ocl_id >= (int) d.num_devices) {
-                vsapi->setError(out, "knlm.KNLMeansCL: selected device is not available!");
-                vsapi->freeNode(d.node);
-                vsapi->freeNode(d.knot);
-                return;
-            }
-        } else if (d.ocl_id >= (int) d.num_devices) {
-            vsapi->setError(out, "knlm.KNLMeansCL: selected device is not available!");
-            vsapi->freeNode(d.node);
-            vsapi->freeNode(d.knot);
-            return;
-        }
-        ocl_device_packed *devices = (ocl_device_packed*) malloc(sizeof(ocl_device_packed) * d.num_devices);
-        ret |= oclGetDevicesList(device_type, devices, NULL, OCL_MIN_VERSION);
-        if (ret != CL_SUCCESS) {
-            vsapi->setError(out, "knlm.KNLMeansCL: fatal error!\n (oclGetDevicesList)");
-            vsapi->freeNode(d.node);
-            vsapi->freeNode(d.knot);
-            return;
-        }
-        d.platformID = devices[d.ocl_id].platform;
-        d.deviceID = devices[d.ocl_id].device;
-        free(devices);
-    } else {
-        ret |= oclGetDevicesList(device_type, NULL, &d.num_devices, OCL_MIN_VERSION);
-        if (d.num_devices == 0) {
-            vsapi->setError(out, "knlm.KNLMeansCL: no compatible opencl platforms available!\n (OpenCL " OCL_MIN_VERSION " API)");
-            vsapi->freeNode(d.node);
-            vsapi->freeNode(d.knot);
-            return;
-        } else if (d.ocl_id >= (int) d.num_devices) {
-            vsapi->setError(out, "knlm.KNLMeansCL: selected device is not available!");
-            vsapi->freeNode(d.node);
-            vsapi->freeNode(d.knot);
-            return;
-        }
-        ocl_device_packed *devices = (ocl_device_packed*) malloc(sizeof(ocl_device_packed) * d.num_devices);
-        ret |= oclGetDevicesList(device_type, devices, NULL, OCL_MIN_VERSION);
-        if (ret != CL_SUCCESS) {
-            vsapi->setError(out, "knlm.KNLMeansCL: fatal error!\n (oclGetDevicesList)");
-            vsapi->freeNode(d.node);
-            vsapi->freeNode(d.knot);
-            return;
-        }
-        d.platformID = devices[d.ocl_id].platform;
-        d.deviceID = devices[d.ocl_id].device;
-        free(devices);
+    cl_device_type deviceTYPE;
+    cl_int ret = oclUtilsGetPlaformDeviceIDs(OCL_UTILS_OPENCL_1_2, ocl_device_type, 
+        (cl_uint) d.ocl_id, &d.platformID, &d.deviceID, &deviceTYPE);
+    if (ret == OCL_UTILS_NO_DEVICE_AVAILABLE) {
+        vsapi->setError(out, "knlm.KNLMeansCL: no compatible opencl platforms available!");
+        vsapi->freeNode(d.node);
+        vsapi->freeNode(d.knot);
+        return;
+    } else if (ret != CL_SUCCESS) {
+        d.oclErrorCheck("oclUtilsGetPlaformDeviceIDs", ret, out, vsapi);
+        vsapi->freeNode(d.node);
+        vsapi->freeNode(d.knot);
+        return;
     }
 
     // Sets local work size
-    switch (device_type) {
+    switch (deviceTYPE) {
+        case CL_DEVICE_TYPE_CPU:
+            d.HRZ_BLOCK_X = 4;
+            d.HRZ_BLOCK_Y = 8;
+            d.VRT_BLOCK_X = 8;
+            d.VRT_BLOCK_Y = 4;
+            break;
         case CL_DEVICE_TYPE_GPU:
         case CL_DEVICE_TYPE_ACCELERATOR:
             d.HRZ_BLOCK_X = 16; 
             d.HRZ_BLOCK_Y = 8;
             d.VRT_BLOCK_X = 8; 
             d.VRT_BLOCK_Y = 16;
-            break;
-        case CL_DEVICE_TYPE_CPU:
-            d.HRZ_BLOCK_X = 4; 
-            d.HRZ_BLOCK_Y = 8;
-            d.VRT_BLOCK_X = 8; 
-            d.VRT_BLOCK_Y = 4;
-            break;
+            break;        
         default:
-            vsapi->setError(out, "knlm.KNLMeansCL: fatal error!\n (oclGetDevicesList)");
+            vsapi->setError(out, "knlm.KNLMeansCL: fatal error!\n (Local work size)");
             vsapi->freeNode(d.node);
             vsapi->freeNode(d.knot);
             return;

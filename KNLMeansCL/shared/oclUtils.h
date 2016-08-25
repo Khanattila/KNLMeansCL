@@ -17,11 +17,24 @@
 */
 
 //////////////////////////////////////////
-// Type Definition
-typedef struct _ocl_device_packed {
-    cl_platform_id platform;
-    cl_device_id device;
-} ocl_device_packed;
+// Definition
+typedef cl_bitfield                          ocl_utils_device_type;
+
+#define OCL_UTILS_DEVICE_TYPE_CPU            (1 << 0)
+#define OCL_UTILS_DEVICE_TYPE_GPU            (1 << 1)
+#define OCL_UTILS_DEVICE_TYPE_ACCELERATOR    (1 << 2)
+#define OCL_UTILS_DEVICE_TYPE_AUTO           (1 << 3)
+
+#define OCL_UTILS_MALLOC_ERROR                1
+#define OCL_UTILS_NO_DEVICE_AVAILABLE         2
+#define OCL_UTILS_INVALID_DEVICE_TYPE         3
+#define OCL_UTILS_INVALID_VALUE               4
+
+#define OCL_UTILS_OPENCL_1_0                  10
+#define OCL_UTILS_OPENCL_1_1                  11
+#define OCL_UTILS_OPENCL_1_2                  12
+#define OCL_UTILS_STRING_SIZE                 512
+
 
 //////////////////////////////////////////
 // Common
@@ -38,10 +51,14 @@ template <typename T>T inline clamp(const T& value, const T& low, const T& high)
 }
 
 //////////////////////////////////////////
-// oclErrorToString
-#    define STR(code) case code: return #code
-const char* oclErrorToString(cl_int err) {
+// Functions
+#define STR(code) case code: return #code
+const char* oclUtilsErrorToString(cl_int err) {
     switch (err) {
+        STR(OCL_UTILS_INVALID_VALUE);
+        STR(OCL_UTILS_INVALID_DEVICE_TYPE);
+        STR(OCL_UTILS_NO_DEVICE_AVAILABLE);
+        STR(OCL_UTILS_MALLOC_ERROR);
         STR(CL_DEVICE_NOT_FOUND);
         STR(CL_DEVICE_NOT_AVAILABLE);
         STR(CL_COMPILER_NOT_AVAILABLE);
@@ -100,100 +117,80 @@ const char* oclErrorToString(cl_int err) {
         STR(CL_INVALID_COMPILER_OPTIONS);
         STR(CL_INVALID_LINKER_OPTIONS);
         STR(CL_INVALID_DEVICE_PARTITION_COUNT);
-        default: return "CL_ERROR";
+        default: return "OCL_UTILS_UNKNOWN_ERROR";
     }
 }
 
-//////////////////////////////////////////
-// oclPlatformToInt
-inline cl_int oclPlatformToInt(const char* platform_version) {
-    cl_int major = platform_version[7] - '0';
-    cl_int minor = platform_version[9] - '0';
-    return major * 10 + minor;
+cl_int oclUtilsGetIDs(cl_uint ver_opencl, cl_device_type device_type, cl_uint shf_device, cl_platform_id *platform, cl_device_id *device) {
+    
+    cl_uint num_platforms;
+    cl_int ret = clGetPlatformIDs(0, NULL, &num_platforms);
+    if (ret != CL_SUCCESS) return ret;
+    else if (num_platforms == 0) return CL_INVALID_VALUE;
+    cl_platform_id *platforms = (cl_platform_id*) malloc(sizeof(cl_platform_id) * num_platforms);
+    if (platforms == NULL) return OCL_UTILS_MALLOC_ERROR;
+    ret = clGetPlatformIDs(num_platforms, platforms, NULL);
+    if (ret != CL_SUCCESS) return ret;
+    cl_uint index = 0;
+    for (cl_uint p = 0; p < num_platforms; p++) {
+        char str[OCL_UTILS_STRING_SIZE];
+        ret = clGetPlatformInfo(platforms[p], CL_PLATFORM_VERSION, sizeof(char) * OCL_UTILS_STRING_SIZE, str, NULL);
+        if (ret != CL_SUCCESS) return ret;
+        cl_uint ver_platform = 10u * (str[7] - '0') + (str[9] - '0');
+        if (ver_platform >= ver_opencl) {
+            cl_uint num_devices;
+            ret = clGetDeviceIDs(platforms[p], device_type, 0, NULL, &num_devices);
+            if (ret != CL_SUCCESS) return ret;
+            else if (num_devices > 0) {
+                cl_device_id *devices = (cl_device_id*) malloc(sizeof(cl_device_id) * num_devices);
+                if (devices == NULL) return OCL_UTILS_MALLOC_ERROR;
+                ret = clGetDeviceIDs(platforms[p], device_type, num_devices, devices, NULL);
+                if (ret != CL_SUCCESS) return ret;
+                for (cl_uint d = 0; d < num_devices; d++) {
+                    if (index == shf_device) {
+                        *platform = platforms[p];
+                        *device = devices[d];
+                        free(platforms);
+                        free(devices);
+                        return CL_SUCCESS;
+                    } else {
+                        index++;
+                    }
+                }
+            }      
+        }
+    }
+    return OCL_UTILS_NO_DEVICE_AVAILABLE;
 }
 
-//////////////////////////////////////////
-// oclVersionToInt
-inline cl_int oclVersionToInt(const char* platform_version) {
-    cl_int major = platform_version[0] - '0';
-    cl_int minor = platform_version[2] - '0';
-    return major * 10 + minor;
-}
+cl_int oclUtilsGetPlaformDeviceIDs(cl_uint ver_opencl, ocl_utils_device_type device_type, cl_uint shf_device, cl_platform_id *platform,
+    cl_device_id *device, cl_device_type *type) {
 
-//////////////////////////////////////////
-// oclGetDevicesList
-cl_int oclGetDevicesList(cl_device_type device_type, ocl_device_packed* devices, cl_uint* num_devices, const char* version) {
-    if (devices == NULL && num_devices != NULL) {
-        char str[2048];
-        cl_uint avl_platforms = 0, rtn_devices = 0;
-        cl_int ret = clGetPlatformIDs(0, NULL, &avl_platforms);
-        if (ret != CL_SUCCESS) return ret;
-        if (avl_platforms == 0) {
-            *num_devices = 0;
-            return CL_SUCCESS;
+    if (platform == NULL || device == NULL) {
+        return OCL_UTILS_INVALID_VALUE;
+    } else switch (device_type) {
+        case OCL_UTILS_DEVICE_TYPE_CPU:
+            *type = CL_DEVICE_TYPE_CPU;
+            return oclUtilsGetIDs(ver_opencl, CL_DEVICE_TYPE_CPU, shf_device, platform, device);
+        case OCL_UTILS_DEVICE_TYPE_GPU:
+            *type = OCL_UTILS_DEVICE_TYPE_GPU;
+            return oclUtilsGetIDs(ver_opencl, CL_DEVICE_TYPE_GPU, shf_device, platform, device);
+        case OCL_UTILS_DEVICE_TYPE_ACCELERATOR:
+            *type = OCL_UTILS_DEVICE_TYPE_ACCELERATOR;
+            return oclUtilsGetIDs(ver_opencl, CL_DEVICE_TYPE_ACCELERATOR, shf_device, platform, device);
+        case OCL_UTILS_DEVICE_TYPE_AUTO: {
+            *type = OCL_UTILS_DEVICE_TYPE_ACCELERATOR;
+            cl_int ret = oclUtilsGetIDs(ver_opencl, CL_DEVICE_TYPE_ACCELERATOR, shf_device, platform, device);
+            if (ret == OCL_UTILS_NO_DEVICE_AVAILABLE) {
+                *type = OCL_UTILS_DEVICE_TYPE_GPU;
+                ret = oclUtilsGetIDs(ver_opencl, CL_DEVICE_TYPE_GPU, shf_device, platform, device);
+                if (ret == OCL_UTILS_NO_DEVICE_AVAILABLE) {
+                    *type = CL_DEVICE_TYPE_CPU;
+                    return oclUtilsGetIDs(ver_opencl, CL_DEVICE_TYPE_CPU, shf_device, platform, device);
+                } else if (ret != CL_SUCCESS) break;
+            } else if (ret != CL_SUCCESS) break;
         }
-        cl_platform_id *lst_platforms = (cl_platform_id*) malloc(sizeof(cl_platform_id) * avl_platforms);
-        if (lst_platforms == NULL) return CL_INVALID_VALUE;
-        ret = clGetPlatformIDs(avl_platforms, lst_platforms, NULL);
-        if (ret != CL_SUCCESS) return ret;
-        for (cl_uint p = 0; p < avl_platforms; p++) {
-            ret = clGetPlatformInfo(lst_platforms[p], CL_PLATFORM_VERSION, sizeof(char) * 2048, str, NULL);
-            if (ret != CL_SUCCESS) return ret;
-            if (oclPlatformToInt(str) >= oclVersionToInt(version)) {
-                cl_uint avl_devices = 0;
-                ret = clGetDeviceIDs(lst_platforms[p], device_type, 0, 0, &avl_devices);
-                if (ret != CL_SUCCESS && ret != CL_DEVICE_NOT_FOUND) return ret;
-                if (avl_devices > 0) {
-                    cl_device_id *lst_devices = (cl_device_id*) malloc(sizeof(cl_device_id) * avl_devices);
-                    if (lst_devices == NULL) return CL_INVALID_VALUE;
-                    ret = clGetDeviceIDs(lst_platforms[p], device_type, avl_devices, lst_devices, NULL);
-                    for (cl_uint d = 0; d < avl_devices; d++) {
-                        cl_bool image_support;
-                        ret = clGetDeviceInfo(lst_devices[d], CL_DEVICE_IMAGE_SUPPORT, sizeof(cl_bool), &image_support, NULL);
-                        if (ret != CL_SUCCESS) return ret;
-                        if (image_support) rtn_devices++;
-                    }
-                    free(lst_devices);
-                }
-            }
-        }
-        free(lst_platforms);
-        *num_devices = rtn_devices;
-        return CL_SUCCESS;
-    } else if (devices != NULL && num_devices == NULL) {
-        char str[2048];
-        cl_uint avl_platforms = 0, index = 0;
-        cl_int ret = clGetPlatformIDs(0, NULL, &avl_platforms);
-        if (ret != CL_SUCCESS) return ret;
-        if (avl_platforms == 0) return CL_SUCCESS;
-        cl_platform_id *lst_platforms = (cl_platform_id*) malloc(sizeof(cl_platform_id) * avl_platforms);
-        if (lst_platforms == NULL) return CL_INVALID_VALUE;
-        ret = clGetPlatformIDs(avl_platforms, lst_platforms, NULL);
-        if (ret != CL_SUCCESS) return ret;
-        for (cl_uint p = 0; p < avl_platforms; p++) {
-            ret = clGetPlatformInfo(lst_platforms[p], CL_PLATFORM_VERSION, sizeof(char) * 2048, str, NULL);
-            if (ret != CL_SUCCESS) return ret;
-            if (oclPlatformToInt(str) >= oclVersionToInt(version)) {
-                cl_uint avl_devices = 0;
-                ret = clGetDeviceIDs(lst_platforms[p], device_type, 0, 0, &avl_devices);
-                if (ret != CL_SUCCESS && ret != CL_DEVICE_NOT_FOUND) return ret;
-                if (avl_devices > 0) {
-                    cl_device_id *lst_devices = (cl_device_id*) malloc(sizeof(cl_device_id) * avl_devices);
-                    if (lst_devices == NULL) return CL_INVALID_VALUE;
-                    ret = clGetDeviceIDs(lst_platforms[p], device_type, avl_devices, lst_devices, NULL);
-                    for (cl_uint d = 0; d < avl_devices; d++) {
-                        cl_bool image_support;
-                        ret = clGetDeviceInfo(lst_devices[d], CL_DEVICE_IMAGE_SUPPORT, sizeof(cl_bool), &image_support, NULL);
-                        if (ret != CL_SUCCESS) return ret;
-                        if (image_support) devices[index++] = { lst_platforms[p], lst_devices[d] };
-                    }
-                    free(lst_devices);
-                }
-            }
-        }
-        free(lst_platforms);
-        return CL_SUCCESS;
-    } else {
-        return CL_INVALID_VALUE;
+        default:
+            return OCL_UTILS_INVALID_DEVICE_TYPE;
     }
 }
