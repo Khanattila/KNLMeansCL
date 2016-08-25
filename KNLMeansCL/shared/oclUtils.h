@@ -187,6 +187,7 @@ cl_int oclUtilsGetPlaformDeviceIDs(cl_uint ver_opencl, ocl_utils_device_type dev
                     return oclUtilsGetIDs(ver_opencl, CL_DEVICE_TYPE_CPU, shf_device, platform, device);
                 } else if (ret != CL_SUCCESS) break;
             } else if (ret != CL_SUCCESS) break;
+            return CL_SUCCESS;
         }
         default:
             return OCL_UTILS_INVALID_DEVICE_TYPE;

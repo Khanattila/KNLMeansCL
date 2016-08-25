@@ -58,7 +58,7 @@
 
 //////////////////////////////////////////
 // Kernel Definition
-static const char* kernel_source_code_spatial =\
+static const char* kernel_source_code_spatial =
 "#define CHECK_FLAG(flag) ((NLMK_TCLIP & (flag)) == (flag))                                                       \n" \
 "                                                                                                                 \n" \
 "float   norm(uint u);                                                                                            \n" \
@@ -336,7 +336,7 @@ static const char* kernel_source_code_spatial =\
 "   }                                                                                                             \n" \
 "}                                                                                                                ";
 
-static const char* kernel_source_code =\
+static const char* kernel_source_code =
 "#define CHECK_FLAG(flag) ((NLMK_TCLIP & (flag)) == (flag))                                                       \n" \
 "                                                                                                                 \n" \
 "float   norm(uint u);                                                                                            \n" \
