@@ -17,7 +17,7 @@
 */
 
 //////////////////////////////////////////
-// Definition
+// Type Definition
 typedef cl_bitfield                          ocl_utils_device_type;
 
 #define OCL_UTILS_DEVICE_TYPE_CPU            (1 << 0)
