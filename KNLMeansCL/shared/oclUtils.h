@@ -35,7 +35,6 @@ typedef cl_bitfield                          ocl_utils_device_type;
 #define OCL_UTILS_OPENCL_1_2                  12
 #define OCL_UTILS_STRING_SIZE                 512
 
-
 //////////////////////////////////////////
 // Common
 inline size_t mrounds(const size_t num, const size_t mul) {
@@ -121,8 +120,7 @@ const char* oclUtilsErrorToString(cl_int err) {
     }
 }
 
-cl_int oclUtilsGetIDs(cl_uint ver_opencl, cl_device_type device_type, cl_uint shf_device, cl_platform_id *platform, cl_device_id *device) {
-    
+cl_int oclUtilsGetIDs(cl_uint ver_opencl, cl_device_type device_type, cl_uint shf_device, cl_platform_id *platform, cl_device_id *device) {    
     cl_uint num_platforms;
     cl_int ret = clGetPlatformIDs(0, NULL, &num_platforms);
     if (ret != CL_SUCCESS) return ret;
