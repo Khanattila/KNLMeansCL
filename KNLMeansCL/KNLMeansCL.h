@@ -17,12 +17,7 @@
 */
 
 #define VERSION "0.7.7"
-#define OCL_MIN_VERSION "1.2"
 #define CL_USE_DEPRECATED_OPENCL_1_2_APIS
-
-#ifdef _MSC_VER
-#    pragma warning (disable : 4514 4710 6031)
-#endif
 
 #include <cstdint>
 #include <cstdio>
@@ -49,12 +44,6 @@
 #include <VapourSynth.h>
 #include <VSHelper.h>
 
-enum {
-    COLOR_GRAY = 1 << 0, COLOR_YUV = 1 << 1, COLOR_RGB = 1 << 2,
-    CLIP_UNORM = 1 << 3, CLIP_UNSIGNED = 1 << 4, CLIP_STACKED = 1 << 5,
-    EXTRA_NONE = 1 << 6, EXTRA_CLIP = 1 << 7
-};
-
 #ifdef __AVISYNTH_6_H__
 struct _NLMAvisynth : public GenericVideoFilter {
 private:
@@ -70,7 +59,7 @@ private:
     cl_device_id deviceID;
     cl_context context;
     cl_program program;
-    cl_kernel kernel[nlmNumberKernels];
+    cl_kernel kernel[NLM_NUMBER_KERNELS];
     cl_mem mem_in[2], mem_out, mem_U[4], mem_P[3];
     bool equals(VideoInfo *v, VideoInfo *w);
     void oclErrorCheck(const char* function, cl_int errcode, IScriptEnvironment *env);
@@ -98,7 +87,7 @@ public:
     cl_device_id deviceID;
     cl_context context;
     cl_program program;
-    cl_kernel kernel[nlmNumberKernels];
+    cl_kernel kernel[NLM_NUMBER_KERNELS];
     cl_mem mem_in[2], mem_out, mem_U[4], mem_P[3];
     bool equals(const VSVideoInfo *v, const VSVideoInfo *w);
     void oclErrorCheck(const char* function, cl_int errcode, VSMap *out, const VSAPI *vsapi);

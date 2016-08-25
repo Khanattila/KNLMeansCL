@@ -23,26 +23,27 @@
 
 //////////////////////////////////////////
 // Type Definition
-typedef enum _nlm_kernel_function {
-    nlmSpatialDistance,
-    nlmSpatialHorizontal,
-    nlmSpatialVertical,
-    nlmSpatialAccumulation,
-    nlmSpatialFinish,
-    nlmSpatialPack,
-    nlmSpatialUnpack,
+#define NLM_SPATIAL_DISTANCE        0x0
+#define NLM_SPATIAL_HORIZONTAL      0x1
+#define NLM_SPATIAL_VERTICAL        0x2
+#define NLM_SPATIAL_ACCUMULATION    0x3
+#define NLM_SPATIAL_FINISH          0x4
+#define NLM_SPATIAL_PACK            0x5
+#define NLM_SPATIAL_UNPACK          0x6
+#define NLM_DISTANCE_LEFT           0x7
+#define NLM_DISTANCE_RIGHT          0x8
+#define NLM_HORIZONTAL              0x9
+#define NLM_VERTICAL                0xA
+#define NLM_ACCUMULATION            0xB
+#define NLM_FINISH                  0xC
+#define NLM_PACK                    0xD
+#define NLM_UNPACK                  0xE
+#define NLM_NUMBER_KERNELS          0xF
 
-    nlmDistanceLeft,
-    nlmDistanceRight,
-    nlmHorizontal,
-    nlmVertical,
-    nlmAccumulation,
-    nlmFinish,
-    nlmPack,
-    nlmUnpack,
-
-    nlmNumberKernels
-} nlm_kernel_function;
+#define NLM_RGBA_RED                0.6664827524f
+#define NLM_RGBA_GREEN              1.2866580779f
+#define NLM_RGBA_BLUE               1.0468591696f
+#define NLM_RGBA_ALPHA              0.0f
 
 //////////////////////////////////////////
 // Kernel Definition
