@@ -247,156 +247,156 @@ _NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _
 
     // Creates kernel objects.
     if (d) {
-        kernel[NLM_DISTANCE_LEFT] = clCreateKernel(program, "NLM_DISTANCE_LEFT", &ret);
-        oclErrorCheck("clCreateKernel(NLM_DISTANCE_LEFT)", ret, env);
-        kernel[NLM_DISTANCE_RIGHT] = clCreateKernel(program, "NLM_DISTANCE_RIGHT", &ret);
-        oclErrorCheck("clCreateKernel(NLM_DISTANCE_RIGHT)", ret, env);
-        kernel[NLM_HORIZONTAL] = clCreateKernel(program, "NLM_HORIZONTAL", &ret);
-        oclErrorCheck("clCreateKernel(NLM_HORIZONTAL)", ret, env);
-        kernel[NLM_VERTICAL] = clCreateKernel(program, "NLM_VERTICAL", &ret);
-        oclErrorCheck("clCreateKernel(NLM_VERTICAL)", ret, env);
-        kernel[NLM_ACCUMULATION] = clCreateKernel(program, "NLM_ACCUMULATION", &ret);
-        oclErrorCheck("clCreateKernel(NLM_ACCUMULATION)", ret, env);
-        kernel[NLM_FINISH] = clCreateKernel(program, "NLM_FINISH", &ret);
-        oclErrorCheck("clCreateKernel(NLM_FINISH)", ret, env);
-        kernel[NLM_PACK] = clCreateKernel(program, "NLM_PACK", &ret);
-        oclErrorCheck("clCreateKernel(NLM_PACK)", ret, env);
-        kernel[NLM_UNPACK] = clCreateKernel(program, "NLM_UNPACK", &ret);
-        oclErrorCheck("clCreateKernel(NLM_UNPACK)", ret, env);
+        kernel[nlmDistanceLeft] = clCreateKernel(program, "nlmDistanceLeft", &ret);
+        oclErrorCheck("clCreateKernel(nlmDistanceLeft)", ret, env);
+        kernel[nlmDistanceRight] = clCreateKernel(program, "nlmDistanceRight", &ret);
+        oclErrorCheck("clCreateKernel(nlmDistanceRight)", ret, env);
+        kernel[nlmHorizontal] = clCreateKernel(program, "nlmHorizontal", &ret);
+        oclErrorCheck("clCreateKernel(nlmHorizontal)", ret, env);
+        kernel[nlmVertical] = clCreateKernel(program, "nlmVertical", &ret);
+        oclErrorCheck("clCreateKernel(nlmVertical)", ret, env);
+        kernel[nlmAccumulation] = clCreateKernel(program, "nlmAccumulation", &ret);
+        oclErrorCheck("clCreateKernel(nlmAccumulation)", ret, env);
+        kernel[nlmFinish] = clCreateKernel(program, "nlmFinish", &ret);
+        oclErrorCheck("clCreateKernel(nlmFinish)", ret, env);
+        kernel[nlmPack] = clCreateKernel(program, "nlmPack", &ret);
+        oclErrorCheck("clCreateKernel(nlmPack)", ret, env);
+        kernel[nlmUnpack] = clCreateKernel(program, "nlmUnpack", &ret);
+        oclErrorCheck("clCreateKernel(nlmUnpack)", ret, env);
     } else {
-        kernel[NLM_SPATIAL_DISTANCE] = clCreateKernel(program, "NLM_SPATIAL_DISTANCE", &ret);
-        oclErrorCheck("clCreateKernel(NLM_SPATIAL_DISTANCE)", ret, env);
-        kernel[NLM_SPATIAL_HORIZONTAL] = clCreateKernel(program, "NLM_SPATIAL_HORIZONTAL", &ret);
-        oclErrorCheck("clCreateKernel(NLM_SPATIAL_HORIZONTAL)", ret, env);
-        kernel[NLM_SPATIAL_VERTICAL] = clCreateKernel(program, "NLM_SPATIAL_VERTICAL", &ret);
-        oclErrorCheck("clCreateKernel(NLM_SPATIAL_VERTICAL)", ret, env);
-        kernel[NLM_SPATIAL_ACCUMULATION] = clCreateKernel(program, "NLM_SPATIAL_ACCUMULATION", &ret);
-        oclErrorCheck("clCreateKernel(NLM_SPATIAL_ACCUMULATION)", ret, env);
-        kernel[NLM_SPATIAL_FINISH] = clCreateKernel(program, "NLM_SPATIAL_FINISH", &ret);
-        oclErrorCheck("clCreateKernel(NLM_SPATIAL_FINISH)", ret, env);
-        kernel[NLM_SPATIAL_PACK] = clCreateKernel(program, "NLM_SPATIAL_PACK", &ret);
-        oclErrorCheck("clCreateKernel(NLM_SPATIAL_PACK)", ret, env);
-        kernel[NLM_SPATIAL_UNPACK] = clCreateKernel(program, "NLM_SPATIAL_UNPACK", &ret);
-        oclErrorCheck("clCreateKernel(NLM_SPATIAL_UNPACK)", ret, env);
+        kernel[nlmSpatialDistance] = clCreateKernel(program, "nlmSpatialDistance", &ret);
+        oclErrorCheck("clCreateKernel(nlmSpatialDistance)", ret, env);
+        kernel[nlmSpatialHorizontal] = clCreateKernel(program, "nlmSpatialHorizontal", &ret);
+        oclErrorCheck("clCreateKernel(nlmSpatialHorizontal)", ret, env);
+        kernel[nlmSpatialVertical] = clCreateKernel(program, "nlmSpatialVertical", &ret);
+        oclErrorCheck("clCreateKernel(nlmSpatialVertical)", ret, env);
+        kernel[nlmSpatialAccumulation] = clCreateKernel(program, "nlmSpatialAccumulation", &ret);
+        oclErrorCheck("clCreateKernel(nlmSpatialAccumulation)", ret, env);
+        kernel[nlmSpatialFinish] = clCreateKernel(program, "nlmSpatialFinish", &ret);
+        oclErrorCheck("clCreateKernel(nlmSpatialFinish)", ret, env);
+        kernel[nlmSpatialPack] = clCreateKernel(program, "nlmSpatialPack", &ret);
+        oclErrorCheck("clCreateKernel(nlmSpatialPack)", ret, env);
+        kernel[nlmSpatialUnpack] = clCreateKernel(program, "nlmSpatialUnpack", &ret);
+        oclErrorCheck("clCreateKernel(nlmSpatialUnpack)", ret, env);
     }
 
     // Sets kernel arguments.
     if (d) {
-        ret = clSetKernelArg(kernel[NLM_DISTANCE_LEFT], 0, sizeof(cl_mem), &mem_in[(clip_t & NLM_EXTRA_FALSE) ? 0 : 1]);
-        oclErrorCheck("clSetKernelArg(NLM_DISTANCE_LEFT[0])", ret, env);
-        ret = clSetKernelArg(kernel[NLM_DISTANCE_LEFT], 1, sizeof(cl_mem), &mem_U[1]);
-        oclErrorCheck("clSetKernelArg(NLM_DISTANCE_LEFT[1])", ret, env);
-        ret = clSetKernelArg(kernel[NLM_DISTANCE_LEFT], 2, 2 * sizeof(cl_uint), &idmn);
-        oclErrorCheck("clSetKernelArg(NLM_DISTANCE_LEFT[2])", ret, env);
-        ret = clSetKernelArg(kernel[NLM_DISTANCE_RIGHT], 0, sizeof(cl_mem), &mem_in[(clip_t & NLM_EXTRA_FALSE) ? 0 : 1]);
-        oclErrorCheck("clSetKernelArg(NLM_DISTANCE_RIGHT[0])", ret, env);
-        ret = clSetKernelArg(kernel[NLM_DISTANCE_RIGHT], 1, sizeof(cl_mem), &mem_U[1]);
-        oclErrorCheck("clSetKernelArg(NLM_DISTANCE_RIGHT[1])", ret, env);
-        ret = clSetKernelArg(kernel[NLM_DISTANCE_RIGHT], 2, 2 * sizeof(cl_uint), &idmn);
-        oclErrorCheck("clSetKernelArg(NLM_DISTANCE_RIGHT[2])", ret, env);
-        ret = clSetKernelArg(kernel[NLM_HORIZONTAL], 0, sizeof(cl_mem), &mem_U[1]);
-        oclErrorCheck("clSetKernelArg(NLM_HORIZONTAL[0])", ret, env);
-        ret = clSetKernelArg(kernel[NLM_HORIZONTAL], 1, sizeof(cl_mem), &mem_U[2]);
-        oclErrorCheck("clSetKernelArg(NLM_HORIZONTAL[1])", ret, env);
-        ret = clSetKernelArg(kernel[NLM_HORIZONTAL], 3, 2 * sizeof(cl_uint), &idmn);
-        oclErrorCheck("clSetKernelArg(NLM_HORIZONTAL[3])", ret, env);
-        ret = clSetKernelArg(kernel[NLM_VERTICAL], 0, sizeof(cl_mem), &mem_U[2]);
-        oclErrorCheck("clSetKernelArg(NLM_VERTICAL[0])", ret, env);
-        ret = clSetKernelArg(kernel[NLM_VERTICAL], 1, sizeof(cl_mem), &mem_U[1]);
-        oclErrorCheck("clSetKernelArg(NLM_VERTICAL[1])", ret, env);
-        ret = clSetKernelArg(kernel[NLM_VERTICAL], 3, 2 * sizeof(cl_uint), &idmn);
-        oclErrorCheck("clSetKernelArg(NLM_VERTICAL[3])", ret, env);
-        ret = clSetKernelArg(kernel[NLM_ACCUMULATION], 0, sizeof(cl_mem), &mem_in[0]);
-        oclErrorCheck("clSetKernelArg(NLM_ACCUMULATION[0])", ret, env);
-        ret = clSetKernelArg(kernel[NLM_ACCUMULATION], 1, sizeof(cl_mem), &mem_U[0]);
-        oclErrorCheck("clSetKernelArg(NLM_ACCUMULATION[1])", ret, env);
-        ret = clSetKernelArg(kernel[NLM_ACCUMULATION], 2, sizeof(cl_mem), &mem_U[1]);
-        oclErrorCheck("clSetKernelArg(NLM_ACCUMULATION[2])", ret, env);
-        ret = clSetKernelArg(kernel[NLM_ACCUMULATION], 3, sizeof(cl_mem), &mem_U[3]);
-        oclErrorCheck("clSetKernelArg(NLM_ACCUMULATION[3])", ret, env);
-        ret = clSetKernelArg(kernel[NLM_ACCUMULATION], 4, 2 * sizeof(cl_uint), &idmn);
-        oclErrorCheck("clSetKernelArg(NLM_ACCUMULATION[4])", ret, env);
-        ret = clSetKernelArg(kernel[NLM_FINISH], 0, sizeof(cl_mem), &mem_in[0]);
-        oclErrorCheck("clSetKernelArg(NLM_FINISH[0])", ret, env);
-        ret = clSetKernelArg(kernel[NLM_FINISH], 1, sizeof(cl_mem), &mem_out);
-        oclErrorCheck("clSetKernelArg(NLM_FINISH[1])", ret, env);
-        ret = clSetKernelArg(kernel[NLM_FINISH], 2, sizeof(cl_mem), &mem_U[0]);
-        oclErrorCheck("clSetKernelArg(NLM_FINISH[2])", ret, env);
-        ret = clSetKernelArg(kernel[NLM_FINISH], 3, sizeof(cl_mem), &mem_U[3]);
-        oclErrorCheck("clSetKernelArg(NLM_FINISH[3])", ret, env);
-        ret = clSetKernelArg(kernel[NLM_FINISH], 4, 2 * sizeof(cl_uint), &idmn);
-        oclErrorCheck("clSetKernelArg(NLM_FINISH[4])", ret, env);
-        ret = clSetKernelArg(kernel[NLM_PACK], 0, sizeof(cl_mem), &mem_P[0]);
-        oclErrorCheck("clSetKernelArg(NLM_PACK[0])", ret, env);
-        ret = clSetKernelArg(kernel[NLM_PACK], 1, sizeof(cl_mem), &mem_P[1]);
-        oclErrorCheck("clSetKernelArg(NLM_PACK[1])", ret, env);
-        ret = clSetKernelArg(kernel[NLM_PACK], 2, sizeof(cl_mem), &mem_P[2]);
-        oclErrorCheck("clSetKernelArg(NLM_PACK[2])", ret, env);
-        ret = clSetKernelArg(kernel[NLM_PACK], 5, 2 * sizeof(cl_uint), &idmn);
-        oclErrorCheck("clSetKernelArg(NLM_PACK[5])", ret, env);
-        ret = clSetKernelArg(kernel[NLM_UNPACK], 0, sizeof(cl_mem), &mem_P[0]);
-        oclErrorCheck("clSetKernelArg(NLM_UNPACK[0])", ret, env);
-        ret = clSetKernelArg(kernel[NLM_UNPACK], 1, sizeof(cl_mem), &mem_P[1]);
-        oclErrorCheck("clSetKernelArg(NLM_UNPACK[1])", ret, env);
-        ret = clSetKernelArg(kernel[NLM_UNPACK], 2, sizeof(cl_mem), &mem_P[2]);
-        oclErrorCheck("clSetKernelArg(NLM_UNPACK[2])", ret, env);
-        ret = clSetKernelArg(kernel[NLM_UNPACK], 4, 2 * sizeof(cl_uint), &idmn);
-        oclErrorCheck("clSetKernelArg(NLM_UNPACK[4])", ret, env);
+        ret = clSetKernelArg(kernel[nlmDistanceLeft], 0, sizeof(cl_mem), &mem_in[(clip_t & NLM_EXTRA_FALSE) ? 0 : 1]);
+        oclErrorCheck("clSetKernelArg(nlmDistanceLeft[0])", ret, env);
+        ret = clSetKernelArg(kernel[nlmDistanceLeft], 1, sizeof(cl_mem), &mem_U[1]);
+        oclErrorCheck("clSetKernelArg(nlmDistanceLeft[1])", ret, env);
+        ret = clSetKernelArg(kernel[nlmDistanceLeft], 2, 2 * sizeof(cl_uint), &idmn);
+        oclErrorCheck("clSetKernelArg(nlmDistanceLeft[2])", ret, env);
+        ret = clSetKernelArg(kernel[nlmDistanceRight], 0, sizeof(cl_mem), &mem_in[(clip_t & NLM_EXTRA_FALSE) ? 0 : 1]);
+        oclErrorCheck("clSetKernelArg(nlmDistanceRight[0])", ret, env);
+        ret = clSetKernelArg(kernel[nlmDistanceRight], 1, sizeof(cl_mem), &mem_U[1]);
+        oclErrorCheck("clSetKernelArg(nlmDistanceRight[1])", ret, env);
+        ret = clSetKernelArg(kernel[nlmDistanceRight], 2, 2 * sizeof(cl_uint), &idmn);
+        oclErrorCheck("clSetKernelArg(nlmDistanceRight[2])", ret, env);
+        ret = clSetKernelArg(kernel[nlmHorizontal], 0, sizeof(cl_mem), &mem_U[1]);
+        oclErrorCheck("clSetKernelArg(nlmHorizontal[0])", ret, env);
+        ret = clSetKernelArg(kernel[nlmHorizontal], 1, sizeof(cl_mem), &mem_U[2]);
+        oclErrorCheck("clSetKernelArg(nlmHorizontal[1])", ret, env);
+        ret = clSetKernelArg(kernel[nlmHorizontal], 3, 2 * sizeof(cl_uint), &idmn);
+        oclErrorCheck("clSetKernelArg(nlmHorizontal[3])", ret, env);
+        ret = clSetKernelArg(kernel[nlmVertical], 0, sizeof(cl_mem), &mem_U[2]);
+        oclErrorCheck("clSetKernelArg(nlmVertical[0])", ret, env);
+        ret = clSetKernelArg(kernel[nlmVertical], 1, sizeof(cl_mem), &mem_U[1]);
+        oclErrorCheck("clSetKernelArg(nlmVertical[1])", ret, env);
+        ret = clSetKernelArg(kernel[nlmVertical], 3, 2 * sizeof(cl_uint), &idmn);
+        oclErrorCheck("clSetKernelArg(nlmVertical[3])", ret, env);
+        ret = clSetKernelArg(kernel[nlmAccumulation], 0, sizeof(cl_mem), &mem_in[0]);
+        oclErrorCheck("clSetKernelArg(nlmAccumulation[0])", ret, env);
+        ret = clSetKernelArg(kernel[nlmAccumulation], 1, sizeof(cl_mem), &mem_U[0]);
+        oclErrorCheck("clSetKernelArg(nlmAccumulation[1])", ret, env);
+        ret = clSetKernelArg(kernel[nlmAccumulation], 2, sizeof(cl_mem), &mem_U[1]);
+        oclErrorCheck("clSetKernelArg(nlmAccumulation[2])", ret, env);
+        ret = clSetKernelArg(kernel[nlmAccumulation], 3, sizeof(cl_mem), &mem_U[3]);
+        oclErrorCheck("clSetKernelArg(nlmAccumulation[3])", ret, env);
+        ret = clSetKernelArg(kernel[nlmAccumulation], 4, 2 * sizeof(cl_uint), &idmn);
+        oclErrorCheck("clSetKernelArg(nlmAccumulation[4])", ret, env);
+        ret = clSetKernelArg(kernel[nlmFinish], 0, sizeof(cl_mem), &mem_in[0]);
+        oclErrorCheck("clSetKernelArg(nlmFinish[0])", ret, env);
+        ret = clSetKernelArg(kernel[nlmFinish], 1, sizeof(cl_mem), &mem_out);
+        oclErrorCheck("clSetKernelArg(nlmFinish[1])", ret, env);
+        ret = clSetKernelArg(kernel[nlmFinish], 2, sizeof(cl_mem), &mem_U[0]);
+        oclErrorCheck("clSetKernelArg(nlmFinish[2])", ret, env);
+        ret = clSetKernelArg(kernel[nlmFinish], 3, sizeof(cl_mem), &mem_U[3]);
+        oclErrorCheck("clSetKernelArg(nlmFinish[3])", ret, env);
+        ret = clSetKernelArg(kernel[nlmFinish], 4, 2 * sizeof(cl_uint), &idmn);
+        oclErrorCheck("clSetKernelArg(nlmFinish[4])", ret, env);
+        ret = clSetKernelArg(kernel[nlmPack], 0, sizeof(cl_mem), &mem_P[0]);
+        oclErrorCheck("clSetKernelArg(nlmPack[0])", ret, env);
+        ret = clSetKernelArg(kernel[nlmPack], 1, sizeof(cl_mem), &mem_P[1]);
+        oclErrorCheck("clSetKernelArg(nlmPack[1])", ret, env);
+        ret = clSetKernelArg(kernel[nlmPack], 2, sizeof(cl_mem), &mem_P[2]);
+        oclErrorCheck("clSetKernelArg(nlmPack[2])", ret, env);
+        ret = clSetKernelArg(kernel[nlmPack], 5, 2 * sizeof(cl_uint), &idmn);
+        oclErrorCheck("clSetKernelArg(nlmPack[5])", ret, env);
+        ret = clSetKernelArg(kernel[nlmUnpack], 0, sizeof(cl_mem), &mem_P[0]);
+        oclErrorCheck("clSetKernelArg(nlmUnpack[0])", ret, env);
+        ret = clSetKernelArg(kernel[nlmUnpack], 1, sizeof(cl_mem), &mem_P[1]);
+        oclErrorCheck("clSetKernelArg(nlmUnpack[1])", ret, env);
+        ret = clSetKernelArg(kernel[nlmUnpack], 2, sizeof(cl_mem), &mem_P[2]);
+        oclErrorCheck("clSetKernelArg(nlmUnpack[2])", ret, env);
+        ret = clSetKernelArg(kernel[nlmUnpack], 4, 2 * sizeof(cl_uint), &idmn);
+        oclErrorCheck("clSetKernelArg(nlmUnpack[4])", ret, env);
     } else {
-        ret = clSetKernelArg(kernel[NLM_SPATIAL_DISTANCE], 0, sizeof(cl_mem), &mem_in[(clip_t & NLM_EXTRA_FALSE) ? 0 : 1]);
-        oclErrorCheck("clSetKernelArg(NLM_SPATIAL_DISTANCE[0])", ret, env);
-        ret = clSetKernelArg(kernel[NLM_SPATIAL_DISTANCE], 1, sizeof(cl_mem), &mem_U[1]);
-        oclErrorCheck("clSetKernelArg(NLM_SPATIAL_DISTANCE[1])", ret, env);
-        ret = clSetKernelArg(kernel[NLM_SPATIAL_DISTANCE], 2, 2 * sizeof(cl_uint), &idmn);
-        oclErrorCheck("clSetKernelArg(NLM_SPATIAL_DISTANCE[2])", ret, env);
-        ret = clSetKernelArg(kernel[NLM_SPATIAL_HORIZONTAL], 0, sizeof(cl_mem), &mem_U[1]);
-        oclErrorCheck("clSetKernelArg(NLM_SPATIAL_HORIZONTAL[0])", ret, env);
-        ret = clSetKernelArg(kernel[NLM_SPATIAL_HORIZONTAL], 1, sizeof(cl_mem), &mem_U[2]);
-        oclErrorCheck("clSetKernelArg(NLM_SPATIAL_HORIZONTAL[1])", ret, env);
-        ret = clSetKernelArg(kernel[NLM_SPATIAL_HORIZONTAL], 2, 2 * sizeof(cl_uint), &idmn);
-        oclErrorCheck("clSetKernelArg(NLM_SPATIAL_HORIZONTAL[2])", ret, env);
-        ret = clSetKernelArg(kernel[NLM_SPATIAL_VERTICAL], 0, sizeof(cl_mem), &mem_U[2]);
-        oclErrorCheck("clSetKernelArg(NLM_SPATIAL_VERTICAL[0])", ret, env);
-        ret = clSetKernelArg(kernel[NLM_SPATIAL_VERTICAL], 1, sizeof(cl_mem), &mem_U[1]);
-        oclErrorCheck("clSetKernelArg(NLM_SPATIAL_VERTICAL[1])", ret, env);
-        ret = clSetKernelArg(kernel[NLM_SPATIAL_VERTICAL], 2, 2 * sizeof(cl_uint), &idmn);
-        oclErrorCheck("clSetKernelArg(NLM_SPATIAL_VERTICAL[2])", ret, env);
-        ret = clSetKernelArg(kernel[NLM_SPATIAL_ACCUMULATION], 0, sizeof(cl_mem), &mem_in[0]);
-        oclErrorCheck("clSetKernelArg(NLM_SPATIAL_ACCUMULATION[0])", ret, env);
-        ret = clSetKernelArg(kernel[NLM_SPATIAL_ACCUMULATION], 1, sizeof(cl_mem), &mem_U[0]);
-        oclErrorCheck("clSetKernelArg(NLM_SPATIAL_ACCUMULATION[1])", ret, env);
-        ret = clSetKernelArg(kernel[NLM_SPATIAL_ACCUMULATION], 2, sizeof(cl_mem), &mem_U[1]);
-        oclErrorCheck("clSetKernelArg(NLM_SPATIAL_ACCUMULATION[2])", ret, env);
-        ret = clSetKernelArg(kernel[NLM_SPATIAL_ACCUMULATION], 3, sizeof(cl_mem), &mem_U[3]);
-        oclErrorCheck("clSetKernelArg(NLM_SPATIAL_ACCUMULATION[3])", ret, env);
-        ret = clSetKernelArg(kernel[NLM_SPATIAL_ACCUMULATION], 4, 2 * sizeof(cl_uint), &idmn);
-        oclErrorCheck("clSetKernelArg(NLM_SPATIAL_ACCUMULATION[4])", ret, env);
-        ret = clSetKernelArg(kernel[NLM_SPATIAL_FINISH], 0, sizeof(cl_mem), &mem_in[0]);
-        oclErrorCheck("clSetKernelArg(NLM_SPATIAL_FINISH[0])", ret, env);
-        ret = clSetKernelArg(kernel[NLM_SPATIAL_FINISH], 1, sizeof(cl_mem), &mem_out);
-        oclErrorCheck("clSetKernelArg(NLM_SPATIAL_FINISH[1])", ret, env);
-        ret = clSetKernelArg(kernel[NLM_SPATIAL_FINISH], 2, sizeof(cl_mem), &mem_U[0]);
-        oclErrorCheck("clSetKernelArg(NLM_SPATIAL_FINISH[2])", ret, env);
-        ret = clSetKernelArg(kernel[NLM_SPATIAL_FINISH], 3, sizeof(cl_mem), &mem_U[3]);
-        oclErrorCheck("clSetKernelArg(NLM_SPATIAL_FINISH[3])", ret, env);
-        ret = clSetKernelArg(kernel[NLM_SPATIAL_FINISH], 4, 2 * sizeof(cl_uint), &idmn);
-        oclErrorCheck("clSetKernelArg(NLM_SPATIAL_FINISH[4])", ret, env);
-        ret = clSetKernelArg(kernel[NLM_SPATIAL_PACK], 0, sizeof(cl_mem), &mem_P[0]);
-        oclErrorCheck("clSetKernelArg(NLM_SPATIAL_PACK[0])", ret, env);
-        ret = clSetKernelArg(kernel[NLM_SPATIAL_PACK], 1, sizeof(cl_mem), &mem_P[1]);
-        oclErrorCheck("clSetKernelArg(NLM_SPATIAL_PACK[1])", ret, env);
-        ret = clSetKernelArg(kernel[NLM_SPATIAL_PACK], 2, sizeof(cl_mem), &mem_P[2]);
-        oclErrorCheck("clSetKernelArg(NLM_SPATIAL_PACK[2])", ret, env);
-        ret = clSetKernelArg(kernel[NLM_SPATIAL_PACK], 4, 2 * sizeof(cl_uint), &idmn);
-        oclErrorCheck("clSetKernelArg(NLM_SPATIAL_PACK[4])", ret, env);
-        ret = clSetKernelArg(kernel[NLM_SPATIAL_UNPACK], 0, sizeof(cl_mem), &mem_P[0]);
-        oclErrorCheck("clSetKernelArg(NLM_SPATIAL_UNPACK[0])", ret, env);
-        ret = clSetKernelArg(kernel[NLM_SPATIAL_UNPACK], 1, sizeof(cl_mem), &mem_P[1]);
-        oclErrorCheck("clSetKernelArg(NLM_SPATIAL_UNPACK[1])", ret, env);
-        ret = clSetKernelArg(kernel[NLM_SPATIAL_UNPACK], 2, sizeof(cl_mem), &mem_P[2]);
-        oclErrorCheck("clSetKernelArg(NLM_SPATIAL_UNPACK[2])", ret, env);
-        ret = clSetKernelArg(kernel[NLM_SPATIAL_UNPACK], 4, 2 * sizeof(cl_uint), &idmn);
-        oclErrorCheck("clSetKernelArg(NLM_SPATIAL_UNPACK[4])", ret, env);
+        ret = clSetKernelArg(kernel[nlmSpatialDistance], 0, sizeof(cl_mem), &mem_in[(clip_t & NLM_EXTRA_FALSE) ? 0 : 1]);
+        oclErrorCheck("clSetKernelArg(nlmSpatialDistance[0])", ret, env);
+        ret = clSetKernelArg(kernel[nlmSpatialDistance], 1, sizeof(cl_mem), &mem_U[1]);
+        oclErrorCheck("clSetKernelArg(nlmSpatialDistance[1])", ret, env);
+        ret = clSetKernelArg(kernel[nlmSpatialDistance], 2, 2 * sizeof(cl_uint), &idmn);
+        oclErrorCheck("clSetKernelArg(nlmSpatialDistance[2])", ret, env);
+        ret = clSetKernelArg(kernel[nlmSpatialHorizontal], 0, sizeof(cl_mem), &mem_U[1]);
+        oclErrorCheck("clSetKernelArg(nlmSpatialHorizontal[0])", ret, env);
+        ret = clSetKernelArg(kernel[nlmSpatialHorizontal], 1, sizeof(cl_mem), &mem_U[2]);
+        oclErrorCheck("clSetKernelArg(nlmSpatialHorizontal[1])", ret, env);
+        ret = clSetKernelArg(kernel[nlmSpatialHorizontal], 2, 2 * sizeof(cl_uint), &idmn);
+        oclErrorCheck("clSetKernelArg(nlmSpatialHorizontal[2])", ret, env);
+        ret = clSetKernelArg(kernel[nlmSpatialVertical], 0, sizeof(cl_mem), &mem_U[2]);
+        oclErrorCheck("clSetKernelArg(nlmSpatialVertical[0])", ret, env);
+        ret = clSetKernelArg(kernel[nlmSpatialVertical], 1, sizeof(cl_mem), &mem_U[1]);
+        oclErrorCheck("clSetKernelArg(nlmSpatialVertical[1])", ret, env);
+        ret = clSetKernelArg(kernel[nlmSpatialVertical], 2, 2 * sizeof(cl_uint), &idmn);
+        oclErrorCheck("clSetKernelArg(nlmSpatialVertical[2])", ret, env);
+        ret = clSetKernelArg(kernel[nlmSpatialAccumulation], 0, sizeof(cl_mem), &mem_in[0]);
+        oclErrorCheck("clSetKernelArg(nlmSpatialAccumulation[0])", ret, env);
+        ret = clSetKernelArg(kernel[nlmSpatialAccumulation], 1, sizeof(cl_mem), &mem_U[0]);
+        oclErrorCheck("clSetKernelArg(nlmSpatialAccumulation[1])", ret, env);
+        ret = clSetKernelArg(kernel[nlmSpatialAccumulation], 2, sizeof(cl_mem), &mem_U[1]);
+        oclErrorCheck("clSetKernelArg(nlmSpatialAccumulation[2])", ret, env);
+        ret = clSetKernelArg(kernel[nlmSpatialAccumulation], 3, sizeof(cl_mem), &mem_U[3]);
+        oclErrorCheck("clSetKernelArg(nlmSpatialAccumulation[3])", ret, env);
+        ret = clSetKernelArg(kernel[nlmSpatialAccumulation], 4, 2 * sizeof(cl_uint), &idmn);
+        oclErrorCheck("clSetKernelArg(nlmSpatialAccumulation[4])", ret, env);
+        ret = clSetKernelArg(kernel[nlmSpatialFinish], 0, sizeof(cl_mem), &mem_in[0]);
+        oclErrorCheck("clSetKernelArg(nlmSpatialFinish[0])", ret, env);
+        ret = clSetKernelArg(kernel[nlmSpatialFinish], 1, sizeof(cl_mem), &mem_out);
+        oclErrorCheck("clSetKernelArg(nlmSpatialFinish[1])", ret, env);
+        ret = clSetKernelArg(kernel[nlmSpatialFinish], 2, sizeof(cl_mem), &mem_U[0]);
+        oclErrorCheck("clSetKernelArg(nlmSpatialFinish[2])", ret, env);
+        ret = clSetKernelArg(kernel[nlmSpatialFinish], 3, sizeof(cl_mem), &mem_U[3]);
+        oclErrorCheck("clSetKernelArg(nlmSpatialFinish[3])", ret, env);
+        ret = clSetKernelArg(kernel[nlmSpatialFinish], 4, 2 * sizeof(cl_uint), &idmn);
+        oclErrorCheck("clSetKernelArg(nlmSpatialFinish[4])", ret, env);
+        ret = clSetKernelArg(kernel[nlmSpatialPack], 0, sizeof(cl_mem), &mem_P[0]);
+        oclErrorCheck("clSetKernelArg(nlmSpatialPack[0])", ret, env);
+        ret = clSetKernelArg(kernel[nlmSpatialPack], 1, sizeof(cl_mem), &mem_P[1]);
+        oclErrorCheck("clSetKernelArg(nlmSpatialPack[1])", ret, env);
+        ret = clSetKernelArg(kernel[nlmSpatialPack], 2, sizeof(cl_mem), &mem_P[2]);
+        oclErrorCheck("clSetKernelArg(nlmSpatialPack[2])", ret, env);
+        ret = clSetKernelArg(kernel[nlmSpatialPack], 4, 2 * sizeof(cl_uint), &idmn);
+        oclErrorCheck("clSetKernelArg(nlmSpatialPack[4])", ret, env);
+        ret = clSetKernelArg(kernel[nlmSpatialUnpack], 0, sizeof(cl_mem), &mem_P[0]);
+        oclErrorCheck("clSetKernelArg(nlmSpatialUnpack[0])", ret, env);
+        ret = clSetKernelArg(kernel[nlmSpatialUnpack], 1, sizeof(cl_mem), &mem_P[1]);
+        oclErrorCheck("clSetKernelArg(nlmSpatialUnpack[1])", ret, env);
+        ret = clSetKernelArg(kernel[nlmSpatialUnpack], 2, sizeof(cl_mem), &mem_P[2]);
+        oclErrorCheck("clSetKernelArg(nlmSpatialUnpack[2])", ret, env);
+        ret = clSetKernelArg(kernel[nlmSpatialUnpack], 4, 2 * sizeof(cl_uint), &idmn);
+        oclErrorCheck("clSetKernelArg(nlmSpatialUnpack[4])", ret, env);
     }
 
 }
@@ -468,23 +468,23 @@ PVideoFrame __stdcall _NLMAvisynth::GetFrame(int n, IScriptEnvironment* env) {
                 case (NLM_EXTRA_FALSE | NLM_CLIP_STACKED | NLM_COLOR_GRAY):
                     ret |= clEnqueueWriteImage(command_queue, mem_P[0], CL_TRUE, origin, region_p,
                         (size_t) src->GetPitch(PLANAR_Y), 0, src->GetReadPtr(PLANAR_Y), 0, NULL, NULL);
-                    ret |= clSetKernelArg(kernel[NLM_PACK], 3, sizeof(cl_mem), &mem_in[0]);
-                    ret |= clSetKernelArg(kernel[NLM_PACK], 4, sizeof(cl_int), &t_pk);
-                    ret |= clEnqueueNDRangeKernel(command_queue, kernel[NLM_PACK],
+                    ret |= clSetKernelArg(kernel[nlmPack], 3, sizeof(cl_mem), &mem_in[0]);
+                    ret |= clSetKernelArg(kernel[nlmPack], 4, sizeof(cl_int), &t_pk);
+                    ret |= clEnqueueNDRangeKernel(command_queue, kernel[nlmPack],
                         2, NULL, global_work, NULL, 0, NULL, NULL);
                     break;
                 case (NLM_EXTRA_TRUE | NLM_CLIP_STACKED | NLM_COLOR_GRAY):
                     ret |= clEnqueueWriteImage(command_queue, mem_P[0], CL_TRUE, origin, region_p,
                         (size_t) src->GetPitch(PLANAR_Y), 0, src->GetReadPtr(PLANAR_Y), 0, NULL, NULL);
-                    ret |= clSetKernelArg(kernel[NLM_PACK], 3, sizeof(cl_mem), &mem_in[0]);
-                    ret |= clSetKernelArg(kernel[NLM_PACK], 4, sizeof(cl_int), &t_pk);
-                    ret |= clEnqueueNDRangeKernel(command_queue, kernel[NLM_PACK],
+                    ret |= clSetKernelArg(kernel[nlmPack], 3, sizeof(cl_mem), &mem_in[0]);
+                    ret |= clSetKernelArg(kernel[nlmPack], 4, sizeof(cl_int), &t_pk);
+                    ret |= clEnqueueNDRangeKernel(command_queue, kernel[nlmPack],
                         2, NULL, global_work, NULL, 0, NULL, NULL);
                     ret |= clEnqueueWriteImage(command_queue, mem_P[1], CL_TRUE, origin, region_p,
                         (size_t) ref->GetPitch(PLANAR_Y), 0, ref->GetReadPtr(PLANAR_Y), 0, NULL, NULL);
-                    ret |= clSetKernelArg(kernel[NLM_PACK], 3, sizeof(cl_mem), &mem_in[1]);
-                    ret |= clSetKernelArg(kernel[NLM_PACK], 4, sizeof(cl_int), &t_pk);
-                    ret |= clEnqueueNDRangeKernel(command_queue, kernel[NLM_PACK],
+                    ret |= clSetKernelArg(kernel[nlmPack], 3, sizeof(cl_mem), &mem_in[1]);
+                    ret |= clSetKernelArg(kernel[nlmPack], 4, sizeof(cl_int), &t_pk);
+                    ret |= clEnqueueNDRangeKernel(command_queue, kernel[nlmPack],
                         2, NULL, global_work, NULL, 0, NULL, NULL);
                     break;
                 case (NLM_EXTRA_FALSE | NLM_CLIP_UNORM | NLM_COLOR_YUV):
@@ -495,9 +495,9 @@ PVideoFrame __stdcall _NLMAvisynth::GetFrame(int n, IScriptEnvironment* env) {
                         (size_t) src->GetPitch(PLANAR_U), 0, src->GetReadPtr(PLANAR_U), 0, NULL, NULL);
                     ret |= clEnqueueWriteImage(command_queue, mem_P[2], CL_TRUE, origin, region_p,
                         (size_t) src->GetPitch(PLANAR_V), 0, src->GetReadPtr(PLANAR_V), 0, NULL, NULL);
-                    ret |= clSetKernelArg(kernel[NLM_PACK], 3, sizeof(cl_mem), &mem_in[0]);
-                    ret |= clSetKernelArg(kernel[NLM_PACK], 4, sizeof(cl_int), &t_pk);
-                    ret |= clEnqueueNDRangeKernel(command_queue, kernel[NLM_PACK],
+                    ret |= clSetKernelArg(kernel[nlmPack], 3, sizeof(cl_mem), &mem_in[0]);
+                    ret |= clSetKernelArg(kernel[nlmPack], 4, sizeof(cl_int), &t_pk);
+                    ret |= clEnqueueNDRangeKernel(command_queue, kernel[nlmPack],
                         2, NULL, global_work, NULL, 0, NULL, NULL);
                     break;
                 case (NLM_EXTRA_TRUE | NLM_CLIP_UNORM | NLM_COLOR_YUV):
@@ -508,9 +508,9 @@ PVideoFrame __stdcall _NLMAvisynth::GetFrame(int n, IScriptEnvironment* env) {
                         (size_t) src->GetPitch(PLANAR_U), 0, src->GetReadPtr(PLANAR_U), 0, NULL, NULL);
                     ret |= clEnqueueWriteImage(command_queue, mem_P[2], CL_TRUE, origin, region_p,
                         (size_t) src->GetPitch(PLANAR_V), 0, src->GetReadPtr(PLANAR_V), 0, NULL, NULL);
-                    ret |= clSetKernelArg(kernel[NLM_PACK], 3, sizeof(cl_mem), &mem_in[0]);
-                    ret |= clSetKernelArg(kernel[NLM_PACK], 4, sizeof(cl_int), &t_pk);
-                    ret |= clEnqueueNDRangeKernel(command_queue, kernel[NLM_PACK],
+                    ret |= clSetKernelArg(kernel[nlmPack], 3, sizeof(cl_mem), &mem_in[0]);
+                    ret |= clSetKernelArg(kernel[nlmPack], 4, sizeof(cl_int), &t_pk);
+                    ret |= clEnqueueNDRangeKernel(command_queue, kernel[nlmPack],
                         2, NULL, global_work, NULL, 0, NULL, NULL);
                     ret |= clEnqueueWriteImage(command_queue, mem_P[0], CL_TRUE, origin, region_p,
                         (size_t) ref->GetPitch(PLANAR_Y), 0, ref->GetReadPtr(PLANAR_Y), 0, NULL, NULL);
@@ -518,9 +518,9 @@ PVideoFrame __stdcall _NLMAvisynth::GetFrame(int n, IScriptEnvironment* env) {
                         (size_t) ref->GetPitch(PLANAR_U), 0, ref->GetReadPtr(PLANAR_Y), 0, NULL, NULL);
                     ret |= clEnqueueWriteImage(command_queue, mem_P[2], CL_TRUE, origin, region_p,
                         (size_t) ref->GetPitch(PLANAR_V), 0, ref->GetReadPtr(PLANAR_Y), 0, NULL, NULL);
-                    ret |= clSetKernelArg(kernel[NLM_PACK], 3, sizeof(cl_mem), &mem_in[1]);
-                    ret |= clSetKernelArg(kernel[NLM_PACK], 4, sizeof(cl_int), &t_pk);
-                    ret |= clEnqueueNDRangeKernel(command_queue, kernel[NLM_PACK],
+                    ret |= clSetKernelArg(kernel[nlmPack], 3, sizeof(cl_mem), &mem_in[1]);
+                    ret |= clSetKernelArg(kernel[nlmPack], 4, sizeof(cl_int), &t_pk);
+                    ret |= clEnqueueNDRangeKernel(command_queue, kernel[nlmPack],
                         2, NULL, global_work, NULL, 0, NULL, NULL);
                     break;
                 case (NLM_EXTRA_FALSE | NLM_CLIP_UNORM | NLM_COLOR_RGB):
@@ -543,35 +543,35 @@ PVideoFrame __stdcall _NLMAvisynth::GetFrame(int n, IScriptEnvironment* env) {
                 for (int i = -a; i <= a; i++) {
                     if (k * (2 * a + 1) * (2 * a + 1) + j * (2 * a + 1) + i < 0) {
                         const cl_int q[4] = { i, j, k, 0 };
-                        ret |= clSetKernelArg(kernel[NLM_DISTANCE_LEFT], 3, 4 * sizeof(cl_int), &q);
-                        ret |= clEnqueueNDRangeKernel(command_queue, kernel[NLM_DISTANCE_LEFT],
+                        ret |= clSetKernelArg(kernel[nlmDistanceLeft], 3, 4 * sizeof(cl_int), &q);
+                        ret |= clEnqueueNDRangeKernel(command_queue, kernel[nlmDistanceLeft],
                             2, NULL, global_work, NULL, 0, NULL, NULL);
-                        ret |= clSetKernelArg(kernel[NLM_HORIZONTAL], 2, sizeof(cl_int), &t);
-                        ret |= clEnqueueNDRangeKernel(command_queue, kernel[NLM_HORIZONTAL],
+                        ret |= clSetKernelArg(kernel[nlmHorizontal], 2, sizeof(cl_int), &t);
+                        ret |= clEnqueueNDRangeKernel(command_queue, kernel[nlmHorizontal],
                             2, NULL, global_work, local_horiz, 0, NULL, NULL);
-                        ret |= clSetKernelArg(kernel[NLM_VERTICAL], 2, sizeof(cl_int), &t);
-                        ret |= clEnqueueNDRangeKernel(command_queue, kernel[NLM_VERTICAL],
+                        ret |= clSetKernelArg(kernel[nlmVertical], 2, sizeof(cl_int), &t);
+                        ret |= clEnqueueNDRangeKernel(command_queue, kernel[nlmVertical],
                             2, NULL, global_work, local_vert, 0, NULL, NULL);
                         if (k) {
                             const cl_int t_mq = t - k;
-                            ret |= clSetKernelArg(kernel[NLM_DISTANCE_RIGHT], 3, 4 * sizeof(cl_int), &q);
-                            ret |= clEnqueueNDRangeKernel(command_queue, kernel[NLM_DISTANCE_RIGHT],
+                            ret |= clSetKernelArg(kernel[nlmDistanceRight], 3, 4 * sizeof(cl_int), &q);
+                            ret |= clEnqueueNDRangeKernel(command_queue, kernel[nlmDistanceRight],
                                 2, NULL, global_work, NULL, 0, NULL, NULL);
-                            ret |= clSetKernelArg(kernel[NLM_HORIZONTAL], 2, sizeof(cl_int), &t_mq);
-                            ret |= clEnqueueNDRangeKernel(command_queue, kernel[NLM_HORIZONTAL],
+                            ret |= clSetKernelArg(kernel[nlmHorizontal], 2, sizeof(cl_int), &t_mq);
+                            ret |= clEnqueueNDRangeKernel(command_queue, kernel[nlmHorizontal],
                                 2, NULL, global_work, local_horiz, 0, NULL, NULL);
-                            ret |= clSetKernelArg(kernel[NLM_VERTICAL], 2, sizeof(cl_int), &t_mq);
-                            ret |= clEnqueueNDRangeKernel(command_queue, kernel[NLM_VERTICAL],
+                            ret |= clSetKernelArg(kernel[nlmVertical], 2, sizeof(cl_int), &t_mq);
+                            ret |= clEnqueueNDRangeKernel(command_queue, kernel[nlmVertical],
                                 2, NULL, global_work, local_vert, 0, NULL, NULL);
                         }
-                        ret |= clSetKernelArg(kernel[NLM_ACCUMULATION], 5, 4 * sizeof(cl_int), &q);
-                        ret |= clEnqueueNDRangeKernel(command_queue, kernel[NLM_ACCUMULATION],
+                        ret |= clSetKernelArg(kernel[nlmAccumulation], 5, 4 * sizeof(cl_int), &q);
+                        ret |= clEnqueueNDRangeKernel(command_queue, kernel[nlmAccumulation],
                             2, NULL, global_work, NULL, 0, NULL, NULL);
                     }
                 }
             }
         }
-        ret |= clEnqueueNDRangeKernel(command_queue, kernel[NLM_FINISH], 2, NULL, global_work, NULL, 0, NULL, NULL);
+        ret |= clEnqueueNDRangeKernel(command_queue, kernel[nlmFinish], 2, NULL, global_work, NULL, 0, NULL, NULL);
     } else {
         switch (clip_t) {
             case (NLM_EXTRA_FALSE | NLM_CLIP_UNORM | NLM_COLOR_GRAY):
@@ -587,20 +587,20 @@ PVideoFrame __stdcall _NLMAvisynth::GetFrame(int n, IScriptEnvironment* env) {
             case (NLM_EXTRA_FALSE | NLM_CLIP_STACKED | NLM_COLOR_GRAY):
                 ret |= clEnqueueWriteImage(command_queue, mem_P[0], CL_TRUE, origin, region_p,
                     (size_t) src->GetPitch(PLANAR_Y), 0, src->GetReadPtr(PLANAR_Y), 0, NULL, NULL);
-                ret |= clSetKernelArg(kernel[NLM_SPATIAL_PACK], 3, sizeof(cl_mem), &mem_in[0]);
-                ret |= clEnqueueNDRangeKernel(command_queue, kernel[NLM_SPATIAL_PACK],
+                ret |= clSetKernelArg(kernel[nlmSpatialPack], 3, sizeof(cl_mem), &mem_in[0]);
+                ret |= clEnqueueNDRangeKernel(command_queue, kernel[nlmSpatialPack],
                     2, NULL, global_work, NULL, 0, NULL, NULL);
                 break;
             case (NLM_EXTRA_TRUE | NLM_CLIP_STACKED | NLM_COLOR_GRAY):
                 ret |= clEnqueueWriteImage(command_queue, mem_P[0], CL_TRUE, origin, region_p,
                     (size_t) src->GetPitch(PLANAR_Y), 0, src->GetReadPtr(PLANAR_Y), 0, NULL, NULL);
-                ret |= clSetKernelArg(kernel[NLM_SPATIAL_PACK], 3, sizeof(cl_mem), &mem_in[0]);
-                ret |= clEnqueueNDRangeKernel(command_queue, kernel[NLM_SPATIAL_PACK],
+                ret |= clSetKernelArg(kernel[nlmSpatialPack], 3, sizeof(cl_mem), &mem_in[0]);
+                ret |= clEnqueueNDRangeKernel(command_queue, kernel[nlmSpatialPack],
                     2, NULL, global_work, NULL, 0, NULL, NULL);
                 ret |= clEnqueueWriteImage(command_queue, mem_P[1], CL_TRUE, origin, region_p,
                     (size_t) ref->GetPitch(PLANAR_Y), 0, ref->GetReadPtr(PLANAR_Y), 0, NULL, NULL);
-                ret |= clSetKernelArg(kernel[NLM_SPATIAL_PACK], 3, sizeof(cl_mem), &mem_in[1]);
-                ret |= clEnqueueNDRangeKernel(command_queue, kernel[NLM_SPATIAL_PACK],
+                ret |= clSetKernelArg(kernel[nlmSpatialPack], 3, sizeof(cl_mem), &mem_in[1]);
+                ret |= clEnqueueNDRangeKernel(command_queue, kernel[nlmSpatialPack],
                     2, NULL, global_work, NULL, 0, NULL, NULL);
                 break;
             case (NLM_EXTRA_FALSE | NLM_CLIP_UNORM | NLM_COLOR_YUV):
@@ -611,8 +611,8 @@ PVideoFrame __stdcall _NLMAvisynth::GetFrame(int n, IScriptEnvironment* env) {
                     (size_t) src->GetPitch(PLANAR_U), 0, src->GetReadPtr(PLANAR_U), 0, NULL, NULL);
                 ret |= clEnqueueWriteImage(command_queue, mem_P[2], CL_TRUE, origin, region_p,
                     (size_t) src->GetPitch(PLANAR_V), 0, src->GetReadPtr(PLANAR_V), 0, NULL, NULL);
-                ret |= clSetKernelArg(kernel[NLM_SPATIAL_PACK], 3, sizeof(cl_mem), &mem_in[0]);
-                ret |= clEnqueueNDRangeKernel(command_queue, kernel[NLM_SPATIAL_PACK],
+                ret |= clSetKernelArg(kernel[nlmSpatialPack], 3, sizeof(cl_mem), &mem_in[0]);
+                ret |= clEnqueueNDRangeKernel(command_queue, kernel[nlmSpatialPack],
                     2, NULL, global_work, NULL, 0, NULL, NULL);
                 break;
             case (NLM_EXTRA_TRUE | NLM_CLIP_UNORM | NLM_COLOR_YUV):
@@ -623,8 +623,8 @@ PVideoFrame __stdcall _NLMAvisynth::GetFrame(int n, IScriptEnvironment* env) {
                     (size_t) src->GetPitch(PLANAR_U), 0, src->GetReadPtr(PLANAR_U), 0, NULL, NULL);
                 ret |= clEnqueueWriteImage(command_queue, mem_P[2], CL_TRUE, origin, region_p,
                     (size_t) src->GetPitch(PLANAR_V), 0, src->GetReadPtr(PLANAR_V), 0, NULL, NULL);
-                ret |= clSetKernelArg(kernel[NLM_SPATIAL_PACK], 3, sizeof(cl_mem), &mem_in[0]);
-                ret |= clEnqueueNDRangeKernel(command_queue, kernel[NLM_SPATIAL_PACK],
+                ret |= clSetKernelArg(kernel[nlmSpatialPack], 3, sizeof(cl_mem), &mem_in[0]);
+                ret |= clEnqueueNDRangeKernel(command_queue, kernel[nlmSpatialPack],
                     2, NULL, global_work, NULL, 0, NULL, NULL);
                 ret |= clEnqueueWriteImage(command_queue, mem_P[0], CL_TRUE, origin, region_p,
                     (size_t) ref->GetPitch(PLANAR_Y), 0, ref->GetReadPtr(PLANAR_Y), 0, NULL, NULL);
@@ -632,8 +632,8 @@ PVideoFrame __stdcall _NLMAvisynth::GetFrame(int n, IScriptEnvironment* env) {
                     (size_t) ref->GetPitch(PLANAR_U), 0, ref->GetReadPtr(PLANAR_Y), 0, NULL, NULL);
                 ret |= clEnqueueWriteImage(command_queue, mem_P[2], CL_TRUE, origin, region_p,
                     (size_t) ref->GetPitch(PLANAR_V), 0, ref->GetReadPtr(PLANAR_Y), 0, NULL, NULL);
-                ret |= clSetKernelArg(kernel[NLM_SPATIAL_PACK], 3, sizeof(cl_mem), &mem_in[1]);
-                ret |= clEnqueueNDRangeKernel(command_queue, kernel[NLM_SPATIAL_PACK],
+                ret |= clSetKernelArg(kernel[nlmSpatialPack], 3, sizeof(cl_mem), &mem_in[1]);
+                ret |= clEnqueueNDRangeKernel(command_queue, kernel[nlmSpatialPack],
                     2, NULL, global_work, NULL, 0, NULL, NULL);
                 break;
             case (NLM_EXTRA_FALSE | NLM_CLIP_UNORM | NLM_COLOR_RGB):
@@ -654,20 +654,20 @@ PVideoFrame __stdcall _NLMAvisynth::GetFrame(int n, IScriptEnvironment* env) {
             for (int i = -a; i <= a; i++) {
                 if (j * (2 * a + 1) + i < 0) {
                     const cl_int q[2] = { i, j };
-                    ret |= clSetKernelArg(kernel[NLM_SPATIAL_DISTANCE], 3, 2 * sizeof(cl_int), &q);
-                    ret |= clEnqueueNDRangeKernel(command_queue, kernel[NLM_SPATIAL_DISTANCE],
+                    ret |= clSetKernelArg(kernel[nlmSpatialDistance], 3, 2 * sizeof(cl_int), &q);
+                    ret |= clEnqueueNDRangeKernel(command_queue, kernel[nlmSpatialDistance],
                         2, NULL, global_work, NULL, 0, NULL, NULL);
-                    ret |= clEnqueueNDRangeKernel(command_queue, kernel[NLM_SPATIAL_HORIZONTAL],
+                    ret |= clEnqueueNDRangeKernel(command_queue, kernel[nlmSpatialHorizontal],
                         2, NULL, global_work, local_horiz, 0, NULL, NULL);
-                    ret |= clEnqueueNDRangeKernel(command_queue, kernel[NLM_SPATIAL_VERTICAL],
+                    ret |= clEnqueueNDRangeKernel(command_queue, kernel[nlmSpatialVertical],
                         2, NULL, global_work, local_vert, 0, NULL, NULL);
-                    ret |= clSetKernelArg(kernel[NLM_SPATIAL_ACCUMULATION], 5, 2 * sizeof(cl_int), &q);
-                    ret |= clEnqueueNDRangeKernel(command_queue, kernel[NLM_SPATIAL_ACCUMULATION],
+                    ret |= clSetKernelArg(kernel[nlmSpatialAccumulation], 5, 2 * sizeof(cl_int), &q);
+                    ret |= clEnqueueNDRangeKernel(command_queue, kernel[nlmSpatialAccumulation],
                         2, NULL, global_work, NULL, 0, NULL, NULL);
                 }
             }
         }
-        ret |= clEnqueueNDRangeKernel(command_queue, kernel[NLM_SPATIAL_FINISH], 2, NULL, global_work, NULL, 0, NULL, NULL);
+        ret |= clEnqueueNDRangeKernel(command_queue, kernel[nlmSpatialFinish], 2, NULL, global_work, NULL, 0, NULL, NULL);
     }
     switch (clip_t) {
         case (NLM_EXTRA_FALSE | NLM_CLIP_UNORM | NLM_COLOR_GRAY):
@@ -677,8 +677,8 @@ PVideoFrame __stdcall _NLMAvisynth::GetFrame(int n, IScriptEnvironment* env) {
             break;
         case (NLM_EXTRA_FALSE | NLM_CLIP_STACKED | NLM_COLOR_GRAY):
         case (NLM_EXTRA_TRUE | NLM_CLIP_STACKED | NLM_COLOR_GRAY):
-            ret |= clSetKernelArg(kernel[NLM_UNPACK], 3, sizeof(cl_mem), &mem_out);
-            ret |= clEnqueueNDRangeKernel(command_queue, kernel[NLM_UNPACK],
+            ret |= clSetKernelArg(kernel[nlmUnpack], 3, sizeof(cl_mem), &mem_out);
+            ret |= clEnqueueNDRangeKernel(command_queue, kernel[nlmUnpack],
                 2, NULL, global_work, NULL, 0, NULL, NULL);
             ret |= clEnqueueReadImage(command_queue, mem_P[0], CL_TRUE, origin, region_p,
                 (size_t) dst->GetPitch(PLANAR_Y), 0, dst->GetWritePtr(PLANAR_Y), 0, NULL, NULL);
@@ -687,8 +687,8 @@ PVideoFrame __stdcall _NLMAvisynth::GetFrame(int n, IScriptEnvironment* env) {
         case (NLM_EXTRA_TRUE | NLM_CLIP_UNORM | NLM_COLOR_YUV):
         case (NLM_EXTRA_FALSE | NLM_CLIP_STACKED | NLM_COLOR_YUV):
         case (NLM_EXTRA_TRUE | NLM_CLIP_STACKED | NLM_COLOR_YUV):
-            ret |= clSetKernelArg(kernel[NLM_UNPACK], 3, sizeof(cl_mem), &mem_out);
-            ret |= clEnqueueNDRangeKernel(command_queue, kernel[NLM_UNPACK],
+            ret |= clSetKernelArg(kernel[nlmUnpack], 3, sizeof(cl_mem), &mem_out);
+            ret |= clEnqueueNDRangeKernel(command_queue, kernel[nlmUnpack],
                 2, NULL, global_work, NULL, 0, NULL, NULL);
             ret |= clEnqueueReadImage(command_queue, mem_P[0], CL_TRUE, origin, region_p,
                 (size_t) dst->GetPitch(PLANAR_Y), 0, dst->GetWritePtr(PLANAR_Y), 0, NULL, NULL);
@@ -818,23 +818,23 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
                     case (NLM_EXTRA_FALSE | NLM_CLIP_UNSIGNED | NLM_COLOR_GRAY):
                         ret |= clEnqueueWriteImage(command_queue, d->mem_P[0], CL_TRUE, origin, region,
                             (size_t) vsapi->getStride(src, 0), 0, vsapi->getReadPtr(src, 0), 0, NULL, NULL);
-                        ret |= clSetKernelArg(d->kernel[NLM_PACK], 3, sizeof(cl_mem), &d->mem_in[0]);
-                        ret |= clSetKernelArg(d->kernel[NLM_PACK], 4, sizeof(cl_int), &t_pk);
-                        ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[NLM_PACK],
+                        ret |= clSetKernelArg(d->kernel[nlmPack], 3, sizeof(cl_mem), &d->mem_in[0]);
+                        ret |= clSetKernelArg(d->kernel[nlmPack], 4, sizeof(cl_int), &t_pk);
+                        ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[nlmPack],
                             2, NULL, global_work, NULL, 0, NULL, NULL);
                         break;
                     case (NLM_EXTRA_TRUE | NLM_CLIP_UNSIGNED | NLM_COLOR_GRAY):
                         ret |= clEnqueueWriteImage(command_queue, d->mem_P[0], CL_TRUE, origin, region,
                             (size_t) vsapi->getStride(src, 0), 0, vsapi->getReadPtr(src, 0), 0, NULL, NULL);
-                        ret |= clSetKernelArg(d->kernel[NLM_PACK], 3, sizeof(cl_mem), &d->mem_in[0]);
-                        ret |= clSetKernelArg(d->kernel[NLM_PACK], 4, sizeof(cl_int), &t_pk);
-                        ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[NLM_PACK],
+                        ret |= clSetKernelArg(d->kernel[nlmPack], 3, sizeof(cl_mem), &d->mem_in[0]);
+                        ret |= clSetKernelArg(d->kernel[nlmPack], 4, sizeof(cl_int), &t_pk);
+                        ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[nlmPack],
                             2, NULL, global_work, NULL, 0, NULL, NULL);
                         ret |= clEnqueueWriteImage(command_queue, d->mem_P[1], CL_TRUE, origin, region,
                             (size_t) vsapi->getStride(ref, 0), 0, vsapi->getReadPtr(ref, 0), 0, NULL, NULL);
-                        ret |= clSetKernelArg(d->kernel[NLM_PACK], 3, sizeof(cl_mem), &d->mem_in[1]);
-                        ret |= clSetKernelArg(d->kernel[NLM_PACK], 4, sizeof(cl_int), &t_pk);
-                        ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[NLM_PACK],
+                        ret |= clSetKernelArg(d->kernel[nlmPack], 3, sizeof(cl_mem), &d->mem_in[1]);
+                        ret |= clSetKernelArg(d->kernel[nlmPack], 4, sizeof(cl_int), &t_pk);
+                        ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[nlmPack],
                             2, NULL, global_work, NULL, 0, NULL, NULL);
                         break;
                     case (NLM_EXTRA_FALSE | NLM_CLIP_UNORM | NLM_COLOR_YUV):
@@ -847,9 +847,9 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
                             (size_t) vsapi->getStride(src, 1), 0, vsapi->getReadPtr(src, 1), 0, NULL, NULL);
                         ret |= clEnqueueWriteImage(command_queue, d->mem_P[2], CL_TRUE, origin, region,
                             (size_t) vsapi->getStride(src, 2), 0, vsapi->getReadPtr(src, 2), 0, NULL, NULL);
-                        ret |= clSetKernelArg(d->kernel[NLM_PACK], 3, sizeof(cl_mem), &d->mem_in[0]);
-                        ret |= clSetKernelArg(d->kernel[NLM_PACK], 4, sizeof(cl_int), &t_pk);
-                        ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[NLM_PACK],
+                        ret |= clSetKernelArg(d->kernel[nlmPack], 3, sizeof(cl_mem), &d->mem_in[0]);
+                        ret |= clSetKernelArg(d->kernel[nlmPack], 4, sizeof(cl_int), &t_pk);
+                        ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[nlmPack],
                             2, NULL, global_work, NULL, 0, NULL, NULL);
                         break;
                     case (NLM_EXTRA_TRUE | NLM_CLIP_UNORM | NLM_COLOR_YUV):
@@ -862,9 +862,9 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
                             (size_t) vsapi->getStride(src, 1), 0, vsapi->getReadPtr(src, 1), 0, NULL, NULL);
                         ret |= clEnqueueWriteImage(command_queue, d->mem_P[2], CL_TRUE, origin, region,
                             (size_t) vsapi->getStride(src, 2), 0, vsapi->getReadPtr(src, 2), 0, NULL, NULL);
-                        ret |= clSetKernelArg(d->kernel[NLM_PACK], 3, sizeof(cl_mem), &d->mem_in[0]);
-                        ret |= clSetKernelArg(d->kernel[NLM_PACK], 4, sizeof(cl_int), &t_pk);
-                        ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[NLM_PACK],
+                        ret |= clSetKernelArg(d->kernel[nlmPack], 3, sizeof(cl_mem), &d->mem_in[0]);
+                        ret |= clSetKernelArg(d->kernel[nlmPack], 4, sizeof(cl_int), &t_pk);
+                        ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[nlmPack],
                             2, NULL, global_work, NULL, 0, NULL, NULL);
                         ret |= clEnqueueWriteImage(command_queue, d->mem_P[0], CL_TRUE, origin, region,
                             (size_t) vsapi->getStride(ref, 0), 0, vsapi->getReadPtr(ref, 0), 0, NULL, NULL);
@@ -872,9 +872,9 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
                             (size_t) vsapi->getStride(ref, 1), 0, vsapi->getReadPtr(ref, 1), 0, NULL, NULL);
                         ret |= clEnqueueWriteImage(command_queue, d->mem_P[2], CL_TRUE, origin, region,
                             (size_t) vsapi->getStride(ref, 2), 0, vsapi->getReadPtr(ref, 2), 0, NULL, NULL);
-                        ret |= clSetKernelArg(d->kernel[NLM_PACK], 3, sizeof(cl_mem), &d->mem_in[1]);
-                        ret |= clSetKernelArg(d->kernel[NLM_PACK], 4, sizeof(cl_int), &t_pk);
-                        ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[NLM_PACK],
+                        ret |= clSetKernelArg(d->kernel[nlmPack], 3, sizeof(cl_mem), &d->mem_in[1]);
+                        ret |= clSetKernelArg(d->kernel[nlmPack], 4, sizeof(cl_int), &t_pk);
+                        ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[nlmPack],
                             2, NULL, global_work, NULL, 0, NULL, NULL);
                         break;
                     default:
@@ -890,35 +890,35 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
                     for (int i = int64ToIntS(-d->a); i <= d->a; i++) {
                         if (k * (2 * int64ToIntS(d->a) + 1) * (2 * int64ToIntS(d->a) + 1) + j * (2 * int64ToIntS(d->a) + 1) + i < 0) {
                             const cl_int q[4] = { i, j, k, 0 };
-                            ret |= clSetKernelArg(d->kernel[NLM_DISTANCE_LEFT], 3, 4 * sizeof(cl_int), &q);
-                            ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[NLM_DISTANCE_LEFT],
+                            ret |= clSetKernelArg(d->kernel[nlmDistanceLeft], 3, 4 * sizeof(cl_int), &q);
+                            ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[nlmDistanceLeft],
                                 2, NULL, global_work, NULL, 0, NULL, NULL);
-                            ret |= clSetKernelArg(d->kernel[NLM_HORIZONTAL], 2, sizeof(cl_int), &t);
-                            ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[NLM_HORIZONTAL],
+                            ret |= clSetKernelArg(d->kernel[nlmHorizontal], 2, sizeof(cl_int), &t);
+                            ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[nlmHorizontal],
                                 2, NULL, global_work, local_horiz, 0, NULL, NULL);
-                            ret |= clSetKernelArg(d->kernel[NLM_VERTICAL], 2, sizeof(cl_int), &t);
-                            ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[NLM_VERTICAL],
+                            ret |= clSetKernelArg(d->kernel[nlmVertical], 2, sizeof(cl_int), &t);
+                            ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[nlmVertical],
                                 2, NULL, global_work, local_vert, 0, NULL, NULL);
                             if (k) {
                                 const cl_int t_mq = t - k;
-                                ret |= clSetKernelArg(d->kernel[NLM_DISTANCE_RIGHT], 3, 4 * sizeof(cl_int), &q);
-                                ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[NLM_DISTANCE_RIGHT],
+                                ret |= clSetKernelArg(d->kernel[nlmDistanceRight], 3, 4 * sizeof(cl_int), &q);
+                                ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[nlmDistanceRight],
                                     2, NULL, global_work, NULL, 0, NULL, NULL);
-                                ret |= clSetKernelArg(d->kernel[NLM_HORIZONTAL], 2, sizeof(cl_int), &t_mq);
-                                ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[NLM_HORIZONTAL],
+                                ret |= clSetKernelArg(d->kernel[nlmHorizontal], 2, sizeof(cl_int), &t_mq);
+                                ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[nlmHorizontal],
                                     2, NULL, global_work, local_horiz, 0, NULL, NULL);
-                                ret |= clSetKernelArg(d->kernel[NLM_VERTICAL], 2, sizeof(cl_int), &t_mq);
-                                ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[NLM_VERTICAL],
+                                ret |= clSetKernelArg(d->kernel[nlmVertical], 2, sizeof(cl_int), &t_mq);
+                                ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[nlmVertical],
                                     2, NULL, global_work, local_vert, 0, NULL, NULL);
                             }
-                            ret |= clSetKernelArg(d->kernel[NLM_ACCUMULATION], 5, 4 * sizeof(cl_int), &q);
-                            ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[NLM_ACCUMULATION],
+                            ret |= clSetKernelArg(d->kernel[nlmAccumulation], 5, 4 * sizeof(cl_int), &q);
+                            ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[nlmAccumulation],
                                 2, NULL, global_work, NULL, 0, NULL, NULL);
                         }
                     }
                 }
             }
-            ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[NLM_FINISH], 2, NULL, global_work, NULL, 0, NULL, NULL);
+            ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[nlmFinish], 2, NULL, global_work, NULL, 0, NULL, NULL);
         } else {
             src = vsapi->getFrameFilter(n, d->node, frameCtx);
             ref = (d->knot) ? vsapi->getFrameFilter(n, d->knot, frameCtx) : nullptr;
@@ -936,20 +936,20 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
                 case (NLM_EXTRA_FALSE | NLM_CLIP_UNSIGNED | NLM_COLOR_GRAY):
                     ret |= clEnqueueWriteImage(command_queue, d->mem_P[0], CL_TRUE, origin, region,
                         (size_t) vsapi->getStride(src, 0), 0, vsapi->getReadPtr(src, 0), 0, NULL, NULL);
-                    ret |= clSetKernelArg(d->kernel[NLM_SPATIAL_PACK], 3, sizeof(cl_mem), &d->mem_in[0]);
-                    ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[NLM_SPATIAL_PACK],
+                    ret |= clSetKernelArg(d->kernel[nlmSpatialPack], 3, sizeof(cl_mem), &d->mem_in[0]);
+                    ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[nlmSpatialPack],
                         2, NULL, global_work, NULL, 0, NULL, NULL);
                     break;
                 case (NLM_EXTRA_TRUE | NLM_CLIP_UNSIGNED | NLM_COLOR_GRAY):
                     ret |= clEnqueueWriteImage(command_queue, d->mem_P[0], CL_TRUE, origin, region,
                         (size_t) vsapi->getStride(src, 0), 0, vsapi->getReadPtr(src, 0), 0, NULL, NULL);
-                    ret |= clSetKernelArg(d->kernel[NLM_SPATIAL_PACK], 3, sizeof(cl_mem), &d->mem_in[0]);
-                    ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[NLM_SPATIAL_PACK],
+                    ret |= clSetKernelArg(d->kernel[nlmSpatialPack], 3, sizeof(cl_mem), &d->mem_in[0]);
+                    ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[nlmSpatialPack],
                         2, NULL, global_work, NULL, 0, NULL, NULL);
                     ret |= clEnqueueWriteImage(command_queue, d->mem_P[1], CL_TRUE, origin, region,
                         (size_t) vsapi->getStride(ref, 0), 0, vsapi->getReadPtr(ref, 0), 0, NULL, NULL);
-                    ret |= clSetKernelArg(d->kernel[NLM_SPATIAL_PACK], 3, sizeof(cl_mem), &d->mem_in[1]);
-                    ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[NLM_SPATIAL_PACK],
+                    ret |= clSetKernelArg(d->kernel[nlmSpatialPack], 3, sizeof(cl_mem), &d->mem_in[1]);
+                    ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[nlmSpatialPack],
                         2, NULL, global_work, NULL, 0, NULL, NULL);
                     break;
                 case (NLM_EXTRA_FALSE | NLM_CLIP_UNORM | NLM_COLOR_YUV):
@@ -962,8 +962,8 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
                         (size_t) vsapi->getStride(src, 1), 0, vsapi->getReadPtr(src, 1), 0, NULL, NULL);
                     ret |= clEnqueueWriteImage(command_queue, d->mem_P[2], CL_TRUE, origin, region,
                         (size_t) vsapi->getStride(src, 2), 0, vsapi->getReadPtr(src, 2), 0, NULL, NULL);
-                    ret |= clSetKernelArg(d->kernel[NLM_SPATIAL_PACK], 3, sizeof(cl_mem), &d->mem_in[0]);
-                    ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[NLM_SPATIAL_PACK],
+                    ret |= clSetKernelArg(d->kernel[nlmSpatialPack], 3, sizeof(cl_mem), &d->mem_in[0]);
+                    ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[nlmSpatialPack],
                         2, NULL, global_work, NULL, 0, NULL, NULL);
                     break;
                 case (NLM_EXTRA_TRUE | NLM_CLIP_UNORM | NLM_COLOR_YUV):
@@ -976,8 +976,8 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
                         (size_t) vsapi->getStride(src, 1), 0, vsapi->getReadPtr(src, 1), 0, NULL, NULL);
                     ret |= clEnqueueWriteImage(command_queue, d->mem_P[2], CL_TRUE, origin, region,
                         (size_t) vsapi->getStride(src, 2), 0, vsapi->getReadPtr(src, 2), 0, NULL, NULL);
-                    ret |= clSetKernelArg(d->kernel[NLM_SPATIAL_PACK], 3, sizeof(cl_mem), &d->mem_in[0]);
-                    ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[NLM_SPATIAL_PACK],
+                    ret |= clSetKernelArg(d->kernel[nlmSpatialPack], 3, sizeof(cl_mem), &d->mem_in[0]);
+                    ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[nlmSpatialPack],
                         2, NULL, global_work, NULL, 0, NULL, NULL);
                     ret |= clEnqueueWriteImage(command_queue, d->mem_P[0], CL_TRUE, origin, region,
                         (size_t) vsapi->getStride(ref, 0), 0, vsapi->getReadPtr(ref, 0), 0, NULL, NULL);
@@ -985,8 +985,8 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
                         (size_t) vsapi->getStride(ref, 1), 0, vsapi->getReadPtr(ref, 1), 0, NULL, NULL);
                     ret |= clEnqueueWriteImage(command_queue, d->mem_P[2], CL_TRUE, origin, region,
                         (size_t) vsapi->getStride(ref, 2), 0, vsapi->getReadPtr(ref, 2), 0, NULL, NULL);
-                    ret |= clSetKernelArg(d->kernel[NLM_SPATIAL_PACK], 3, sizeof(cl_mem), &d->mem_in[1]);
-                    ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[NLM_SPATIAL_PACK],
+                    ret |= clSetKernelArg(d->kernel[nlmSpatialPack], 3, sizeof(cl_mem), &d->mem_in[1]);
+                    ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[nlmSpatialPack],
                         2, NULL, global_work, NULL, 0, NULL, NULL);
                     break;
                 default:
@@ -1000,20 +1000,20 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
                 for (int i = int64ToIntS(-d->a); i <= d->a; i++) {
                     if (j * (2 * int64ToIntS(d->a) + 1) + i < 0) {
                         const cl_int q[2] = { i, j };
-                        ret |= clSetKernelArg(d->kernel[NLM_SPATIAL_DISTANCE], 3, 2 * sizeof(cl_int), &q);
-                        ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[NLM_SPATIAL_DISTANCE],
+                        ret |= clSetKernelArg(d->kernel[nlmSpatialDistance], 3, 2 * sizeof(cl_int), &q);
+                        ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[nlmSpatialDistance],
                             2, NULL, global_work, NULL, 0, NULL, NULL);
-                        ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[NLM_SPATIAL_HORIZONTAL],
+                        ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[nlmSpatialHorizontal],
                             2, NULL, global_work, local_horiz, 0, NULL, NULL);
-                        ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[NLM_SPATIAL_VERTICAL],
+                        ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[nlmSpatialVertical],
                             2, NULL, global_work, local_vert, 0, NULL, NULL);
-                        ret |= clSetKernelArg(d->kernel[NLM_SPATIAL_ACCUMULATION], 5, 2 * sizeof(cl_int), &q);
-                        ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[NLM_SPATIAL_ACCUMULATION],
+                        ret |= clSetKernelArg(d->kernel[nlmSpatialAccumulation], 5, 2 * sizeof(cl_int), &q);
+                        ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[nlmSpatialAccumulation],
                             2, NULL, global_work, NULL, 0, NULL, NULL);
                     }
                 }
             }
-            ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[NLM_SPATIAL_FINISH], 2, NULL, global_work, NULL, 0, NULL, NULL);
+            ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[nlmSpatialFinish], 2, NULL, global_work, NULL, 0, NULL, NULL);
         }
         switch (d->clip_t) {
             case (NLM_EXTRA_FALSE | NLM_CLIP_UNORM | NLM_COLOR_GRAY):
@@ -1023,8 +1023,8 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
                 break;
             case (NLM_EXTRA_FALSE | NLM_CLIP_UNSIGNED | NLM_COLOR_GRAY):
             case (NLM_EXTRA_TRUE | NLM_CLIP_UNSIGNED | NLM_COLOR_GRAY):
-                ret |= clSetKernelArg(d->kernel[NLM_UNPACK], 3, sizeof(cl_mem), &d->mem_out);
-                ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[NLM_UNPACK], 2, NULL, global_work, NULL, 0, NULL, NULL);
+                ret |= clSetKernelArg(d->kernel[nlmUnpack], 3, sizeof(cl_mem), &d->mem_out);
+                ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[nlmUnpack], 2, NULL, global_work, NULL, 0, NULL, NULL);
                 ret |= clEnqueueReadImage(command_queue, d->mem_P[0], CL_TRUE, origin, region,
                     (size_t) vsapi->getStride(dst, 0), 0, vsapi->getWritePtr(dst, 0), 0, NULL, NULL);
                 break;
@@ -1036,8 +1036,8 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
             case (NLM_EXTRA_TRUE | NLM_CLIP_UNORM | NLM_COLOR_RGB):
             case (NLM_EXTRA_FALSE | NLM_CLIP_UNSIGNED | NLM_COLOR_RGB):
             case (NLM_EXTRA_TRUE | NLM_CLIP_UNSIGNED | NLM_COLOR_RGB):
-                ret |= clSetKernelArg(d->kernel[NLM_UNPACK], 3, sizeof(cl_mem), &d->mem_out);
-                ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[NLM_UNPACK], 2, NULL, global_work, NULL, 0, NULL, NULL);
+                ret |= clSetKernelArg(d->kernel[nlmUnpack], 3, sizeof(cl_mem), &d->mem_out);
+                ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[nlmUnpack], 2, NULL, global_work, NULL, 0, NULL, NULL);
                 ret |= clEnqueueReadImage(command_queue, d->mem_P[0], CL_TRUE, origin, region,
                     (size_t) vsapi->getStride(dst, 0), 0, vsapi->getWritePtr(dst, 0), 0, NULL, NULL);
                 ret |= clEnqueueReadImage(command_queue, d->mem_P[1], CL_TRUE, origin, region,
@@ -1122,22 +1122,22 @@ _NLMAvisynth::~_NLMAvisynth() {
     clReleaseMemObject(mem_in[1]);
     clReleaseMemObject(mem_in[0]);
     if (d) {
-        clReleaseKernel(kernel[NLM_UNPACK]);
-        clReleaseKernel(kernel[NLM_PACK]);
-        clReleaseKernel(kernel[NLM_FINISH]);
-        clReleaseKernel(kernel[NLM_ACCUMULATION]);
-        clReleaseKernel(kernel[NLM_VERTICAL]);
-        clReleaseKernel(kernel[NLM_HORIZONTAL]);
-        clReleaseKernel(kernel[NLM_DISTANCE_RIGHT]);
-        clReleaseKernel(kernel[NLM_DISTANCE_LEFT]);
+        clReleaseKernel(kernel[nlmUnpack]);
+        clReleaseKernel(kernel[nlmPack]);
+        clReleaseKernel(kernel[nlmFinish]);
+        clReleaseKernel(kernel[nlmAccumulation]);
+        clReleaseKernel(kernel[nlmVertical]);
+        clReleaseKernel(kernel[nlmHorizontal]);
+        clReleaseKernel(kernel[nlmDistanceRight]);
+        clReleaseKernel(kernel[nlmDistanceLeft]);
     } else {
-        clReleaseKernel(kernel[NLM_SPATIAL_UNPACK]);
-        clReleaseKernel(kernel[NLM_SPATIAL_PACK]);
-        clReleaseKernel(kernel[NLM_SPATIAL_FINISH]);
-        clReleaseKernel(kernel[NLM_SPATIAL_ACCUMULATION]);
-        clReleaseKernel(kernel[NLM_SPATIAL_VERTICAL]);
-        clReleaseKernel(kernel[NLM_SPATIAL_HORIZONTAL]);
-        clReleaseKernel(kernel[NLM_SPATIAL_DISTANCE]);
+        clReleaseKernel(kernel[nlmSpatialUnpack]);
+        clReleaseKernel(kernel[nlmSpatialPack]);
+        clReleaseKernel(kernel[nlmSpatialFinish]);
+        clReleaseKernel(kernel[nlmSpatialAccumulation]);
+        clReleaseKernel(kernel[nlmSpatialVertical]);
+        clReleaseKernel(kernel[nlmSpatialHorizontal]);
+        clReleaseKernel(kernel[nlmSpatialDistance]);
     }
     clReleaseProgram(program);
     clReleaseContext(context);
@@ -1163,22 +1163,22 @@ static void VS_CC VapourSynthPluginFree(void *instanceData, VSCore *core, const 
     clReleaseMemObject(d->mem_in[1]);
     clReleaseMemObject(d->mem_in[0]);
     if (d->d) {
-        clReleaseKernel(d->kernel[NLM_UNPACK]);
-        clReleaseKernel(d->kernel[NLM_PACK]);
-        clReleaseKernel(d->kernel[NLM_FINISH]);
-        clReleaseKernel(d->kernel[NLM_ACCUMULATION]);
-        clReleaseKernel(d->kernel[NLM_VERTICAL]);
-        clReleaseKernel(d->kernel[NLM_HORIZONTAL]);
-        clReleaseKernel(d->kernel[NLM_DISTANCE_RIGHT]);
-        clReleaseKernel(d->kernel[NLM_DISTANCE_LEFT]);
+        clReleaseKernel(d->kernel[nlmUnpack]);
+        clReleaseKernel(d->kernel[nlmPack]);
+        clReleaseKernel(d->kernel[nlmFinish]);
+        clReleaseKernel(d->kernel[nlmAccumulation]);
+        clReleaseKernel(d->kernel[nlmVertical]);
+        clReleaseKernel(d->kernel[nlmHorizontal]);
+        clReleaseKernel(d->kernel[nlmDistanceRight]);
+        clReleaseKernel(d->kernel[nlmDistanceLeft]);
     } else {
-        clReleaseKernel(d->kernel[NLM_SPATIAL_UNPACK]);
-        clReleaseKernel(d->kernel[NLM_SPATIAL_PACK]);
-        clReleaseKernel(d->kernel[NLM_SPATIAL_FINISH]);
-        clReleaseKernel(d->kernel[NLM_SPATIAL_ACCUMULATION]);
-        clReleaseKernel(d->kernel[NLM_SPATIAL_VERTICAL]);
-        clReleaseKernel(d->kernel[NLM_SPATIAL_HORIZONTAL]);
-        clReleaseKernel(d->kernel[NLM_SPATIAL_DISTANCE]);
+        clReleaseKernel(d->kernel[nlmSpatialUnpack]);
+        clReleaseKernel(d->kernel[nlmSpatialPack]);
+        clReleaseKernel(d->kernel[nlmSpatialFinish]);
+        clReleaseKernel(d->kernel[nlmSpatialAccumulation]);
+        clReleaseKernel(d->kernel[nlmSpatialVertical]);
+        clReleaseKernel(d->kernel[nlmSpatialHorizontal]);
+        clReleaseKernel(d->kernel[nlmSpatialDistance]);
     }
     clReleaseProgram(d->program);
     clReleaseContext(d->context);
@@ -1612,370 +1612,370 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
 
     // Creates kernel objects.
     if (d.d) {
-        d.kernel[NLM_DISTANCE_LEFT] = clCreateKernel(d.program, "NLM_DISTANCE_LEFT", &ret);
+        d.kernel[nlmDistanceLeft] = clCreateKernel(d.program, "nlmDistanceLeft", &ret);
         if (ret != CL_SUCCESS) {
-            d.oclErrorCheck("clCreateKernel(NLM_DISTANCE_LEFT)", ret, out, vsapi);
+            d.oclErrorCheck("clCreateKernel(nlmDistanceLeft)", ret, out, vsapi);
             return;
         }
-        d.kernel[NLM_DISTANCE_RIGHT] = clCreateKernel(d.program, "NLM_DISTANCE_RIGHT", &ret);
+        d.kernel[nlmDistanceRight] = clCreateKernel(d.program, "nlmDistanceRight", &ret);
         if (ret != CL_SUCCESS) {
-            d.oclErrorCheck("clCreateKernel(NLM_DISTANCE_RIGHT)", ret, out, vsapi);
+            d.oclErrorCheck("clCreateKernel(nlmDistanceRight)", ret, out, vsapi);
             return;
         }
-        d.kernel[NLM_HORIZONTAL] = clCreateKernel(d.program, "NLM_HORIZONTAL", &ret);
+        d.kernel[nlmHorizontal] = clCreateKernel(d.program, "nlmHorizontal", &ret);
         if (ret != CL_SUCCESS) {
-            d.oclErrorCheck("clCreateKernel(NLM_HORIZONTAL)", ret, out, vsapi);
+            d.oclErrorCheck("clCreateKernel(nlmHorizontal)", ret, out, vsapi);
             return;
         }
-        d.kernel[NLM_VERTICAL] = clCreateKernel(d.program, "NLM_VERTICAL", &ret);
+        d.kernel[nlmVertical] = clCreateKernel(d.program, "nlmVertical", &ret);
         if (ret != CL_SUCCESS) {
-            d.oclErrorCheck("clCreateKernel(NLM_VERTICAL)", ret, out, vsapi);
+            d.oclErrorCheck("clCreateKernel(nlmVertical)", ret, out, vsapi);
             return;
         }
-        d.kernel[NLM_ACCUMULATION] = clCreateKernel(d.program, "NLM_ACCUMULATION", &ret);
+        d.kernel[nlmAccumulation] = clCreateKernel(d.program, "nlmAccumulation", &ret);
         if (ret != CL_SUCCESS) {
-            d.oclErrorCheck("clCreateKernel(NLM_ACCUMULATION)", ret, out, vsapi);
+            d.oclErrorCheck("clCreateKernel(nlmAccumulation)", ret, out, vsapi);
             return;
         }
-        d.kernel[NLM_FINISH] = clCreateKernel(d.program, "NLM_FINISH", &ret);
+        d.kernel[nlmFinish] = clCreateKernel(d.program, "nlmFinish", &ret);
         if (ret != CL_SUCCESS) {
-            d.oclErrorCheck("clCreateKernel(NLM_FINISH)", ret, out, vsapi);
+            d.oclErrorCheck("clCreateKernel(nlmFinish)", ret, out, vsapi);
             return;
         }
-        d.kernel[NLM_PACK] = clCreateKernel(d.program, "NLM_PACK", &ret);
+        d.kernel[nlmPack] = clCreateKernel(d.program, "nlmPack", &ret);
         if (ret != CL_SUCCESS) {
-            d.oclErrorCheck("clCreateKernel(NLM_PACK)", ret, out, vsapi);
+            d.oclErrorCheck("clCreateKernel(nlmPack)", ret, out, vsapi);
             return;
         }
-        d.kernel[NLM_UNPACK] = clCreateKernel(d.program, "NLM_UNPACK", &ret);
+        d.kernel[nlmUnpack] = clCreateKernel(d.program, "nlmUnpack", &ret);
         if (ret != CL_SUCCESS) {
-            d.oclErrorCheck("clCreateKernel(NLM_UNPACK)", ret, out, vsapi);
+            d.oclErrorCheck("clCreateKernel(nlmUnpack)", ret, out, vsapi);
             return;
         }
     } else {
-        d.kernel[NLM_SPATIAL_DISTANCE] = clCreateKernel(d.program, "NLM_SPATIAL_DISTANCE", &ret);
+        d.kernel[nlmSpatialDistance] = clCreateKernel(d.program, "nlmSpatialDistance", &ret);
         if (ret != CL_SUCCESS) {
-            d.oclErrorCheck("clCreateKernel(NLM_SPATIAL_DISTANCE)", ret, out, vsapi);
+            d.oclErrorCheck("clCreateKernel(nlmSpatialDistance)", ret, out, vsapi);
             return;
         }
-        d.kernel[NLM_SPATIAL_HORIZONTAL] = clCreateKernel(d.program, "NLM_SPATIAL_HORIZONTAL", &ret);
+        d.kernel[nlmSpatialHorizontal] = clCreateKernel(d.program, "nlmSpatialHorizontal", &ret);
         if (ret != CL_SUCCESS) {
-            d.oclErrorCheck("clCreateKernel(NLM_SPATIAL_HORIZONTAL)", ret, out, vsapi);
+            d.oclErrorCheck("clCreateKernel(nlmSpatialHorizontal)", ret, out, vsapi);
             return;
         }
-        d.kernel[NLM_SPATIAL_VERTICAL] = clCreateKernel(d.program, "NLM_SPATIAL_VERTICAL", &ret);
+        d.kernel[nlmSpatialVertical] = clCreateKernel(d.program, "nlmSpatialVertical", &ret);
         if (ret != CL_SUCCESS) {
-            d.oclErrorCheck("clCreateKernel(NLM_SPATIAL_VERTICAL)", ret, out, vsapi);
+            d.oclErrorCheck("clCreateKernel(nlmSpatialVertical)", ret, out, vsapi);
             return;
         }
-        d.kernel[NLM_SPATIAL_ACCUMULATION] = clCreateKernel(d.program, "NLM_SPATIAL_ACCUMULATION", &ret);
+        d.kernel[nlmSpatialAccumulation] = clCreateKernel(d.program, "nlmSpatialAccumulation", &ret);
         if (ret != CL_SUCCESS) {
-            d.oclErrorCheck("clCreateKernel(NLM_SPATIAL_ACCUMULATION)", ret, out, vsapi);
+            d.oclErrorCheck("clCreateKernel(nlmSpatialAccumulation)", ret, out, vsapi);
             return;
         }
-        d.kernel[NLM_SPATIAL_FINISH] = clCreateKernel(d.program, "NLM_SPATIAL_FINISH", &ret);
+        d.kernel[nlmSpatialFinish] = clCreateKernel(d.program, "nlmSpatialFinish", &ret);
         if (ret != CL_SUCCESS) {
-            d.oclErrorCheck("clCreateKernel(NLM_SPATIAL_FINISH)", ret, out, vsapi);
+            d.oclErrorCheck("clCreateKernel(nlmSpatialFinish)", ret, out, vsapi);
             return;
         }
-        d.kernel[NLM_SPATIAL_PACK] = clCreateKernel(d.program, "NLM_SPATIAL_PACK", &ret);
+        d.kernel[nlmSpatialPack] = clCreateKernel(d.program, "nlmSpatialPack", &ret);
         if (ret != CL_SUCCESS) {
-            d.oclErrorCheck("clCreateKernel(NLM_SPATIAL_PACK)", ret, out, vsapi);
+            d.oclErrorCheck("clCreateKernel(nlmSpatialPack)", ret, out, vsapi);
             return;
         }
-        d.kernel[NLM_SPATIAL_UNPACK] = clCreateKernel(d.program, "NLM_SPATIAL_UNPACK", &ret);
+        d.kernel[nlmSpatialUnpack] = clCreateKernel(d.program, "nlmSpatialUnpack", &ret);
         if (ret != CL_SUCCESS) {
-            d.oclErrorCheck("clCreateKernel(NLM_SPATIAL_UNPACK)", ret, out, vsapi);
+            d.oclErrorCheck("clCreateKernel(nlmSpatialUnpack)", ret, out, vsapi);
             return;
         }
     }
 
     // Sets kernel arguments.
     if (d.d) {
-        ret = clSetKernelArg(d.kernel[NLM_DISTANCE_LEFT], 0, sizeof(cl_mem), &d.mem_in[(d.clip_t & NLM_EXTRA_FALSE) ? 0 : 1]);
+        ret = clSetKernelArg(d.kernel[nlmDistanceLeft], 0, sizeof(cl_mem), &d.mem_in[(d.clip_t & NLM_EXTRA_FALSE) ? 0 : 1]);
         if (ret != CL_SUCCESS) {
-            d.oclErrorCheck("clCreateKernel(NLM_DISTANCE_LEFT[0])", ret, out, vsapi);
+            d.oclErrorCheck("clCreateKernel(nlmDistanceLeft[0])", ret, out, vsapi);
             return;
         }
-        ret = clSetKernelArg(d.kernel[NLM_DISTANCE_LEFT], 1, sizeof(cl_mem), &d.mem_U[1]);
+        ret = clSetKernelArg(d.kernel[nlmDistanceLeft], 1, sizeof(cl_mem), &d.mem_U[1]);
         if (ret != CL_SUCCESS) {
-            d.oclErrorCheck("clCreateKernel(NLM_DISTANCE_LEFT[1])", ret, out, vsapi);
+            d.oclErrorCheck("clCreateKernel(nlmDistanceLeft[1])", ret, out, vsapi);
             return;
         }
-        ret = clSetKernelArg(d.kernel[NLM_DISTANCE_LEFT], 2, 2 * sizeof(cl_uint), &d.idmn);
+        ret = clSetKernelArg(d.kernel[nlmDistanceLeft], 2, 2 * sizeof(cl_uint), &d.idmn);
         if (ret != CL_SUCCESS) {
-            d.oclErrorCheck("clCreateKernel(NLM_DISTANCE_LEFT[2])", ret, out, vsapi);
+            d.oclErrorCheck("clCreateKernel(nlmDistanceLeft[2])", ret, out, vsapi);
             return;
         }
-        ret = clSetKernelArg(d.kernel[NLM_DISTANCE_RIGHT], 0, sizeof(cl_mem), &d.mem_in[(d.clip_t & NLM_EXTRA_FALSE) ? 0 : 1]);
+        ret = clSetKernelArg(d.kernel[nlmDistanceRight], 0, sizeof(cl_mem), &d.mem_in[(d.clip_t & NLM_EXTRA_FALSE) ? 0 : 1]);
         if (ret != CL_SUCCESS) {
-            d.oclErrorCheck("clCreateKernel(NLM_DISTANCE_RIGHT[0])", ret, out, vsapi);
+            d.oclErrorCheck("clCreateKernel(nlmDistanceRight[0])", ret, out, vsapi);
             return;
         }
-        ret = clSetKernelArg(d.kernel[NLM_DISTANCE_RIGHT], 1, sizeof(cl_mem), &d.mem_U[1]);
+        ret = clSetKernelArg(d.kernel[nlmDistanceRight], 1, sizeof(cl_mem), &d.mem_U[1]);
         if (ret != CL_SUCCESS) {
-            d.oclErrorCheck("clCreateKernel(NLM_DISTANCE_RIGHT[1])", ret, out, vsapi);
+            d.oclErrorCheck("clCreateKernel(nlmDistanceRight[1])", ret, out, vsapi);
             return;
         }
-        ret = clSetKernelArg(d.kernel[NLM_DISTANCE_RIGHT], 2, 2 * sizeof(cl_uint), &d.idmn);
+        ret = clSetKernelArg(d.kernel[nlmDistanceRight], 2, 2 * sizeof(cl_uint), &d.idmn);
         if (ret != CL_SUCCESS) {
-            d.oclErrorCheck("clCreateKernel(NLM_DISTANCE_RIGHT[2])", ret, out, vsapi);
+            d.oclErrorCheck("clCreateKernel(nlmDistanceRight[2])", ret, out, vsapi);
             return;
         }
-        ret = clSetKernelArg(d.kernel[NLM_HORIZONTAL], 0, sizeof(cl_mem), &d.mem_U[1]);
+        ret = clSetKernelArg(d.kernel[nlmHorizontal], 0, sizeof(cl_mem), &d.mem_U[1]);
         if (ret != CL_SUCCESS) {
-            d.oclErrorCheck("clCreateKernel(NLM_HORIZONTAL[0])", ret, out, vsapi);
+            d.oclErrorCheck("clCreateKernel(nlmHorizontal[0])", ret, out, vsapi);
             return;
         }
-        ret = clSetKernelArg(d.kernel[NLM_HORIZONTAL], 1, sizeof(cl_mem), &d.mem_U[2]);
+        ret = clSetKernelArg(d.kernel[nlmHorizontal], 1, sizeof(cl_mem), &d.mem_U[2]);
         if (ret != CL_SUCCESS) {
-            d.oclErrorCheck("clCreateKernel(NLM_HORIZONTAL[1])", ret, out, vsapi);
+            d.oclErrorCheck("clCreateKernel(nlmHorizontal[1])", ret, out, vsapi);
             return;
         }
-        ret = clSetKernelArg(d.kernel[NLM_HORIZONTAL], 3, 2 * sizeof(cl_uint), &d.idmn);
+        ret = clSetKernelArg(d.kernel[nlmHorizontal], 3, 2 * sizeof(cl_uint), &d.idmn);
         if (ret != CL_SUCCESS) {
-            d.oclErrorCheck("clCreateKernel(NLM_HORIZONTAL[3])", ret, out, vsapi);
+            d.oclErrorCheck("clCreateKernel(nlmHorizontal[3])", ret, out, vsapi);
             return;
         }
-        ret = clSetKernelArg(d.kernel[NLM_VERTICAL], 0, sizeof(cl_mem), &d.mem_U[2]);
+        ret = clSetKernelArg(d.kernel[nlmVertical], 0, sizeof(cl_mem), &d.mem_U[2]);
         if (ret != CL_SUCCESS) {
-            d.oclErrorCheck("clCreateKernel(NLM_VERTICAL[0])", ret, out, vsapi);
+            d.oclErrorCheck("clCreateKernel(nlmVertical[0])", ret, out, vsapi);
             return;
         }
-        ret = clSetKernelArg(d.kernel[NLM_VERTICAL], 1, sizeof(cl_mem), &d.mem_U[1]);
+        ret = clSetKernelArg(d.kernel[nlmVertical], 1, sizeof(cl_mem), &d.mem_U[1]);
         if (ret != CL_SUCCESS) {
-            d.oclErrorCheck("clCreateKernel(NLM_VERTICAL[1])", ret, out, vsapi);
+            d.oclErrorCheck("clCreateKernel(nlmVertical[1])", ret, out, vsapi);
             return;
         }
-        ret = clSetKernelArg(d.kernel[NLM_VERTICAL], 3, 2 * sizeof(cl_uint), &d.idmn);
+        ret = clSetKernelArg(d.kernel[nlmVertical], 3, 2 * sizeof(cl_uint), &d.idmn);
         if (ret != CL_SUCCESS) {
-            d.oclErrorCheck("clCreateKernel(NLM_VERTICAL[3])", ret, out, vsapi);
+            d.oclErrorCheck("clCreateKernel(nlmVertical[3])", ret, out, vsapi);
             return;
         }
-        ret = clSetKernelArg(d.kernel[NLM_ACCUMULATION], 0, sizeof(cl_mem), &d.mem_in[0]);
+        ret = clSetKernelArg(d.kernel[nlmAccumulation], 0, sizeof(cl_mem), &d.mem_in[0]);
         if (ret != CL_SUCCESS) {
-            d.oclErrorCheck("clCreateKernel(NLM_ACCUMULATION[0])", ret, out, vsapi);
+            d.oclErrorCheck("clCreateKernel(nlmAccumulation[0])", ret, out, vsapi);
             return;
         }
-        ret = clSetKernelArg(d.kernel[NLM_ACCUMULATION], 1, sizeof(cl_mem), &d.mem_U[0]);
+        ret = clSetKernelArg(d.kernel[nlmAccumulation], 1, sizeof(cl_mem), &d.mem_U[0]);
         if (ret != CL_SUCCESS) {
-            d.oclErrorCheck("clCreateKernel(NLM_ACCUMULATION[1])", ret, out, vsapi);
+            d.oclErrorCheck("clCreateKernel(nlmAccumulation[1])", ret, out, vsapi);
             return;
         }
-        ret = clSetKernelArg(d.kernel[NLM_ACCUMULATION], 2, sizeof(cl_mem), &d.mem_U[1]);
+        ret = clSetKernelArg(d.kernel[nlmAccumulation], 2, sizeof(cl_mem), &d.mem_U[1]);
         if (ret != CL_SUCCESS) {
-            d.oclErrorCheck("clCreateKernel(NLM_ACCUMULATION[2])", ret, out, vsapi);
+            d.oclErrorCheck("clCreateKernel(nlmAccumulation[2])", ret, out, vsapi);
             return;
         }
-        ret = clSetKernelArg(d.kernel[NLM_ACCUMULATION], 3, sizeof(cl_mem), &d.mem_U[3]);
+        ret = clSetKernelArg(d.kernel[nlmAccumulation], 3, sizeof(cl_mem), &d.mem_U[3]);
         if (ret != CL_SUCCESS) {
-            d.oclErrorCheck("clCreateKernel(NLM_ACCUMULATION[3])", ret, out, vsapi);
+            d.oclErrorCheck("clCreateKernel(nlmAccumulation[3])", ret, out, vsapi);
             return;
         }
-        ret = clSetKernelArg(d.kernel[NLM_ACCUMULATION], 4, 2 * sizeof(cl_uint), &d.idmn);
+        ret = clSetKernelArg(d.kernel[nlmAccumulation], 4, 2 * sizeof(cl_uint), &d.idmn);
         if (ret != CL_SUCCESS) {
-            d.oclErrorCheck("clCreateKernel(NLM_ACCUMULATION[4])", ret, out, vsapi);
+            d.oclErrorCheck("clCreateKernel(nlmAccumulation[4])", ret, out, vsapi);
             return;
         }
-        ret = clSetKernelArg(d.kernel[NLM_FINISH], 0, sizeof(cl_mem), &d.mem_in[0]);
+        ret = clSetKernelArg(d.kernel[nlmFinish], 0, sizeof(cl_mem), &d.mem_in[0]);
         if (ret != CL_SUCCESS) {
-            d.oclErrorCheck("clCreateKernel(NLM_FINISH[0])", ret, out, vsapi);
+            d.oclErrorCheck("clCreateKernel(nlmFinish[0])", ret, out, vsapi);
             return;
         }
-        ret = clSetKernelArg(d.kernel[NLM_FINISH], 1, sizeof(cl_mem), &d.mem_out);
+        ret = clSetKernelArg(d.kernel[nlmFinish], 1, sizeof(cl_mem), &d.mem_out);
         if (ret != CL_SUCCESS) {
-            d.oclErrorCheck("clCreateKernel(NLM_FINISH[1])", ret, out, vsapi);
+            d.oclErrorCheck("clCreateKernel(nlmFinish[1])", ret, out, vsapi);
             return;
         }
-        ret = clSetKernelArg(d.kernel[NLM_FINISH], 2, sizeof(cl_mem), &d.mem_U[0]);
+        ret = clSetKernelArg(d.kernel[nlmFinish], 2, sizeof(cl_mem), &d.mem_U[0]);
         if (ret != CL_SUCCESS) {
-            d.oclErrorCheck("clCreateKernel(NLM_FINISH[2])", ret, out, vsapi);
+            d.oclErrorCheck("clCreateKernel(nlmFinish[2])", ret, out, vsapi);
             return;
         }
-        ret = clSetKernelArg(d.kernel[NLM_FINISH], 3, sizeof(cl_mem), &d.mem_U[3]);
+        ret = clSetKernelArg(d.kernel[nlmFinish], 3, sizeof(cl_mem), &d.mem_U[3]);
         if (ret != CL_SUCCESS) {
-            d.oclErrorCheck("clCreateKernel(NLM_FINISH[3])", ret, out, vsapi);
+            d.oclErrorCheck("clCreateKernel(nlmFinish[3])", ret, out, vsapi);
             return;
         }
-        ret = clSetKernelArg(d.kernel[NLM_FINISH], 4, 2 * sizeof(cl_uint), &d.idmn);
+        ret = clSetKernelArg(d.kernel[nlmFinish], 4, 2 * sizeof(cl_uint), &d.idmn);
         if (ret != CL_SUCCESS) {
-            d.oclErrorCheck("clCreateKernel(NLM_FINISH[4])", ret, out, vsapi);
+            d.oclErrorCheck("clCreateKernel(nlmFinish[4])", ret, out, vsapi);
             return;
         }
-        ret = clSetKernelArg(d.kernel[NLM_PACK], 0, sizeof(cl_mem), &d.mem_P[0]);
+        ret = clSetKernelArg(d.kernel[nlmPack], 0, sizeof(cl_mem), &d.mem_P[0]);
         if (ret != CL_SUCCESS) {
-            d.oclErrorCheck("clCreateKernel(NLM_PACK[0])", ret, out, vsapi);
+            d.oclErrorCheck("clCreateKernel(nlmPack[0])", ret, out, vsapi);
             return;
         }
-        ret = clSetKernelArg(d.kernel[NLM_PACK], 1, sizeof(cl_mem), &d.mem_P[1]);
+        ret = clSetKernelArg(d.kernel[nlmPack], 1, sizeof(cl_mem), &d.mem_P[1]);
         if (ret != CL_SUCCESS) {
-            d.oclErrorCheck("clCreateKernel(NLM_PACK[1])", ret, out, vsapi);
+            d.oclErrorCheck("clCreateKernel(nlmPack[1])", ret, out, vsapi);
             return;
         }
-        ret = clSetKernelArg(d.kernel[NLM_PACK], 2, sizeof(cl_mem), &d.mem_P[2]);
+        ret = clSetKernelArg(d.kernel[nlmPack], 2, sizeof(cl_mem), &d.mem_P[2]);
         if (ret != CL_SUCCESS) {
-            d.oclErrorCheck("clCreateKernel(NLM_PACK[2])", ret, out, vsapi);
+            d.oclErrorCheck("clCreateKernel(nlmPack[2])", ret, out, vsapi);
             return;
         }
-        ret = clSetKernelArg(d.kernel[NLM_PACK], 5, 2 * sizeof(cl_uint), &d.idmn);
+        ret = clSetKernelArg(d.kernel[nlmPack], 5, 2 * sizeof(cl_uint), &d.idmn);
         if (ret != CL_SUCCESS) {
-            d.oclErrorCheck("clCreateKernel(NLM_PACK[5])", ret, out, vsapi);
+            d.oclErrorCheck("clCreateKernel(nlmPack[5])", ret, out, vsapi);
             return;
         }
-        ret = clSetKernelArg(d.kernel[NLM_UNPACK], 0, sizeof(cl_mem), &d.mem_P[0]);
+        ret = clSetKernelArg(d.kernel[nlmUnpack], 0, sizeof(cl_mem), &d.mem_P[0]);
         if (ret != CL_SUCCESS) {
-            d.oclErrorCheck("clCreateKernel(NLM_UNPACK[0])", ret, out, vsapi);
+            d.oclErrorCheck("clCreateKernel(nlmUnpack[0])", ret, out, vsapi);
             return;
         }
-        ret = clSetKernelArg(d.kernel[NLM_UNPACK], 1, sizeof(cl_mem), &d.mem_P[1]);
+        ret = clSetKernelArg(d.kernel[nlmUnpack], 1, sizeof(cl_mem), &d.mem_P[1]);
         if (ret != CL_SUCCESS) {
-            d.oclErrorCheck("clCreateKernel(NLM_UNPACK[1])", ret, out, vsapi);
+            d.oclErrorCheck("clCreateKernel(nlmUnpack[1])", ret, out, vsapi);
             return;
         }
-        ret = clSetKernelArg(d.kernel[NLM_UNPACK], 2, sizeof(cl_mem), &d.mem_P[2]);
+        ret = clSetKernelArg(d.kernel[nlmUnpack], 2, sizeof(cl_mem), &d.mem_P[2]);
         if (ret != CL_SUCCESS) {
-            d.oclErrorCheck("clCreateKernel(NLM_UNPACK[2])", ret, out, vsapi);
+            d.oclErrorCheck("clCreateKernel(nlmUnpack[2])", ret, out, vsapi);
             return;
         }
-        ret = clSetKernelArg(d.kernel[NLM_UNPACK], 4, 2 * sizeof(cl_uint), &d.idmn);
+        ret = clSetKernelArg(d.kernel[nlmUnpack], 4, 2 * sizeof(cl_uint), &d.idmn);
         if (ret != CL_SUCCESS) {
-            d.oclErrorCheck("clCreateKernel(NLM_UNPACK[4])", ret, out, vsapi);
+            d.oclErrorCheck("clCreateKernel(nlmUnpack[4])", ret, out, vsapi);
             return;
         }
     } else {
-        ret = clSetKernelArg(d.kernel[NLM_SPATIAL_DISTANCE], 0, sizeof(cl_mem), &d.mem_in[(d.clip_t & NLM_EXTRA_FALSE) ? 0 : 1]);
+        ret = clSetKernelArg(d.kernel[nlmSpatialDistance], 0, sizeof(cl_mem), &d.mem_in[(d.clip_t & NLM_EXTRA_FALSE) ? 0 : 1]);
         if (ret != CL_SUCCESS) {
-            d.oclErrorCheck("clCreateKernel(NLM_SPATIAL_DISTANCE[0])", ret, out, vsapi);
+            d.oclErrorCheck("clCreateKernel(nlmSpatialDistance[0])", ret, out, vsapi);
             return;
         }
-        ret = clSetKernelArg(d.kernel[NLM_SPATIAL_DISTANCE], 1, sizeof(cl_mem), &d.mem_U[1]);
+        ret = clSetKernelArg(d.kernel[nlmSpatialDistance], 1, sizeof(cl_mem), &d.mem_U[1]);
         if (ret != CL_SUCCESS) {
-            d.oclErrorCheck("clCreateKernel(NLM_SPATIAL_DISTANCE[1])", ret, out, vsapi);
+            d.oclErrorCheck("clCreateKernel(nlmSpatialDistance[1])", ret, out, vsapi);
             return;
         }
-        ret = clSetKernelArg(d.kernel[NLM_SPATIAL_DISTANCE], 2, 2 * sizeof(cl_uint), &d.idmn);
+        ret = clSetKernelArg(d.kernel[nlmSpatialDistance], 2, 2 * sizeof(cl_uint), &d.idmn);
         if (ret != CL_SUCCESS) {
-            d.oclErrorCheck("clCreateKernel(NLM_SPATIAL_DISTANCE[2])", ret, out, vsapi);
+            d.oclErrorCheck("clCreateKernel(nlmSpatialDistance[2])", ret, out, vsapi);
             return;
         }
-        ret = clSetKernelArg(d.kernel[NLM_SPATIAL_HORIZONTAL], 0, sizeof(cl_mem), &d.mem_U[1]);
+        ret = clSetKernelArg(d.kernel[nlmSpatialHorizontal], 0, sizeof(cl_mem), &d.mem_U[1]);
         if (ret != CL_SUCCESS) {
-            d.oclErrorCheck("clCreateKernel(NLM_SPATIAL_HORIZONTAL[0])", ret, out, vsapi);
+            d.oclErrorCheck("clCreateKernel(nlmSpatialHorizontal[0])", ret, out, vsapi);
             return;
         }
-        ret = clSetKernelArg(d.kernel[NLM_SPATIAL_HORIZONTAL], 1, sizeof(cl_mem), &d.mem_U[2]);
+        ret = clSetKernelArg(d.kernel[nlmSpatialHorizontal], 1, sizeof(cl_mem), &d.mem_U[2]);
         if (ret != CL_SUCCESS) {
-            d.oclErrorCheck("clCreateKernel(NLM_SPATIAL_HORIZONTAL[1])", ret, out, vsapi);
+            d.oclErrorCheck("clCreateKernel(nlmSpatialHorizontal[1])", ret, out, vsapi);
             return;
         }
-        ret = clSetKernelArg(d.kernel[NLM_SPATIAL_HORIZONTAL], 2, 2 * sizeof(cl_uint), &d.idmn);
+        ret = clSetKernelArg(d.kernel[nlmSpatialHorizontal], 2, 2 * sizeof(cl_uint), &d.idmn);
         if (ret != CL_SUCCESS) {
-            d.oclErrorCheck("clCreateKernel(NLM_SPATIAL_HORIZONTAL[2])", ret, out, vsapi);
+            d.oclErrorCheck("clCreateKernel(nlmSpatialHorizontal[2])", ret, out, vsapi);
             return;
         }
-        ret = clSetKernelArg(d.kernel[NLM_SPATIAL_VERTICAL], 0, sizeof(cl_mem), &d.mem_U[2]);
+        ret = clSetKernelArg(d.kernel[nlmSpatialVertical], 0, sizeof(cl_mem), &d.mem_U[2]);
         if (ret != CL_SUCCESS) {
-            d.oclErrorCheck("clCreateKernel(NLM_SPATIAL_VERTICAL[0])", ret, out, vsapi);
+            d.oclErrorCheck("clCreateKernel(nlmSpatialVertical[0])", ret, out, vsapi);
             return;
         }
-        ret = clSetKernelArg(d.kernel[NLM_SPATIAL_VERTICAL], 1, sizeof(cl_mem), &d.mem_U[1]);
+        ret = clSetKernelArg(d.kernel[nlmSpatialVertical], 1, sizeof(cl_mem), &d.mem_U[1]);
         if (ret != CL_SUCCESS) {
-            d.oclErrorCheck("clCreateKernel(NLM_SPATIAL_VERTICAL[1])", ret, out, vsapi);
+            d.oclErrorCheck("clCreateKernel(nlmSpatialVertical[1])", ret, out, vsapi);
             return;
         }
-        ret = clSetKernelArg(d.kernel[NLM_SPATIAL_VERTICAL], 2, 2 * sizeof(cl_uint), &d.idmn);
+        ret = clSetKernelArg(d.kernel[nlmSpatialVertical], 2, 2 * sizeof(cl_uint), &d.idmn);
         if (ret != CL_SUCCESS) {
-            d.oclErrorCheck("clCreateKernel(NLM_SPATIAL_VERTICAL[2])", ret, out, vsapi);
+            d.oclErrorCheck("clCreateKernel(nlmSpatialVertical[2])", ret, out, vsapi);
             return;
         }
-        ret = clSetKernelArg(d.kernel[NLM_SPATIAL_ACCUMULATION], 0, sizeof(cl_mem), &d.mem_in[0]);
+        ret = clSetKernelArg(d.kernel[nlmSpatialAccumulation], 0, sizeof(cl_mem), &d.mem_in[0]);
         if (ret != CL_SUCCESS) {
-            d.oclErrorCheck("clCreateKernel(NLM_SPATIAL_ACCUMULATION[0])", ret, out, vsapi);
+            d.oclErrorCheck("clCreateKernel(nlmSpatialAccumulation[0])", ret, out, vsapi);
             return;
         }
-        ret = clSetKernelArg(d.kernel[NLM_SPATIAL_ACCUMULATION], 1, sizeof(cl_mem), &d.mem_U[0]);
+        ret = clSetKernelArg(d.kernel[nlmSpatialAccumulation], 1, sizeof(cl_mem), &d.mem_U[0]);
         if (ret != CL_SUCCESS) {
-            d.oclErrorCheck("clCreateKernel(NLM_SPATIAL_ACCUMULATION[1])", ret, out, vsapi);
+            d.oclErrorCheck("clCreateKernel(nlmSpatialAccumulation[1])", ret, out, vsapi);
             return;
         }
-        ret = clSetKernelArg(d.kernel[NLM_SPATIAL_ACCUMULATION], 2, sizeof(cl_mem), &d.mem_U[1]);
+        ret = clSetKernelArg(d.kernel[nlmSpatialAccumulation], 2, sizeof(cl_mem), &d.mem_U[1]);
         if (ret != CL_SUCCESS) {
-            d.oclErrorCheck("clCreateKernel(NLM_SPATIAL_ACCUMULATION[2])", ret, out, vsapi);
+            d.oclErrorCheck("clCreateKernel(nlmSpatialAccumulation[2])", ret, out, vsapi);
             return;
         }
-        ret = clSetKernelArg(d.kernel[NLM_SPATIAL_ACCUMULATION], 3, sizeof(cl_mem), &d.mem_U[3]);
+        ret = clSetKernelArg(d.kernel[nlmSpatialAccumulation], 3, sizeof(cl_mem), &d.mem_U[3]);
         if (ret != CL_SUCCESS) {
-            d.oclErrorCheck("clCreateKernel(NLM_SPATIAL_ACCUMULATION[3])", ret, out, vsapi);
+            d.oclErrorCheck("clCreateKernel(nlmSpatialAccumulation[3])", ret, out, vsapi);
             return;
         }
-        ret = clSetKernelArg(d.kernel[NLM_SPATIAL_ACCUMULATION], 4, 2 * sizeof(cl_uint), &d.idmn);
+        ret = clSetKernelArg(d.kernel[nlmSpatialAccumulation], 4, 2 * sizeof(cl_uint), &d.idmn);
         if (ret != CL_SUCCESS) {
-            d.oclErrorCheck("clCreateKernel(NLM_SPATIAL_ACCUMULATION[4])", ret, out, vsapi);
+            d.oclErrorCheck("clCreateKernel(nlmSpatialAccumulation[4])", ret, out, vsapi);
             return;
         }
-        ret = clSetKernelArg(d.kernel[NLM_SPATIAL_FINISH], 0, sizeof(cl_mem), &d.mem_in[0]);
+        ret = clSetKernelArg(d.kernel[nlmSpatialFinish], 0, sizeof(cl_mem), &d.mem_in[0]);
         if (ret != CL_SUCCESS) {
-            d.oclErrorCheck("clCreateKernel(NLM_SPATIAL_FINISH[0])", ret, out, vsapi);
+            d.oclErrorCheck("clCreateKernel(nlmSpatialFinish[0])", ret, out, vsapi);
             return;
         }
-        ret = clSetKernelArg(d.kernel[NLM_SPATIAL_FINISH], 1, sizeof(cl_mem), &d.mem_out);
+        ret = clSetKernelArg(d.kernel[nlmSpatialFinish], 1, sizeof(cl_mem), &d.mem_out);
         if (ret != CL_SUCCESS) {
-            d.oclErrorCheck("clCreateKernel(NLM_SPATIAL_FINISH[1])", ret, out, vsapi);
+            d.oclErrorCheck("clCreateKernel(nlmSpatialFinish[1])", ret, out, vsapi);
             return;
         }
-        ret = clSetKernelArg(d.kernel[NLM_SPATIAL_FINISH], 2, sizeof(cl_mem), &d.mem_U[0]);
+        ret = clSetKernelArg(d.kernel[nlmSpatialFinish], 2, sizeof(cl_mem), &d.mem_U[0]);
         if (ret != CL_SUCCESS) {
-            d.oclErrorCheck("clCreateKernel(NLM_SPATIAL_FINISH[2])", ret, out, vsapi);
+            d.oclErrorCheck("clCreateKernel(nlmSpatialFinish[2])", ret, out, vsapi);
             return;
         }
-        ret = clSetKernelArg(d.kernel[NLM_SPATIAL_FINISH], 3, sizeof(cl_mem), &d.mem_U[3]);
+        ret = clSetKernelArg(d.kernel[nlmSpatialFinish], 3, sizeof(cl_mem), &d.mem_U[3]);
         if (ret != CL_SUCCESS) {
-            d.oclErrorCheck("clCreateKernel(NLM_SPATIAL_FINISH[3])", ret, out, vsapi);
+            d.oclErrorCheck("clCreateKernel(nlmSpatialFinish[3])", ret, out, vsapi);
             return;
         }
-        ret = clSetKernelArg(d.kernel[NLM_SPATIAL_FINISH], 4, 2 * sizeof(cl_uint), &d.idmn);
+        ret = clSetKernelArg(d.kernel[nlmSpatialFinish], 4, 2 * sizeof(cl_uint), &d.idmn);
         if (ret != CL_SUCCESS) {
-            d.oclErrorCheck("clCreateKernel(NLM_SPATIAL_FINISH[4])", ret, out, vsapi);
+            d.oclErrorCheck("clCreateKernel(nlmSpatialFinish[4])", ret, out, vsapi);
             return;
         }
-        ret = clSetKernelArg(d.kernel[NLM_SPATIAL_PACK], 0, sizeof(cl_mem), &d.mem_P[0]);
+        ret = clSetKernelArg(d.kernel[nlmSpatialPack], 0, sizeof(cl_mem), &d.mem_P[0]);
         if (ret != CL_SUCCESS) {
-            d.oclErrorCheck("clCreateKernel(NLM_SPATIAL_PACK[0])", ret, out, vsapi);
+            d.oclErrorCheck("clCreateKernel(nlmSpatialPack[0])", ret, out, vsapi);
             return;
         }
-        ret = clSetKernelArg(d.kernel[NLM_SPATIAL_PACK], 1, sizeof(cl_mem), &d.mem_P[1]);
+        ret = clSetKernelArg(d.kernel[nlmSpatialPack], 1, sizeof(cl_mem), &d.mem_P[1]);
         if (ret != CL_SUCCESS) {
-            d.oclErrorCheck("clCreateKernel(NLM_SPATIAL_PACK[1])", ret, out, vsapi);
+            d.oclErrorCheck("clCreateKernel(nlmSpatialPack[1])", ret, out, vsapi);
             return;
         }
-        ret = clSetKernelArg(d.kernel[NLM_SPATIAL_PACK], 2, sizeof(cl_mem), &d.mem_P[2]);
+        ret = clSetKernelArg(d.kernel[nlmSpatialPack], 2, sizeof(cl_mem), &d.mem_P[2]);
         if (ret != CL_SUCCESS) {
-            d.oclErrorCheck("clCreateKernel(NLM_SPATIAL_PACK[2])", ret, out, vsapi);
+            d.oclErrorCheck("clCreateKernel(nlmSpatialPack[2])", ret, out, vsapi);
             return;
         }
-        ret = clSetKernelArg(d.kernel[NLM_SPATIAL_PACK], 4, 2 * sizeof(cl_uint), &d.idmn);
+        ret = clSetKernelArg(d.kernel[nlmSpatialPack], 4, 2 * sizeof(cl_uint), &d.idmn);
         if (ret != CL_SUCCESS) {
-            d.oclErrorCheck("clCreateKernel(NLM_SPATIAL_PACK[4])", ret, out, vsapi);
+            d.oclErrorCheck("clCreateKernel(nlmSpatialPack[4])", ret, out, vsapi);
             return;
         }
-        ret = clSetKernelArg(d.kernel[NLM_SPATIAL_UNPACK], 0, sizeof(cl_mem), &d.mem_P[0]);
+        ret = clSetKernelArg(d.kernel[nlmSpatialUnpack], 0, sizeof(cl_mem), &d.mem_P[0]);
         if (ret != CL_SUCCESS) {
-            d.oclErrorCheck("clCreateKernel(NLM_SPATIAL_UNPACK[0])", ret, out, vsapi);
+            d.oclErrorCheck("clCreateKernel(nlmSpatialUnpack[0])", ret, out, vsapi);
             return;
         }
-        ret = clSetKernelArg(d.kernel[NLM_SPATIAL_UNPACK], 1, sizeof(cl_mem), &d.mem_P[1]);
+        ret = clSetKernelArg(d.kernel[nlmSpatialUnpack], 1, sizeof(cl_mem), &d.mem_P[1]);
         if (ret != CL_SUCCESS) {
-            d.oclErrorCheck("clCreateKernel(NLM_SPATIAL_UNPACK[1])", ret, out, vsapi);
+            d.oclErrorCheck("clCreateKernel(nlmSpatialUnpack[1])", ret, out, vsapi);
             return;
         }
-        ret = clSetKernelArg(d.kernel[NLM_SPATIAL_UNPACK], 2, sizeof(cl_mem), &d.mem_P[2]);
+        ret = clSetKernelArg(d.kernel[nlmSpatialUnpack], 2, sizeof(cl_mem), &d.mem_P[2]);
         if (ret != CL_SUCCESS) {
-            d.oclErrorCheck("clCreateKernel(NLM_SPATIAL_UNPACK[2])", ret, out, vsapi);
+            d.oclErrorCheck("clCreateKernel(nlmSpatialUnpack[2])", ret, out, vsapi);
             return;
         }
-        ret = clSetKernelArg(d.kernel[NLM_SPATIAL_UNPACK], 4, 2 * sizeof(cl_uint), &d.idmn);
+        ret = clSetKernelArg(d.kernel[nlmSpatialUnpack], 4, 2 * sizeof(cl_uint), &d.idmn);
         if (ret != CL_SUCCESS) {
-            d.oclErrorCheck("clCreateKernel(NLM_SPATIAL_UNPACK[4])", ret, out, vsapi);
+            d.oclErrorCheck("clCreateKernel(nlmSpatialUnpack[4])", ret, out, vsapi);
             return;
         }
     }
