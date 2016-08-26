@@ -429,8 +429,8 @@ PVideoFrame __stdcall _NLMAvisynth::GetFrame(int n, IScriptEnvironment* env) {
     const size_t region[3] = { (size_t) idmn[0], (size_t) idmn[1], 1 };
     const size_t region_p[3] = { (size_t) idmn[0], (size_t) idmn[2], 1 };
     const size_t global_work[2] = {
-        mrounds((size_t) idmn[0], std::max(HRZ_BLOCK_X, VRT_BLOCK_X)),
-        mrounds((size_t) idmn[1], std::max(HRZ_BLOCK_Y, VRT_BLOCK_Y))
+        mrounds((size_t) idmn[0], max(HRZ_BLOCK_X, VRT_BLOCK_X)),
+        mrounds((size_t) idmn[1], max(HRZ_BLOCK_Y, VRT_BLOCK_Y))
     };
     const size_t local_horiz[2] = { HRZ_BLOCK_X, HRZ_BLOCK_Y };
     const size_t local_vert[2] = { VRT_BLOCK_X, VRT_BLOCK_Y };
@@ -777,8 +777,8 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
         const size_t origin[3] = { 0, 0, 0 };
         const size_t region[3] = { (size_t) d->idmn[0], (size_t) d->idmn[1], 1 };
         const size_t global_work[2] = {
-            mrounds((size_t) d->idmn[0], std::max(d->HRZ_BLOCK_X, d->VRT_BLOCK_X)),
-            mrounds((size_t) d->idmn[1], std::max(d->HRZ_BLOCK_Y, d->VRT_BLOCK_Y))
+            mrounds((size_t) d->idmn[0], max(d->HRZ_BLOCK_X, d->VRT_BLOCK_X)),
+            mrounds((size_t) d->idmn[1], max(d->HRZ_BLOCK_Y, d->VRT_BLOCK_Y))
         };
         const size_t local_horiz[2] = { d->HRZ_BLOCK_X, d->HRZ_BLOCK_Y };
         const size_t local_vert[2] = { d->VRT_BLOCK_X, d->VRT_BLOCK_Y };

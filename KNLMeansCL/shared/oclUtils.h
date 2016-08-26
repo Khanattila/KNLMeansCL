@@ -45,6 +45,10 @@ template <typename T>T inline clamp(const T& value, const T& low, const T& high)
     return value < low ? low : (value > high ? high : value);
 }
 
+template <typename T>T inline max(const T& a, const T& b) {
+    return (a < b) ? b : a;
+}
+
 //////////////////////////////////////////
 // Functions
 #define STR(code) case code: return #code
