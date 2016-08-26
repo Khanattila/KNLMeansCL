@@ -724,8 +724,6 @@ PVideoFrame __stdcall _NLMAvisynth::GetFrame(int n, IScriptEnvironment* env) {
         DrawString(frm, pitch, 0, y++, buffer);
         snprintf(buffer, 2048, " Global work size: %lux%lu", (unsigned long) global_work[0], (unsigned long) global_work[1]);
         DrawString(frm, pitch, 0, y++, buffer);
-        snprintf(buffer, 2048, " Number of devices: %u", num_devices);
-        DrawString(frm, pitch, 0, y++, buffer);
         DrawString(frm, pitch, 0, y++, "Platform info");
         ret |= clGetPlatformInfo(platformID, CL_PLATFORM_NAME, sizeof(char) * 2048, str, NULL);
         snprintf(buffer, 2048, " Name: %s", str);
@@ -1075,9 +1073,7 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
                 (2 * int64ToIntS(d->a) + 1) - 1);
             DrawString(frm, pitch, 0, y++, buffer);
             snprintf(buffer, 2048, " Global work size: %lux%lu", (unsigned long) global_work[0], (unsigned long) global_work[1]);
-            DrawString(frm, pitch, 0, y++, buffer);
-            snprintf(buffer, 2048, " Number of devices: %u", d->num_devices);
-            DrawString(frm, pitch, 0, y++, buffer);
+            DrawString(frm, pitch, 0, y++, buffer);            
             DrawString(frm, pitch, 0, y++, "Platform info");
             ret |= clGetPlatformInfo(d->platformID, CL_PLATFORM_NAME, sizeof(char) * 2048, str, NULL);
             snprintf(buffer, 2048, " Name: %s", str);
