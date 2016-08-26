@@ -52,8 +52,7 @@ private:
     const char* ocl_device;
     const bool cmode, lsb, info;
     unsigned int clip_t;
-    cl_int idmn[3];
-    cl_uint HRZ_BLOCK_X, HRZ_BLOCK_Y, VRT_BLOCK_X, VRT_BLOCK_Y;
+    cl_uint idmn[3], HRZ_BLOCK_X, HRZ_BLOCK_Y, VRT_BLOCK_X, VRT_BLOCK_Y;
     cl_platform_id platformID;
     cl_device_id deviceID;
     cl_context context;
@@ -80,8 +79,7 @@ public:
     double wref, h;
     const char* ocl_device;
     unsigned int bit_shift, clip_t;
-    cl_int idmn[2];
-    cl_uint HRZ_BLOCK_X, HRZ_BLOCK_Y, VRT_BLOCK_X, VRT_BLOCK_Y;
+    cl_uint idmn[2], HRZ_BLOCK_X, HRZ_BLOCK_Y, VRT_BLOCK_X, VRT_BLOCK_Y;
     cl_platform_id platformID;
     cl_device_id deviceID;
     cl_context context;

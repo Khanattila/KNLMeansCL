@@ -164,15 +164,15 @@ _NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _
     }
 
     // Creates an OpenCL context, 2D images and buffers object.
-    idmn[0] = vi.width;
-    idmn[1] = lsb ? (vi.height / 2) : (vi.height);
-    idmn[2] = vi.height;
+    idmn[0] = (cl_uint) vi.width;
+    idmn[1] = (cl_uint) (lsb ? (vi.height / 2) : (vi.height));
+    idmn[2] = (cl_uint) vi.height;
     context = clCreateContext(NULL, 1, &deviceID, NULL, NULL, &ret);
     oclErrorCheck("clCreateContext", ret, env);
     const cl_image_format image_format = { channel_order, channel_type };
     const cl_image_desc image_desc = { (cl_mem_object_type) (d ? CL_MEM_OBJECT_IMAGE2D_ARRAY : CL_MEM_OBJECT_IMAGE2D),
-        (size_t) idmn[0], (size_t) idmn[1], 1, 2 * (size_t) d + 1, 0, 0, 0, 0, NULL };
-    const cl_image_desc image_desc_out = { CL_MEM_OBJECT_IMAGE2D, (size_t) idmn[0], (size_t) idmn[1], 1, 1, 0, 0, 0, 0, NULL };
+        idmn[0], idmn[1], 1, 2 * (size_t) d + 1, 0, 0, 0, 0, NULL };
+    const cl_image_desc image_desc_out = { CL_MEM_OBJECT_IMAGE2D, idmn[0], idmn[1], 1, 1, 0, 0, 0, 0, NULL };
     if (!(clip_t & NLM_COLOR_YUV) && !lsb) {
         mem_in[0] = clCreateImage(context, CL_MEM_READ_ONLY | CL_MEM_HOST_WRITE_ONLY, &image_format, &image_desc, NULL, &ret);
         oclErrorCheck("clCreateImage(mem_in[0])", ret, env);
@@ -200,7 +200,7 @@ _NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _
     mem_U[3] = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_HOST_WRITE_ONLY, size_u3, NULL, &ret);
     oclErrorCheck("clCreateBuffer(mem_U[3])", ret, env);
     const cl_image_format image_format_p = { CL_LUMINANCE, CL_UNORM_INT8 };
-    const cl_image_desc image_desc_p = { CL_MEM_OBJECT_IMAGE2D, (size_t) idmn[0], (size_t) idmn[2], 1, 1, 0, 0, 0, 0, NULL };
+    const cl_image_desc image_desc_p = { CL_MEM_OBJECT_IMAGE2D, idmn[0], idmn[2], 1, 1, 0, 0, 0, 0, NULL };
     mem_P[0] = clCreateImage(context, CL_MEM_READ_WRITE, &image_format_p, &image_desc_p, NULL, &ret);
     oclErrorCheck("clCreateImage(mem_P[0])", ret, env);
     mem_P[1] = clCreateImage(context, CL_MEM_READ_WRITE, &image_format_p, &image_desc_p, NULL, &ret);
@@ -286,25 +286,25 @@ _NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _
         oclErrorCheck("clSetKernelArg(NLM_DISTANCE_LEFT[0])", ret, env);
         ret = clSetKernelArg(kernel[NLM_DISTANCE_LEFT], 1, sizeof(cl_mem), &mem_U[1]);
         oclErrorCheck("clSetKernelArg(NLM_DISTANCE_LEFT[1])", ret, env);
-        ret = clSetKernelArg(kernel[NLM_DISTANCE_LEFT], 2, 2 * sizeof(cl_int), &idmn);
+        ret = clSetKernelArg(kernel[NLM_DISTANCE_LEFT], 2, 2 * sizeof(cl_uint), &idmn);
         oclErrorCheck("clSetKernelArg(NLM_DISTANCE_LEFT[2])", ret, env);
         ret = clSetKernelArg(kernel[NLM_DISTANCE_RIGHT], 0, sizeof(cl_mem), &mem_in[(clip_t & NLM_EXTRA_FALSE) ? 0 : 1]);
         oclErrorCheck("clSetKernelArg(NLM_DISTANCE_RIGHT[0])", ret, env);
         ret = clSetKernelArg(kernel[NLM_DISTANCE_RIGHT], 1, sizeof(cl_mem), &mem_U[1]);
         oclErrorCheck("clSetKernelArg(NLM_DISTANCE_RIGHT[1])", ret, env);
-        ret = clSetKernelArg(kernel[NLM_DISTANCE_RIGHT], 2, 2 * sizeof(cl_int), &idmn);
+        ret = clSetKernelArg(kernel[NLM_DISTANCE_RIGHT], 2, 2 * sizeof(cl_uint), &idmn);
         oclErrorCheck("clSetKernelArg(NLM_DISTANCE_RIGHT[2])", ret, env);
         ret = clSetKernelArg(kernel[NLM_HORIZONTAL], 0, sizeof(cl_mem), &mem_U[1]);
         oclErrorCheck("clSetKernelArg(NLM_HORIZONTAL[0])", ret, env);
         ret = clSetKernelArg(kernel[NLM_HORIZONTAL], 1, sizeof(cl_mem), &mem_U[2]);
         oclErrorCheck("clSetKernelArg(NLM_HORIZONTAL[1])", ret, env);
-        ret = clSetKernelArg(kernel[NLM_HORIZONTAL], 3, 2 * sizeof(cl_int), &idmn);
+        ret = clSetKernelArg(kernel[NLM_HORIZONTAL], 3, 2 * sizeof(cl_uint), &idmn);
         oclErrorCheck("clSetKernelArg(NLM_HORIZONTAL[3])", ret, env);
         ret = clSetKernelArg(kernel[NLM_VERTICAL], 0, sizeof(cl_mem), &mem_U[2]);
         oclErrorCheck("clSetKernelArg(NLM_VERTICAL[0])", ret, env);
         ret = clSetKernelArg(kernel[NLM_VERTICAL], 1, sizeof(cl_mem), &mem_U[1]);
         oclErrorCheck("clSetKernelArg(NLM_VERTICAL[1])", ret, env);
-        ret = clSetKernelArg(kernel[NLM_VERTICAL], 3, 2 * sizeof(cl_int), &idmn);
+        ret = clSetKernelArg(kernel[NLM_VERTICAL], 3, 2 * sizeof(cl_uint), &idmn);
         oclErrorCheck("clSetKernelArg(NLM_VERTICAL[3])", ret, env);
         ret = clSetKernelArg(kernel[NLM_ACCUMULATION], 0, sizeof(cl_mem), &mem_in[0]);
         oclErrorCheck("clSetKernelArg(NLM_ACCUMULATION[0])", ret, env);
@@ -314,7 +314,7 @@ _NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _
         oclErrorCheck("clSetKernelArg(NLM_ACCUMULATION[2])", ret, env);
         ret = clSetKernelArg(kernel[NLM_ACCUMULATION], 3, sizeof(cl_mem), &mem_U[3]);
         oclErrorCheck("clSetKernelArg(NLM_ACCUMULATION[3])", ret, env);
-        ret = clSetKernelArg(kernel[NLM_ACCUMULATION], 4, 2 * sizeof(cl_int), &idmn);
+        ret = clSetKernelArg(kernel[NLM_ACCUMULATION], 4, 2 * sizeof(cl_uint), &idmn);
         oclErrorCheck("clSetKernelArg(NLM_ACCUMULATION[4])", ret, env);
         ret = clSetKernelArg(kernel[NLM_FINISH], 0, sizeof(cl_mem), &mem_in[0]);
         oclErrorCheck("clSetKernelArg(NLM_FINISH[0])", ret, env);
@@ -324,7 +324,7 @@ _NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _
         oclErrorCheck("clSetKernelArg(NLM_FINISH[2])", ret, env);
         ret = clSetKernelArg(kernel[NLM_FINISH], 3, sizeof(cl_mem), &mem_U[3]);
         oclErrorCheck("clSetKernelArg(NLM_FINISH[3])", ret, env);
-        ret = clSetKernelArg(kernel[NLM_FINISH], 4, 2 * sizeof(cl_int), &idmn);
+        ret = clSetKernelArg(kernel[NLM_FINISH], 4, 2 * sizeof(cl_uint), &idmn);
         oclErrorCheck("clSetKernelArg(NLM_FINISH[4])", ret, env);
         ret = clSetKernelArg(kernel[NLM_PACK], 0, sizeof(cl_mem), &mem_P[0]);
         oclErrorCheck("clSetKernelArg(NLM_PACK[0])", ret, env);
@@ -332,7 +332,7 @@ _NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _
         oclErrorCheck("clSetKernelArg(NLM_PACK[1])", ret, env);
         ret = clSetKernelArg(kernel[NLM_PACK], 2, sizeof(cl_mem), &mem_P[2]);
         oclErrorCheck("clSetKernelArg(NLM_PACK[2])", ret, env);
-        ret = clSetKernelArg(kernel[NLM_PACK], 5, 2 * sizeof(cl_int), &idmn);
+        ret = clSetKernelArg(kernel[NLM_PACK], 5, 2 * sizeof(cl_uint), &idmn);
         oclErrorCheck("clSetKernelArg(NLM_PACK[5])", ret, env);
         ret = clSetKernelArg(kernel[NLM_UNPACK], 0, sizeof(cl_mem), &mem_P[0]);
         oclErrorCheck("clSetKernelArg(NLM_UNPACK[0])", ret, env);
@@ -340,26 +340,26 @@ _NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _
         oclErrorCheck("clSetKernelArg(NLM_UNPACK[1])", ret, env);
         ret = clSetKernelArg(kernel[NLM_UNPACK], 2, sizeof(cl_mem), &mem_P[2]);
         oclErrorCheck("clSetKernelArg(NLM_UNPACK[2])", ret, env);
-        ret = clSetKernelArg(kernel[NLM_UNPACK], 4, 2 * sizeof(cl_int), &idmn);
+        ret = clSetKernelArg(kernel[NLM_UNPACK], 4, 2 * sizeof(cl_uint), &idmn);
         oclErrorCheck("clSetKernelArg(NLM_UNPACK[4])", ret, env);
     } else {
         ret = clSetKernelArg(kernel[NLM_SPATIAL_DISTANCE], 0, sizeof(cl_mem), &mem_in[(clip_t & NLM_EXTRA_FALSE) ? 0 : 1]);
         oclErrorCheck("clSetKernelArg(NLM_SPATIAL_DISTANCE[0])", ret, env);
         ret = clSetKernelArg(kernel[NLM_SPATIAL_DISTANCE], 1, sizeof(cl_mem), &mem_U[1]);
         oclErrorCheck("clSetKernelArg(NLM_SPATIAL_DISTANCE[1])", ret, env);
-        ret = clSetKernelArg(kernel[NLM_SPATIAL_DISTANCE], 2, 2 * sizeof(cl_int), &idmn);
+        ret = clSetKernelArg(kernel[NLM_SPATIAL_DISTANCE], 2, 2 * sizeof(cl_uint), &idmn);
         oclErrorCheck("clSetKernelArg(NLM_SPATIAL_DISTANCE[2])", ret, env);
         ret = clSetKernelArg(kernel[NLM_SPATIAL_HORIZONTAL], 0, sizeof(cl_mem), &mem_U[1]);
         oclErrorCheck("clSetKernelArg(NLM_SPATIAL_HORIZONTAL[0])", ret, env);
         ret = clSetKernelArg(kernel[NLM_SPATIAL_HORIZONTAL], 1, sizeof(cl_mem), &mem_U[2]);
         oclErrorCheck("clSetKernelArg(NLM_SPATIAL_HORIZONTAL[1])", ret, env);
-        ret = clSetKernelArg(kernel[NLM_SPATIAL_HORIZONTAL], 2, 2 * sizeof(cl_int), &idmn);
+        ret = clSetKernelArg(kernel[NLM_SPATIAL_HORIZONTAL], 2, 2 * sizeof(cl_uint), &idmn);
         oclErrorCheck("clSetKernelArg(NLM_SPATIAL_HORIZONTAL[2])", ret, env);
         ret = clSetKernelArg(kernel[NLM_SPATIAL_VERTICAL], 0, sizeof(cl_mem), &mem_U[2]);
         oclErrorCheck("clSetKernelArg(NLM_SPATIAL_VERTICAL[0])", ret, env);
         ret = clSetKernelArg(kernel[NLM_SPATIAL_VERTICAL], 1, sizeof(cl_mem), &mem_U[1]);
         oclErrorCheck("clSetKernelArg(NLM_SPATIAL_VERTICAL[1])", ret, env);
-        ret = clSetKernelArg(kernel[NLM_SPATIAL_VERTICAL], 2, 2 * sizeof(cl_int), &idmn);
+        ret = clSetKernelArg(kernel[NLM_SPATIAL_VERTICAL], 2, 2 * sizeof(cl_uint), &idmn);
         oclErrorCheck("clSetKernelArg(NLM_SPATIAL_VERTICAL[2])", ret, env);
         ret = clSetKernelArg(kernel[NLM_SPATIAL_ACCUMULATION], 0, sizeof(cl_mem), &mem_in[0]);
         oclErrorCheck("clSetKernelArg(NLM_SPATIAL_ACCUMULATION[0])", ret, env);
@@ -369,7 +369,7 @@ _NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _
         oclErrorCheck("clSetKernelArg(NLM_SPATIAL_ACCUMULATION[2])", ret, env);
         ret = clSetKernelArg(kernel[NLM_SPATIAL_ACCUMULATION], 3, sizeof(cl_mem), &mem_U[3]);
         oclErrorCheck("clSetKernelArg(NLM_SPATIAL_ACCUMULATION[3])", ret, env);
-        ret = clSetKernelArg(kernel[NLM_SPATIAL_ACCUMULATION], 4, 2 * sizeof(cl_int), &idmn);
+        ret = clSetKernelArg(kernel[NLM_SPATIAL_ACCUMULATION], 4, 2 * sizeof(cl_uint), &idmn);
         oclErrorCheck("clSetKernelArg(NLM_SPATIAL_ACCUMULATION[4])", ret, env);
         ret = clSetKernelArg(kernel[NLM_SPATIAL_FINISH], 0, sizeof(cl_mem), &mem_in[0]);
         oclErrorCheck("clSetKernelArg(NLM_SPATIAL_FINISH[0])", ret, env);
@@ -379,7 +379,7 @@ _NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _
         oclErrorCheck("clSetKernelArg(NLM_SPATIAL_FINISH[2])", ret, env);
         ret = clSetKernelArg(kernel[NLM_SPATIAL_FINISH], 3, sizeof(cl_mem), &mem_U[3]);
         oclErrorCheck("clSetKernelArg(NLM_SPATIAL_FINISH[3])", ret, env);
-        ret = clSetKernelArg(kernel[NLM_SPATIAL_FINISH], 4, 2 * sizeof(cl_int), &idmn);
+        ret = clSetKernelArg(kernel[NLM_SPATIAL_FINISH], 4, 2 * sizeof(cl_uint), &idmn);
         oclErrorCheck("clSetKernelArg(NLM_SPATIAL_FINISH[4])", ret, env);
         ret = clSetKernelArg(kernel[NLM_SPATIAL_PACK], 0, sizeof(cl_mem), &mem_P[0]);
         oclErrorCheck("clSetKernelArg(NLM_SPATIAL_PACK[0])", ret, env);
@@ -387,7 +387,7 @@ _NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _
         oclErrorCheck("clSetKernelArg(NLM_SPATIAL_PACK[1])", ret, env);
         ret = clSetKernelArg(kernel[NLM_SPATIAL_PACK], 2, sizeof(cl_mem), &mem_P[2]);
         oclErrorCheck("clSetKernelArg(NLM_SPATIAL_PACK[2])", ret, env);
-        ret = clSetKernelArg(kernel[NLM_SPATIAL_PACK], 4, 2 * sizeof(cl_int), &idmn);
+        ret = clSetKernelArg(kernel[NLM_SPATIAL_PACK], 4, 2 * sizeof(cl_uint), &idmn);
         oclErrorCheck("clSetKernelArg(NLM_SPATIAL_PACK[4])", ret, env);
         ret = clSetKernelArg(kernel[NLM_SPATIAL_UNPACK], 0, sizeof(cl_mem), &mem_P[0]);
         oclErrorCheck("clSetKernelArg(NLM_SPATIAL_UNPACK[0])", ret, env);
@@ -395,7 +395,7 @@ _NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _
         oclErrorCheck("clSetKernelArg(NLM_SPATIAL_UNPACK[1])", ret, env);
         ret = clSetKernelArg(kernel[NLM_SPATIAL_UNPACK], 2, sizeof(cl_mem), &mem_P[2]);
         oclErrorCheck("clSetKernelArg(NLM_SPATIAL_UNPACK[2])", ret, env);
-        ret = clSetKernelArg(kernel[NLM_SPATIAL_UNPACK], 4, 2 * sizeof(cl_int), &idmn);
+        ret = clSetKernelArg(kernel[NLM_SPATIAL_UNPACK], 4, 2 * sizeof(cl_uint), &idmn);
         oclErrorCheck("clSetKernelArg(NLM_SPATIAL_UNPACK[4])", ret, env);
     }
 
@@ -426,11 +426,11 @@ PVideoFrame __stdcall _NLMAvisynth::GetFrame(int n, IScriptEnvironment* env) {
     const size_t size_u0 = sizeof(cl_float) * idmn[0] * idmn[1] * ((clip_t & NLM_COLOR_GRAY) ? 2 : 4);
     const size_t size_u3 = sizeof(cl_float) * idmn[0] * idmn[1];
     const size_t origin[3] = { 0, 0, 0 };
-    const size_t region[3] = { (size_t) idmn[0], (size_t) idmn[1], 1 };
-    const size_t region_p[3] = { (size_t) idmn[0], (size_t) idmn[2], 1 };
+    const size_t region[3] = { idmn[0], idmn[1], 1 };
+    const size_t region_p[3] = { idmn[0], idmn[2], 1 };
     const size_t global_work[2] = {
-        mrounds((size_t) idmn[0], max(HRZ_BLOCK_X, VRT_BLOCK_X)),
-        mrounds((size_t) idmn[1], max(HRZ_BLOCK_Y, VRT_BLOCK_Y))
+        mrounds(idmn[0], max(HRZ_BLOCK_X, VRT_BLOCK_X)),
+        mrounds(idmn[1], max(HRZ_BLOCK_Y, VRT_BLOCK_Y))
     };
     const size_t local_horiz[2] = { HRZ_BLOCK_X, HRZ_BLOCK_Y };
     const size_t local_vert[2] = { VRT_BLOCK_X, VRT_BLOCK_Y };
@@ -775,10 +775,10 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
         const size_t size_u0 = sizeof(cl_float) * d->idmn[0] * d->idmn[1] * ((d->clip_t & NLM_COLOR_GRAY) ? 2 : 4);
         const size_t size_u3 = sizeof(cl_float) * d->idmn[0] * d->idmn[1];
         const size_t origin[3] = { 0, 0, 0 };
-        const size_t region[3] = { (size_t) d->idmn[0], (size_t) d->idmn[1], 1 };
+        const size_t region[3] = { d->idmn[0], d->idmn[1], 1 };
         const size_t global_work[2] = {
-            mrounds((size_t) d->idmn[0], max(d->HRZ_BLOCK_X, d->VRT_BLOCK_X)),
-            mrounds((size_t) d->idmn[1], max(d->HRZ_BLOCK_Y, d->VRT_BLOCK_Y))
+            mrounds(d->idmn[0], max(d->HRZ_BLOCK_X, d->VRT_BLOCK_X)),
+            mrounds(d->idmn[1], max(d->HRZ_BLOCK_Y, d->VRT_BLOCK_Y))
         };
         const size_t local_horiz[2] = { d->HRZ_BLOCK_X, d->HRZ_BLOCK_Y };
         const size_t local_vert[2] = { d->VRT_BLOCK_X, d->VRT_BLOCK_Y };
@@ -787,9 +787,9 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
         if (fi->colorFamily == cmYUV && (d->clip_t & NLM_COLOR_GRAY)) {
             const VSFrameRef * planeSrc[] = { NULL, src, src };
             const int planes[] = { 0, 1, 2 };
-            dst = vsapi->newVideoFrame2(fi, d->idmn[0], d->idmn[1], planeSrc, planes, src, core);
+            dst = vsapi->newVideoFrame2(fi, (int) d->idmn[0], (int) d->idmn[1], planeSrc, planes, src, core);
         } else {
-            dst = vsapi->newVideoFrame(fi, d->idmn[0], d->idmn[1], src, core);
+            dst = vsapi->newVideoFrame(fi, (int) d->idmn[0], (int) d->idmn[1], src, core);
         }
         vsapi->freeFrame(src);
 
@@ -1455,8 +1455,8 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
     }
 
     // Creates an OpenCL context, 2D images and buffers object.
-    d.idmn[0] = d.vi->width;
-    d.idmn[1] = d.vi->height;
+    d.idmn[0] = (cl_uint) d.vi->width;
+    d.idmn[1] = (cl_uint) d.vi->height;
     d.context = clCreateContext(NULL, 1, &d.deviceID, NULL, NULL, &ret);
     if (ret != CL_SUCCESS) {
         d.oclErrorCheck("clCreateContext", ret, out, vsapi);
@@ -1464,8 +1464,8 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
     }
     const cl_image_format image_format = { channel_order, channel_type };
     const cl_image_desc image_desc = { (cl_mem_object_type) (d.d ? CL_MEM_OBJECT_IMAGE2D_ARRAY : CL_MEM_OBJECT_IMAGE2D),
-        (size_t) d.idmn[0], (size_t) d.idmn[1], 1, 2 * (size_t) d.d + 1, 0, 0, 0, 0, NULL };
-    const cl_image_desc image_desc_out = { CL_MEM_OBJECT_IMAGE2D, (size_t) d.idmn[0], (size_t) d.idmn[1], 1, 1, 0, 0, 0, 0, NULL };
+        d.idmn[0], d.idmn[1], 1, 2 * (size_t) d.d + 1, 0, 0, 0, 0, NULL };
+    const cl_image_desc image_desc_out = { CL_MEM_OBJECT_IMAGE2D, d.idmn[0], d.idmn[1], 1, 1, 0, 0, 0, 0, NULL };
     if ((d.clip_t & NLM_COLOR_GRAY) && !d.bit_shift) {
         d.mem_in[0] = clCreateImage(d.context, CL_MEM_READ_ONLY | CL_MEM_HOST_WRITE_ONLY, &image_format, &image_desc, NULL, &ret);
         if (ret != CL_SUCCESS) {
@@ -1702,7 +1702,7 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
             d.oclErrorCheck("clCreateKernel(NLM_DISTANCE_LEFT[1])", ret, out, vsapi);
             return;
         }
-        ret = clSetKernelArg(d.kernel[NLM_DISTANCE_LEFT], 2, 2 * sizeof(cl_int), &d.idmn);
+        ret = clSetKernelArg(d.kernel[NLM_DISTANCE_LEFT], 2, 2 * sizeof(cl_uint), &d.idmn);
         if (ret != CL_SUCCESS) {
             d.oclErrorCheck("clCreateKernel(NLM_DISTANCE_LEFT[2])", ret, out, vsapi);
             return;
@@ -1717,7 +1717,7 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
             d.oclErrorCheck("clCreateKernel(NLM_DISTANCE_RIGHT[1])", ret, out, vsapi);
             return;
         }
-        ret = clSetKernelArg(d.kernel[NLM_DISTANCE_RIGHT], 2, 2 * sizeof(cl_int), &d.idmn);
+        ret = clSetKernelArg(d.kernel[NLM_DISTANCE_RIGHT], 2, 2 * sizeof(cl_uint), &d.idmn);
         if (ret != CL_SUCCESS) {
             d.oclErrorCheck("clCreateKernel(NLM_DISTANCE_RIGHT[2])", ret, out, vsapi);
             return;
@@ -1732,7 +1732,7 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
             d.oclErrorCheck("clCreateKernel(NLM_HORIZONTAL[1])", ret, out, vsapi);
             return;
         }
-        ret = clSetKernelArg(d.kernel[NLM_HORIZONTAL], 3, 2 * sizeof(cl_int), &d.idmn);
+        ret = clSetKernelArg(d.kernel[NLM_HORIZONTAL], 3, 2 * sizeof(cl_uint), &d.idmn);
         if (ret != CL_SUCCESS) {
             d.oclErrorCheck("clCreateKernel(NLM_HORIZONTAL[3])", ret, out, vsapi);
             return;
@@ -1747,7 +1747,7 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
             d.oclErrorCheck("clCreateKernel(NLM_VERTICAL[1])", ret, out, vsapi);
             return;
         }
-        ret = clSetKernelArg(d.kernel[NLM_VERTICAL], 3, 2 * sizeof(cl_int), &d.idmn);
+        ret = clSetKernelArg(d.kernel[NLM_VERTICAL], 3, 2 * sizeof(cl_uint), &d.idmn);
         if (ret != CL_SUCCESS) {
             d.oclErrorCheck("clCreateKernel(NLM_VERTICAL[3])", ret, out, vsapi);
             return;
@@ -1772,7 +1772,7 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
             d.oclErrorCheck("clCreateKernel(NLM_ACCUMULATION[3])", ret, out, vsapi);
             return;
         }
-        ret = clSetKernelArg(d.kernel[NLM_ACCUMULATION], 4, 2 * sizeof(cl_int), &d.idmn);
+        ret = clSetKernelArg(d.kernel[NLM_ACCUMULATION], 4, 2 * sizeof(cl_uint), &d.idmn);
         if (ret != CL_SUCCESS) {
             d.oclErrorCheck("clCreateKernel(NLM_ACCUMULATION[4])", ret, out, vsapi);
             return;
@@ -1797,7 +1797,7 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
             d.oclErrorCheck("clCreateKernel(NLM_FINISH[3])", ret, out, vsapi);
             return;
         }
-        ret = clSetKernelArg(d.kernel[NLM_FINISH], 4, 2 * sizeof(cl_int), &d.idmn);
+        ret = clSetKernelArg(d.kernel[NLM_FINISH], 4, 2 * sizeof(cl_uint), &d.idmn);
         if (ret != CL_SUCCESS) {
             d.oclErrorCheck("clCreateKernel(NLM_FINISH[4])", ret, out, vsapi);
             return;
@@ -1817,7 +1817,7 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
             d.oclErrorCheck("clCreateKernel(NLM_PACK[2])", ret, out, vsapi);
             return;
         }
-        ret = clSetKernelArg(d.kernel[NLM_PACK], 5, 2 * sizeof(cl_int), &d.idmn);
+        ret = clSetKernelArg(d.kernel[NLM_PACK], 5, 2 * sizeof(cl_uint), &d.idmn);
         if (ret != CL_SUCCESS) {
             d.oclErrorCheck("clCreateKernel(NLM_PACK[5])", ret, out, vsapi);
             return;
@@ -1837,7 +1837,7 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
             d.oclErrorCheck("clCreateKernel(NLM_UNPACK[2])", ret, out, vsapi);
             return;
         }
-        ret = clSetKernelArg(d.kernel[NLM_UNPACK], 4, 2 * sizeof(cl_int), &d.idmn);
+        ret = clSetKernelArg(d.kernel[NLM_UNPACK], 4, 2 * sizeof(cl_uint), &d.idmn);
         if (ret != CL_SUCCESS) {
             d.oclErrorCheck("clCreateKernel(NLM_UNPACK[4])", ret, out, vsapi);
             return;
@@ -1853,7 +1853,7 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
             d.oclErrorCheck("clCreateKernel(NLM_SPATIAL_DISTANCE[1])", ret, out, vsapi);
             return;
         }
-        ret = clSetKernelArg(d.kernel[NLM_SPATIAL_DISTANCE], 2, 2 * sizeof(cl_int), &d.idmn);
+        ret = clSetKernelArg(d.kernel[NLM_SPATIAL_DISTANCE], 2, 2 * sizeof(cl_uint), &d.idmn);
         if (ret != CL_SUCCESS) {
             d.oclErrorCheck("clCreateKernel(NLM_SPATIAL_DISTANCE[2])", ret, out, vsapi);
             return;
@@ -1868,7 +1868,7 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
             d.oclErrorCheck("clCreateKernel(NLM_SPATIAL_HORIZONTAL[1])", ret, out, vsapi);
             return;
         }
-        ret = clSetKernelArg(d.kernel[NLM_SPATIAL_HORIZONTAL], 2, 2 * sizeof(cl_int), &d.idmn);
+        ret = clSetKernelArg(d.kernel[NLM_SPATIAL_HORIZONTAL], 2, 2 * sizeof(cl_uint), &d.idmn);
         if (ret != CL_SUCCESS) {
             d.oclErrorCheck("clCreateKernel(NLM_SPATIAL_HORIZONTAL[2])", ret, out, vsapi);
             return;
@@ -1883,7 +1883,7 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
             d.oclErrorCheck("clCreateKernel(NLM_SPATIAL_VERTICAL[1])", ret, out, vsapi);
             return;
         }
-        ret = clSetKernelArg(d.kernel[NLM_SPATIAL_VERTICAL], 2, 2 * sizeof(cl_int), &d.idmn);
+        ret = clSetKernelArg(d.kernel[NLM_SPATIAL_VERTICAL], 2, 2 * sizeof(cl_uint), &d.idmn);
         if (ret != CL_SUCCESS) {
             d.oclErrorCheck("clCreateKernel(NLM_SPATIAL_VERTICAL[2])", ret, out, vsapi);
             return;
@@ -1908,7 +1908,7 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
             d.oclErrorCheck("clCreateKernel(NLM_SPATIAL_ACCUMULATION[3])", ret, out, vsapi);
             return;
         }
-        ret = clSetKernelArg(d.kernel[NLM_SPATIAL_ACCUMULATION], 4, 2 * sizeof(cl_int), &d.idmn);
+        ret = clSetKernelArg(d.kernel[NLM_SPATIAL_ACCUMULATION], 4, 2 * sizeof(cl_uint), &d.idmn);
         if (ret != CL_SUCCESS) {
             d.oclErrorCheck("clCreateKernel(NLM_SPATIAL_ACCUMULATION[4])", ret, out, vsapi);
             return;
@@ -1933,7 +1933,7 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
             d.oclErrorCheck("clCreateKernel(NLM_SPATIAL_FINISH[3])", ret, out, vsapi);
             return;
         }
-        ret = clSetKernelArg(d.kernel[NLM_SPATIAL_FINISH], 4, 2 * sizeof(cl_int), &d.idmn);
+        ret = clSetKernelArg(d.kernel[NLM_SPATIAL_FINISH], 4, 2 * sizeof(cl_uint), &d.idmn);
         if (ret != CL_SUCCESS) {
             d.oclErrorCheck("clCreateKernel(NLM_SPATIAL_FINISH[4])", ret, out, vsapi);
             return;
@@ -1953,7 +1953,7 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
             d.oclErrorCheck("clCreateKernel(NLM_SPATIAL_PACK[2])", ret, out, vsapi);
             return;
         }
-        ret = clSetKernelArg(d.kernel[NLM_SPATIAL_PACK], 4, 2 * sizeof(cl_int), &d.idmn);
+        ret = clSetKernelArg(d.kernel[NLM_SPATIAL_PACK], 4, 2 * sizeof(cl_uint), &d.idmn);
         if (ret != CL_SUCCESS) {
             d.oclErrorCheck("clCreateKernel(NLM_SPATIAL_PACK[4])", ret, out, vsapi);
             return;
@@ -1973,7 +1973,7 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
             d.oclErrorCheck("clCreateKernel(NLM_SPATIAL_UNPACK[2])", ret, out, vsapi);
             return;
         }
-        ret = clSetKernelArg(d.kernel[NLM_SPATIAL_UNPACK], 4, 2 * sizeof(cl_int), &d.idmn);
+        ret = clSetKernelArg(d.kernel[NLM_SPATIAL_UNPACK], 4, 2 * sizeof(cl_uint), &d.idmn);
         if (ret != CL_SUCCESS) {
             d.oclErrorCheck("clCreateKernel(NLM_SPATIAL_UNPACK[4])", ret, out, vsapi);
             return;
