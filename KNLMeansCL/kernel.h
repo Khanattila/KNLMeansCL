@@ -203,7 +203,7 @@ static const char* kernel_source_code_spatial =
 "   const sampler_t smp = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_NONE | CLK_FILTER_NEAREST;                    \n" \
 "   const int2 p = (int2) (x, y);                                                                                 \n" \
 "   const int gidx = mad24(y, dim.x, x);                                                                          \n" \
-"   const float wM = NLMK_REF * M[gidx];                                                                          \n" \
+"   const float wM = NLM_REF * M[gidx];                                                                           \n" \
 "                                                                                                                 \n" \
 "   if (CHECK_FLAG(NLM_COLOR_GRAY)) {                                                                             \n" \
 "       __global float2* U2c = (__global float2*) U2;                                                             \n" \
@@ -517,7 +517,7 @@ static const char* kernel_source_code =
 "   const int4 p = (int4) (x, y, NLM_D, 0);                                                                       \n" \
 "   const int2 s = (int2) (x, y);                                                                                 \n" \
 "   const int gidx = mad24(y, dim.x, x);                                                                          \n" \
-"   const float wM = NLMK_REF * M[gidx];                                                                          \n" \
+"   const float wM = NLM_REF * M[gidx];                                                                           \n" \
 "                                                                                                                 \n" \
 "   if (CHECK_FLAG(NLM_COLOR_GRAY)) {                                                                             \n" \
 "       __global float2* U2c = (__global float2*) U2;                                                             \n" \
