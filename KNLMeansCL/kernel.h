@@ -59,7 +59,7 @@
 //////////////////////////////////////////
 // Kernel Definition
 static const char* kernel_source_code_spatial =
-"#define CHECK_FLAG(flag) ((NLMK_TCLIP & (flag)) == (flag))                                                       \n" \
+"#define CHECK_FLAG(flag) ((NLM_TCLIP & (flag)) == (flag))                                                        \n" \
 "                                                                                                                 \n" \
 "float   norm(uint u);                                                                                            \n" \
 "ushort  denorm(float f);                                                                                         \n" \
@@ -337,7 +337,7 @@ static const char* kernel_source_code_spatial =
 "}                                                                                                                ";
 
 static const char* kernel_source_code =
-"#define CHECK_FLAG(flag) ((NLMK_TCLIP & (flag)) == (flag))                                                       \n" \
+"#define CHECK_FLAG(flag) ((NLM_TCLIP & (flag)) == (flag))                                                        \n" \
 "                                                                                                                 \n" \
 "float   norm(uint u);                                                                                            \n" \
 "ushort  denorm(float f);                                                                                         \n" \
@@ -356,7 +356,7 @@ static const char* kernel_source_code =
 "   if(x >= dim.x || y >= dim.y) return;                                                                          \n" \
 "                                                                                                                 \n" \
 "   const sampler_t smp = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP | CLK_FILTER_NEAREST;                   \n" \
-"   const int4 p = (int4) (x, y, NLMK_D, 0);                                                                      \n" \
+"   const int4 p = (int4) (x, y, NLM_D, 0);                                                                       \n" \
 "                                                                                                                 \n" \
 "   if (CHECK_FLAG(NLM_COLOR_GRAY)) {                                                                             \n" \
 "       const float  u1    = read_imagef(U1, smp, p    ).x;                                                       \n" \
@@ -388,7 +388,7 @@ static const char* kernel_source_code =
 "   if((x - q.x) < 0 || (x - q.x) >= dim.x || (y - q.y) < 0 || (y - q.y) >= dim.y) return;                        \n" \
 "                                                                                                                 \n" \
 "   const sampler_t smp = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP | CLK_FILTER_NEAREST;                   \n" \
-"   const int4 p = (int4) (x, y, NLMK_D, 0);                                                                      \n" \
+"   const int4 p = (int4) (x, y, NLM_D, 0);                                                                       \n" \
 "                                                                                                                 \n" \
 "   if (CHECK_FLAG(NLM_COLOR_GRAY)) {                                                                             \n" \
 "       const float  u1    = read_imagef(U1, smp, p    ).x;                                                       \n" \
@@ -480,7 +480,7 @@ static const char* kernel_source_code =
 "   if(x >= dim.x || y >= dim.y) return;                                                                          \n" \
 "                                                                                                                 \n" \
 "   const sampler_t smp = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP | CLK_FILTER_NEAREST;                   \n" \
-"   const int4 p = (int4) (x, y, NLMK_D, 0);                                                                      \n" \
+"   const int4 p = (int4) (x, y, NLM_D, 0);                                                                       \n" \
 "   const int gidx = mad24(y, dim.x, x);                                                                          \n" \
 "                                                                                                                 \n" \
 "   const float u4    = read_imagef(U4, smp, p    ).x;                                                            \n" \
@@ -514,7 +514,7 @@ static const char* kernel_source_code =
 "   if(x >= dim.x || y >= dim.y) return;                                                                          \n" \
 "                                                                                                                 \n" \
 "   const sampler_t smp = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_NONE | CLK_FILTER_NEAREST;                    \n" \
-"   const int4 p = (int4) (x, y, NLMK_D, 0);                                                                      \n" \
+"   const int4 p = (int4) (x, y, NLM_D, 0);                                                                       \n" \
 "   const int2 s = (int2) (x, y);                                                                                 \n" \
 "   const int gidx = mad24(y, dim.x, x);                                                                          \n" \
 "   const float wM = NLMK_REF * M[gidx];                                                                          \n" \
