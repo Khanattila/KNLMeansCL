@@ -154,22 +154,22 @@ _NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _
     context = clCreateContext(NULL, 1, &deviceID, NULL, NULL, &ret);
     oclErrorCheck("clCreateContext", ret, env);
     const cl_image_format image_format = { channel_order, channel_type };
-    const cl_image_desc image_desc = { (cl_mem_object_type) (d ? CL_MEM_OBJECT_IMAGE2D_ARRAY : CL_MEM_OBJECT_IMAGE2D),
+    const cl_image_desc image_in = { (cl_mem_object_type) (d ? CL_MEM_OBJECT_IMAGE2D_ARRAY : CL_MEM_OBJECT_IMAGE2D),
         idmn[0], idmn[1], 1, 2 * (size_t) d + 1, 0, 0, 0, 0, NULL };
-    const cl_image_desc image_d_out = { CL_MEM_OBJECT_IMAGE2D, idmn[0], idmn[1], 1, 1, 0, 0, 0, 0, NULL };
+    const cl_image_desc image_out = { CL_MEM_OBJECT_IMAGE2D, idmn[0], idmn[1], 1, 1, 0, 0, 0, 0, NULL };
     if (!(clip_t & NLM_COLOR_YUV) && !lsb) {
-        mem_in[0] = clCreateImage(context, CL_MEM_READ_ONLY | CL_MEM_HOST_WRITE_ONLY, &image_format, &image_desc, NULL, &ret);
+        mem_in[0] = clCreateImage(context, CL_MEM_READ_ONLY | CL_MEM_HOST_WRITE_ONLY, &image_format, &image_in, NULL, &ret);
         oclErrorCheck("clCreateImage(mem_in[0])", ret, env);
-        mem_in[1] = clCreateImage(context, CL_MEM_READ_ONLY | CL_MEM_HOST_WRITE_ONLY, &image_format, &image_desc, NULL, &ret);
+        mem_in[1] = clCreateImage(context, CL_MEM_READ_ONLY | CL_MEM_HOST_WRITE_ONLY, &image_format, &image_in, NULL, &ret);
         oclErrorCheck("clCreateImage(mem_in[1])", ret, env);
-        mem_out = clCreateImage(context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY, &image_format, &image_d_out, NULL, &ret);
+        mem_out = clCreateImage(context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY, &image_format, &image_out, NULL, &ret);
         oclErrorCheck("clCreateImage(mem_out)", ret, env);
     } else {
-        mem_in[0] = clCreateImage(context, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, &image_format, &image_desc, NULL, &ret);
+        mem_in[0] = clCreateImage(context, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, &image_format, &image_in, NULL, &ret);
         oclErrorCheck("clCreateImage(mem_in[0])", ret, env);
-        mem_in[1] = clCreateImage(context, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, &image_format, &image_desc, NULL, &ret);
+        mem_in[1] = clCreateImage(context, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, &image_format, &image_in, NULL, &ret);
         oclErrorCheck("clCreateImage(mem_in[1])", ret, env);
-        mem_out = clCreateImage(context, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, &image_format, &image_d_out, NULL, &ret);
+        mem_out = clCreateImage(context, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, &image_format, &image_out, NULL, &ret);
         oclErrorCheck("clCreateImage(mem_out)", ret, env);
     }
     const cl_image_format image_format_u = { CL_LUMINANCE, CL_HALF_FLOAT };
@@ -177,9 +177,9 @@ _NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _
     const size_t size_u3 = sizeof(cl_float) * idmn[0] * idmn[1];
     mem_U[0] = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_HOST_WRITE_ONLY, size_u0, NULL, &ret);
     oclErrorCheck("clCreateBuffer(mem_U[0])", ret, env);
-    mem_U[1] = clCreateImage(context, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, &image_format_u, &image_desc, NULL, &ret);
+    mem_U[1] = clCreateImage(context, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, &image_format_u, &image_in, NULL, &ret);
     oclErrorCheck("clCreateImage(mem_U[1])", ret, env);
-    mem_U[2] = clCreateImage(context, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, &image_format_u, &image_desc, NULL, &ret);
+    mem_U[2] = clCreateImage(context, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, &image_format_u, &image_in, NULL, &ret);
     oclErrorCheck("clCreateImage(mem_U[2])", ret, env);
     mem_U[3] = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_HOST_WRITE_ONLY, size_u3, NULL, &ret);
     oclErrorCheck("clCreateBuffer(mem_U[3])", ret, env);
@@ -1448,37 +1448,37 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
         return;
     }
     const cl_image_format image_format = { channel_order, channel_type };
-    const cl_image_desc image_desc = { (cl_mem_object_type) (d.d ? CL_MEM_OBJECT_IMAGE2D_ARRAY : CL_MEM_OBJECT_IMAGE2D),
+    const cl_image_desc image_in = { (cl_mem_object_type) (d.d ? CL_MEM_OBJECT_IMAGE2D_ARRAY : CL_MEM_OBJECT_IMAGE2D),
         d.idmn[0], d.idmn[1], 1, 2 * (size_t) d.d + 1, 0, 0, 0, 0, NULL };
-    const cl_image_desc image_d_out = { CL_MEM_OBJECT_IMAGE2D, d.idmn[0], d.idmn[1], 1, 1, 0, 0, 0, 0, NULL };
+    const cl_image_desc image_out = { CL_MEM_OBJECT_IMAGE2D, d.idmn[0], d.idmn[1], 1, 1, 0, 0, 0, 0, NULL };
     if ((d.clip_t & NLM_COLOR_GRAY) && !d.bit_shift) {
-        d.mem_in[0] = clCreateImage(d.context, CL_MEM_READ_ONLY | CL_MEM_HOST_WRITE_ONLY, &image_format, &image_desc, NULL, &ret);
+        d.mem_in[0] = clCreateImage(d.context, CL_MEM_READ_ONLY | CL_MEM_HOST_WRITE_ONLY, &image_format, &image_in, NULL, &ret);
         if (ret != CL_SUCCESS) {
             d.oclErrorCheck("clCreateImage(d.mem_in[0])", ret, out, vsapi);
             return;
         }
-        d.mem_in[1] = clCreateImage(d.context, CL_MEM_READ_ONLY | CL_MEM_HOST_WRITE_ONLY, &image_format, &image_desc, NULL, &ret);
+        d.mem_in[1] = clCreateImage(d.context, CL_MEM_READ_ONLY | CL_MEM_HOST_WRITE_ONLY, &image_format, &image_in, NULL, &ret);
         if (ret != CL_SUCCESS) {
             d.oclErrorCheck("clCreateImage(d.mem_in[1])", ret, out, vsapi);
             return;
         }
-        d.mem_out = clCreateImage(d.context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY, &image_format, &image_d_out, NULL, &ret);
+        d.mem_out = clCreateImage(d.context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY, &image_format, &image_out, NULL, &ret);
         if (ret != CL_SUCCESS) {
             d.oclErrorCheck("clCreateImage(d.mem_out)", ret, out, vsapi);
             return;
         }
     } else {
-        d.mem_in[0] = clCreateImage(d.context, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, &image_format, &image_desc, NULL, &ret);
+        d.mem_in[0] = clCreateImage(d.context, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, &image_format, &image_in, NULL, &ret);
         if (ret != CL_SUCCESS) {
             d.oclErrorCheck("clCreateImage(d.mem_in[0])", ret, out, vsapi);
             return;
         }
-        d.mem_in[1] = clCreateImage(d.context, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, &image_format, &image_desc, NULL, &ret);
+        d.mem_in[1] = clCreateImage(d.context, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, &image_format, &image_in, NULL, &ret);
         if (ret != CL_SUCCESS) {
             d.oclErrorCheck("clCreateImage(d.mem_in[1])", ret, out, vsapi);
             return;
         }
-        d.mem_out = clCreateImage(d.context, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, &image_format, &image_d_out, NULL, &ret);
+        d.mem_out = clCreateImage(d.context, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, &image_format, &image_out, NULL, &ret);
         if (ret != CL_SUCCESS) {
             d.oclErrorCheck("clCreateImage(d.mem_out)", ret, out, vsapi);
             return;
@@ -1492,12 +1492,12 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
         d.oclErrorCheck("clCreateBuffer(d.mem_U[0])", ret, out, vsapi);
         return;
     }
-    d.mem_U[1] = clCreateImage(d.context, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, &image_format_u, &image_desc, NULL, &ret);
+    d.mem_U[1] = clCreateImage(d.context, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, &image_format_u, &image_in, NULL, &ret);
     if (ret != CL_SUCCESS) {
         d.oclErrorCheck("clCreateImage(d.mem_U[1])", ret, out, vsapi);
         return;
     }
-    d.mem_U[2] = clCreateImage(d.context, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, &image_format_u, &image_desc, NULL, &ret);
+    d.mem_U[2] = clCreateImage(d.context, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, &image_format_u, &image_in, NULL, &ret);
     if (ret != CL_SUCCESS) {
         d.oclErrorCheck("clCreateImage(d.mem_U[2])", ret, out, vsapi);
         return;
@@ -1509,34 +1509,34 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
     }
     if (d.bit_shift) {
         const cl_image_format image_format_p = { CL_R, CL_UNSIGNED_INT16 };
-        d.mem_P[0] = clCreateImage(d.context, CL_MEM_READ_WRITE, &image_format_p, &image_d_out, NULL, &ret);
+        d.mem_P[0] = clCreateImage(d.context, CL_MEM_READ_WRITE, &image_format_p, &image_out, NULL, &ret);
         if (ret != CL_SUCCESS) {
             d.oclErrorCheck("clCreateImage(d.mem_P[0])", ret, out, vsapi);
             return;
         }
-        d.mem_P[1] = clCreateImage(d.context, CL_MEM_READ_WRITE, &image_format_p, &image_d_out, NULL, &ret);
+        d.mem_P[1] = clCreateImage(d.context, CL_MEM_READ_WRITE, &image_format_p, &image_out, NULL, &ret);
         if (ret != CL_SUCCESS) {
             d.oclErrorCheck("clCreateImage(d.mem_P[1])", ret, out, vsapi);
             return;
         }
-        d.mem_P[2] = clCreateImage(d.context, CL_MEM_READ_WRITE, &image_format_p, &image_d_out, NULL, &ret);
+        d.mem_P[2] = clCreateImage(d.context, CL_MEM_READ_WRITE, &image_format_p, &image_out, NULL, &ret);
         if (ret != CL_SUCCESS) {
             d.oclErrorCheck("clCreateImage(d.mem_P[2])", ret, out, vsapi);
             return;
         }
     } else {
         const cl_image_format image_format_p = { CL_LUMINANCE, channel_type };
-        d.mem_P[0] = clCreateImage(d.context, CL_MEM_READ_WRITE, &image_format_p, &image_d_out, NULL, &ret);
+        d.mem_P[0] = clCreateImage(d.context, CL_MEM_READ_WRITE, &image_format_p, &image_out, NULL, &ret);
         if (ret != CL_SUCCESS) {
             d.oclErrorCheck("clCreateImage(d.mem_P[0])", ret, out, vsapi);
             return;
         }
-        d.mem_P[1] = clCreateImage(d.context, CL_MEM_READ_WRITE, &image_format_p, &image_d_out, NULL, &ret);
+        d.mem_P[1] = clCreateImage(d.context, CL_MEM_READ_WRITE, &image_format_p, &image_out, NULL, &ret);
         if (ret != CL_SUCCESS) {
             d.oclErrorCheck("clCreateImage(d.mem_P[1])", ret, out, vsapi);
             return;
         }
-        d.mem_P[2] = clCreateImage(d.context, CL_MEM_READ_WRITE, &image_format_p, &image_d_out, NULL, &ret);
+        d.mem_P[2] = clCreateImage(d.context, CL_MEM_READ_WRITE, &image_format_p, &image_out, NULL, &ret);
         if (ret != CL_SUCCESS) {
             d.oclErrorCheck("clCreateImage(d.mem_P[2])", ret, out, vsapi);
             return;
@@ -1556,7 +1556,8 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
         NLM_COLOR_GRAY, NLM_COLOR_YUV, NLM_COLOR_RGB, NLM_CLIP_UNORM, NLM_CLIP_UNSIGNED,
         NLM_CLIP_STACKED, NLM_RGBA_RED, NLM_RGBA_GREEN, NLM_RGBA_BLUE, NLM_RGBA_ALPHA,
         NLM_16BIT_MSB, NLM_16BIT_LSB, d.HRZ_BLOCK_X, d.HRZ_BLOCK_Y, d.VRT_BLOCK_X, d.VRT_BLOCK_Y,
-        d.clip_t, d.d, d.s, d.wmode, d.wref, 65025.0 / (3 * d.h * d.h * (2 * d.s + 1)*(2 * d.s + 1)), d.bit_shift);
+        d.clip_t, int64ToIntS(d.d), int64ToIntS(d.s), int64ToIntS(d.wmode), d.wref, 
+        65025.0 / (3 * d.h * d.h * (2 * d.s + 1)*(2 * d.s + 1)), d.bit_shift);
 #    else
     snprintf(options, 2048, "-cl-single-precision-constant -cl-denorms-are-zero -cl-fast-relaxed-math -Werror "
         "-D NLM_COLOR_GRAY=%u -D NLM_COLOR_YUV=%u -D NLM_COLOR_RGB=%u -D NLM_CLIP_UNORM=%u -D NLM_CLIP_UNSIGNED=%u "
@@ -1566,7 +1567,8 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
         NLM_COLOR_GRAY, NLM_COLOR_YUV, NLM_COLOR_RGB, NLM_CLIP_UNORM, NLM_CLIP_UNSIGNED,
         NLM_CLIP_STACKED, NLM_RGBA_RED, NLM_RGBA_GREEN, NLM_RGBA_BLUE, NLM_RGBA_ALPHA,
         NLM_16BIT_MSB, NLM_16BIT_LSB, d.HRZ_BLOCK_X, d.HRZ_BLOCK_Y, d.VRT_BLOCK_X, d.VRT_BLOCK_Y,
-        d.clip_t, d.d, d.s, d.wmode, d.wref, 65025.0 / (3 * d.h * d.h * (2 * d.s + 1)*(2 * d.s + 1)), d.bit_shift);
+        d.clip_t, int64ToIntS(d.d), int64ToIntS(d.s), int64ToIntS(d.wmode), d.wref, 
+        65025.0 / (3 * d.h * d.h * (2 * d.s + 1)*(2 * d.s + 1)), d.bit_shift);
 #    endif
     ret = clBuildProgram(d.program, 1, &d.deviceID, options, NULL, NULL);
     if (ret != CL_SUCCESS) {
