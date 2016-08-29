@@ -172,16 +172,16 @@ cl_int oclUtilsGetPlaformDeviceIDs(cl_uint ver_opencl, ocl_utils_device_type dev
             *type = CL_DEVICE_TYPE_CPU;
             return oclUtilsGetIDs(ver_opencl, CL_DEVICE_TYPE_CPU, shf_device, platform, device);
         case OCL_UTILS_DEVICE_TYPE_GPU:
-            *type = OCL_UTILS_DEVICE_TYPE_GPU;
+            *type = CL_DEVICE_TYPE_GPU;
             return oclUtilsGetIDs(ver_opencl, CL_DEVICE_TYPE_GPU, shf_device, platform, device);
         case OCL_UTILS_DEVICE_TYPE_ACCELERATOR:
-            *type = OCL_UTILS_DEVICE_TYPE_ACCELERATOR;
+            *type = CL_DEVICE_TYPE_ACCELERATOR;
             return oclUtilsGetIDs(ver_opencl, CL_DEVICE_TYPE_ACCELERATOR, shf_device, platform, device);
         case OCL_UTILS_DEVICE_TYPE_AUTO: {
-            *type = OCL_UTILS_DEVICE_TYPE_ACCELERATOR;
+            *type = CL_DEVICE_TYPE_ACCELERATOR;
             cl_int ret = oclUtilsGetIDs(ver_opencl, CL_DEVICE_TYPE_ACCELERATOR, shf_device, platform, device);
             if (ret == OCL_UTILS_NO_DEVICE_AVAILABLE) {
-                *type = OCL_UTILS_DEVICE_TYPE_GPU;
+                *type = CL_DEVICE_TYPE_GPU;
                 ret = oclUtilsGetIDs(ver_opencl, CL_DEVICE_TYPE_GPU, shf_device, platform, device);
                 if (ret == OCL_UTILS_NO_DEVICE_AVAILABLE) {
                     *type = CL_DEVICE_TYPE_CPU;
