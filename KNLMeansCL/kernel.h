@@ -49,12 +49,12 @@
 #define nlmUnpack                 0xE
 #define NLM_NUMBER_KERNELS        0xF
 
-#define NLM_RGBA_RED              0.6664827524f
-#define NLM_RGBA_GREEN            1.2866580779f
-#define NLM_RGBA_BLUE             1.0468591696f
-#define NLM_RGBA_ALPHA            0.0f
-#define NLM_16BIT_MSB             0.9961089494163424f
-#define NLM_16BIT_LSB             0.00389105058365759f
+#define NLM_RGBA_RED              0.6664827524
+#define NLM_RGBA_GREEN            1.2866580779
+#define NLM_RGBA_BLUE             1.0468591696
+#define NLM_RGBA_ALPHA            0.0
+#define NLM_16BIT_MSB             0.9961089494163424
+#define NLM_16BIT_LSB             0.003891050583657588
 
 //////////////////////////////////////////
 // Kernel Definition
