@@ -120,8 +120,10 @@ const char* oclUtilsErrorToString(cl_int err) {
     }
 }
 
-cl_int oclUtilsGetIDs(cl_uint ver_opencl, cl_device_type device_type, cl_uint shf_device, cl_platform_id *platform, cl_device_id *device) {    
-    cl_uint num_platforms;
+cl_int oclUtilsGetIDs(cl_uint ver_opencl, cl_device_type device_type, cl_uint shf_device, cl_platform_id *platform, 
+    cl_device_id *device) {    
+    
+    cl_uint num_platforms, index = 0;
     cl_int ret = clGetPlatformIDs(0, NULL, &num_platforms);
     if (ret != CL_SUCCESS) return ret;
     else if (num_platforms == 0) return CL_INVALID_VALUE;
@@ -129,16 +131,15 @@ cl_int oclUtilsGetIDs(cl_uint ver_opencl, cl_device_type device_type, cl_uint sh
     if (platforms == NULL) return OCL_UTILS_MALLOC_ERROR;
     ret = clGetPlatformIDs(num_platforms, platforms, NULL);
     if (ret != CL_SUCCESS) return ret;
-    cl_uint index = 0;
     for (cl_uint p = 0; p < num_platforms; p++) {
         char str[OCL_UTILS_STRING_SIZE];
         ret = clGetPlatformInfo(platforms[p], CL_PLATFORM_VERSION, sizeof(char) * OCL_UTILS_STRING_SIZE, str, NULL);
         if (ret != CL_SUCCESS) return ret;
-        cl_uint ver_platform = 10u * (str[7] - '0') + (str[9] - '0');
+        cl_uint ver_platform = 10 * (str[7] - '0') + (str[9] - '0');
         if (ver_platform >= ver_opencl) {
             cl_uint num_devices;
             ret = clGetDeviceIDs(platforms[p], device_type, 0, NULL, &num_devices);
-            if (ret != CL_SUCCESS) return ret;
+            if (ret != CL_DEVICE_NOT_FOUND && ret != CL_SUCCESS) return ret;
             else if (num_devices > 0) {
                 cl_device_id *devices = (cl_device_id*) malloc(sizeof(cl_device_id) * num_devices);
                 if (devices == NULL) return OCL_UTILS_MALLOC_ERROR;
@@ -161,8 +162,8 @@ cl_int oclUtilsGetIDs(cl_uint ver_opencl, cl_device_type device_type, cl_uint sh
     return OCL_UTILS_NO_DEVICE_AVAILABLE;
 }
 
-cl_int oclUtilsGetPlaformDeviceIDs(cl_uint ver_opencl, ocl_utils_device_type device_type, cl_uint shf_device, cl_platform_id *platform,
-    cl_device_id *device, cl_device_type *type) {
+cl_int oclUtilsGetPlaformDeviceIDs(cl_uint ver_opencl, ocl_utils_device_type device_type, cl_uint shf_device, 
+    cl_platform_id *platform, cl_device_id *device, cl_device_type *type) {
 
     if (platform == NULL || device == NULL) {
         return OCL_UTILS_INVALID_VALUE;
