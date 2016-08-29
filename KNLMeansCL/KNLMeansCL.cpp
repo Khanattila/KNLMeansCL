@@ -916,7 +916,9 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
             for (int k = int64ToIntS(-d->d); k <= 0; k++) {
                 for (int j = int64ToIntS(-d->a); j <= d->a; j++) {
                     for (int i = int64ToIntS(-d->a); i <= d->a; i++) {
-                        if (k * (2 * int64ToIntS(d->a) + 1) * (2 * int64ToIntS(d->a) + 1) + j * (2 * int64ToIntS(d->a) + 1) + i < 0) {
+                        if (k * (2 * int64ToIntS(d->a) + 1) * (2 * int64ToIntS(d->a) + 1) +
+                            j * (2 * int64ToIntS(d->a) + 1) + i < 0) {
+                            
                             const cl_int q[4] = { i, j, k, 0 };
                             ret |= clSetKernelArg(d->kernel[nlmDistanceLeft], 3, 4 * sizeof(cl_int), &q);
                             ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[nlmDistanceLeft],
