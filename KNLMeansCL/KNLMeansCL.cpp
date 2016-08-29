@@ -703,11 +703,15 @@ PVideoFrame __stdcall _NLMAvisynth::GetFrame(int n, IScriptEnvironment* env) {
         DrawString(frm, pitch, 0, y++, "KNLMeansCL");
         DrawString(frm, pitch, 0, y++, " Version " VERSION);
         DrawString(frm, pitch, 0, y++, " Copyright(C) Khanattila");
-        snprintf(buffer, 2048, " D:%i  A:%ix%i  S:%ix%i", 2 * d + 1, 2 * a + 1, 2 * a + 1, 2 * s + 1, 2 * s + 1);
+        snprintf(buffer, 2048, " Search window: %ix%ix%i", 2 * a + 1, 2 * a + 1, 2 * d + 1);
         DrawString(frm, pitch, 0, y++, buffer);
-        snprintf(buffer, 2048, " Num of ref pixels: %i", (2 * d + 1)*(2 * a + 1)*(2 * a + 1) - 1);
+        snprintf(buffer, 2048, " Similarity neighborhood: %ix%i", 2 * s + 1, 2 * s + 1);
         DrawString(frm, pitch, 0, y++, buffer);
-        snprintf(buffer, 2048, " Global work size: %lux%lu", (unsigned long) global_work[0], (unsigned long) global_work[1]);
+        snprintf(buffer, 2048, " Num of ref pixels: %i", (2 * a + 1)*(2 * a + 1)*(2 * d + 1) - 1);
+        DrawString(frm, pitch, 0, y++, buffer);
+        snprintf(buffer, 2048, " Global work size: %zux%zu", global_work[0], global_work[1]);
+        DrawString(frm, pitch, 0, y++, buffer);
+        snprintf(buffer, 2048, " Local work size: %ux%u - %ux%u", HRZ_BLOCK_X, HRZ_BLOCK_Y, VRT_BLOCK_X, VRT_BLOCK_Y);
         DrawString(frm, pitch, 0, y++, buffer);
         DrawString(frm, pitch, 0, y++, "Platform info");
         ret |= clGetPlatformInfo(platformID, CL_PLATFORM_NAME, sizeof(char) * 2048, str, NULL);
@@ -1050,14 +1054,17 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
             DrawString(frm, pitch, 0, y++, "KNLMeansCL");
             DrawString(frm, pitch, 0, y++, " Version " VERSION);
             DrawString(frm, pitch, 0, y++, " Copyright(C) Khanattila");
-            snprintf(buffer, 2048, " D:%i  A:%ix%i  S:%ix%i", 2 * int64ToIntS(d->d) + 1, 2 * int64ToIntS(d->a) + 1,
-                2 * int64ToIntS(d->a) + 1, 2 * int64ToIntS(d->s) + 1, 2 * int64ToIntS(d->s) + 1);
+            snprintf(buffer, 2048, " Search window: %llix%llix%lli", 2 * d->a + 1, 2 * d->a + 1, 2 * d->d + 1);
             DrawString(frm, pitch, 0, y++, buffer);
-            snprintf(buffer, 2048, " Num of ref pixels: %i", (2 * int64ToIntS(d->d) + 1)*(2 * int64ToIntS(d->a) + 1)*
-                (2 * int64ToIntS(d->a) + 1) - 1);
+            snprintf(buffer, 2048, " Similarity neighborhood: %llix%lli", 2 * d->s + 1, 2 * d->s + 1);
+            DrawString(frm, pitch, 0, y++, buffer);
+            snprintf(buffer, 2048, " Num of ref pixels: %lli", (2 * d->a + 1)*(2 * d->a + 1)*(2 * d->d + 1) - 1);
             DrawString(frm, pitch, 0, y++, buffer);
             snprintf(buffer, 2048, " Global work size: %lux%lu", (unsigned long) global_work[0], (unsigned long) global_work[1]);
-            DrawString(frm, pitch, 0, y++, buffer);            
+            DrawString(frm, pitch, 0, y++, buffer);
+            snprintf(buffer, 2048, " Local work size: %ux%u - %ux%u",
+                d->HRZ_BLOCK_X, d->HRZ_BLOCK_Y, d->VRT_BLOCK_X, d->VRT_BLOCK_Y);
+            DrawString(frm, pitch, 0, y++, buffer);
             DrawString(frm, pitch, 0, y++, "Platform info");
             ret |= clGetPlatformInfo(d->platformID, CL_PLATFORM_NAME, sizeof(char) * 2048, str, NULL);
             snprintf(buffer, 2048, " Name: %s", str);
