@@ -135,7 +135,7 @@ cl_int oclUtilsGetIDs(cl_uint ver_opencl, cl_device_type device_type, cl_uint sh
         char str[OCL_UTILS_STRING_SIZE];
         ret = clGetPlatformInfo(platforms[p], CL_PLATFORM_VERSION, sizeof(char) * OCL_UTILS_STRING_SIZE, str, NULL);
         if (ret != CL_SUCCESS) return ret;
-        cl_uint ver_platform = 10 * (str[7] - '0') + (str[9] - '0');
+        cl_uint ver_platform = 10u * (str[7] - '0') + (str[9] - '0');
         if (ver_platform >= ver_opencl) {
             cl_uint num_devices;
             ret = clGetDeviceIDs(platforms[p], device_type, 0, NULL, &num_devices);
