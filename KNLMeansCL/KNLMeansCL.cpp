@@ -428,12 +428,13 @@ PVideoFrame __stdcall _NLMAvisynth::GetFrame(int n, IScriptEnvironment* env) {
             src->GetPitch(PLANAR_V), src->GetRowSize(PLANAR_V), src->GetHeight(PLANAR_V));
     }
 
-    // Processing.
+    // Set-up buffers.
     cl_int ret = CL_SUCCESS;
     cl_command_queue command_queue = clCreateCommandQueue(context, deviceID, 0, NULL);
     ret |= clEnqueueFillBuffer(command_queue, mem_U[0], &pattern_u0, sizeof(cl_float), 0, size_u0, 0, NULL, NULL);
     ret |= clEnqueueFillBuffer(command_queue, mem_U[3], &pattern_u3, sizeof(cl_float), 0, size_u3, 0, NULL, NULL);
     if (d) {
+        // Spatio-temporal processing.
         for (int k = -d; k <= d; k++) {
             src = child->GetFrame(clamp(n + k, 0, maxframe), env);
             ref = (baby) ? baby->GetFrame(clamp(n + k, 0, maxframe), env) : nullptr;
@@ -557,7 +558,45 @@ PVideoFrame __stdcall _NLMAvisynth::GetFrame(int n, IScriptEnvironment* env) {
             }
         }
         ret |= clEnqueueNDRangeKernel(command_queue, kernel[nlmFinish], 2, NULL, global_work, NULL, 0, NULL, NULL);
+        switch (clip_t) {
+            case (NLM_EXTRA_FALSE | NLM_CLIP_UNORM | NLM_COLOR_GRAY):
+            case (NLM_EXTRA_TRUE | NLM_CLIP_UNORM | NLM_COLOR_GRAY):
+                ret |= clEnqueueReadImage(command_queue, mem_out, CL_TRUE, origin, region,
+                    (size_t) dst->GetPitch(PLANAR_Y), 0, dst->GetWritePtr(PLANAR_Y), 0, NULL, NULL);
+                break;
+            case (NLM_EXTRA_FALSE | NLM_CLIP_STACKED | NLM_COLOR_GRAY):
+            case (NLM_EXTRA_TRUE | NLM_CLIP_STACKED | NLM_COLOR_GRAY):
+                ret |= clSetKernelArg(kernel[nlmUnpack], 3, sizeof(cl_mem), &mem_out);
+                ret |= clEnqueueNDRangeKernel(command_queue, kernel[nlmUnpack],
+                    2, NULL, global_work, NULL, 0, NULL, NULL);
+                ret |= clEnqueueReadImage(command_queue, mem_P[0], CL_TRUE, origin, region_p,
+                    (size_t) dst->GetPitch(PLANAR_Y), 0, dst->GetWritePtr(PLANAR_Y), 0, NULL, NULL);
+                break;
+            case (NLM_EXTRA_FALSE | NLM_CLIP_UNORM | NLM_COLOR_YUV):
+            case (NLM_EXTRA_TRUE | NLM_CLIP_UNORM | NLM_COLOR_YUV):
+            case (NLM_EXTRA_FALSE | NLM_CLIP_STACKED | NLM_COLOR_YUV):
+            case (NLM_EXTRA_TRUE | NLM_CLIP_STACKED | NLM_COLOR_YUV):
+                ret |= clSetKernelArg(kernel[nlmUnpack], 3, sizeof(cl_mem), &mem_out);
+                ret |= clEnqueueNDRangeKernel(command_queue, kernel[nlmUnpack],
+                    2, NULL, global_work, NULL, 0, NULL, NULL);
+                ret |= clEnqueueReadImage(command_queue, mem_P[0], CL_TRUE, origin, region_p,
+                    (size_t) dst->GetPitch(PLANAR_Y), 0, dst->GetWritePtr(PLANAR_Y), 0, NULL, NULL);
+                ret |= clEnqueueReadImage(command_queue, mem_P[1], CL_TRUE, origin, region_p,
+                    (size_t) dst->GetPitch(PLANAR_U), 0, dst->GetWritePtr(PLANAR_U), 0, NULL, NULL);
+                ret |= clEnqueueReadImage(command_queue, mem_P[2], CL_TRUE, origin, region_p,
+                    (size_t) dst->GetPitch(PLANAR_V), 0, dst->GetWritePtr(PLANAR_V), 0, NULL, NULL);
+                break;
+            case (NLM_EXTRA_FALSE | NLM_CLIP_UNORM | NLM_COLOR_RGB):
+            case (NLM_EXTRA_TRUE | NLM_CLIP_UNORM | NLM_COLOR_RGB):
+                ret |= clEnqueueReadImage(command_queue, mem_out, CL_TRUE, origin, region,
+                    (size_t) dst->GetPitch(), 0, dst->GetWritePtr(), 0, NULL, NULL);
+                break;
+            default:
+                env->ThrowError("KNLMeansCL: fatal error!\n (AviSynthGetFrame)");
+                break;
+        }
     } else {
+        // Spatial processing.
         switch (clip_t) {
             case (NLM_EXTRA_FALSE | NLM_CLIP_UNORM | NLM_COLOR_GRAY):
                 ret |= clEnqueueWriteImage(command_queue, mem_in[0], CL_TRUE, origin, region,
@@ -653,43 +692,43 @@ PVideoFrame __stdcall _NLMAvisynth::GetFrame(int n, IScriptEnvironment* env) {
             }
         }
         ret |= clEnqueueNDRangeKernel(command_queue, kernel[nlmSpatialFinish], 2, NULL, global_work, NULL, 0, NULL, NULL);
-    }
-    switch (clip_t) {
-        case (NLM_EXTRA_FALSE | NLM_CLIP_UNORM | NLM_COLOR_GRAY):
-        case (NLM_EXTRA_TRUE | NLM_CLIP_UNORM | NLM_COLOR_GRAY):
-            ret |= clEnqueueReadImage(command_queue, mem_out, CL_TRUE, origin, region,
-                (size_t) dst->GetPitch(PLANAR_Y), 0, dst->GetWritePtr(PLANAR_Y), 0, NULL, NULL);
-            break;
-        case (NLM_EXTRA_FALSE | NLM_CLIP_STACKED | NLM_COLOR_GRAY):
-        case (NLM_EXTRA_TRUE | NLM_CLIP_STACKED | NLM_COLOR_GRAY):
-            ret |= clSetKernelArg(kernel[nlmUnpack], 3, sizeof(cl_mem), &mem_out);
-            ret |= clEnqueueNDRangeKernel(command_queue, kernel[nlmUnpack],
-                2, NULL, global_work, NULL, 0, NULL, NULL);
-            ret |= clEnqueueReadImage(command_queue, mem_P[0], CL_TRUE, origin, region_p,
-                (size_t) dst->GetPitch(PLANAR_Y), 0, dst->GetWritePtr(PLANAR_Y), 0, NULL, NULL);
-            break;
-        case (NLM_EXTRA_FALSE | NLM_CLIP_UNORM | NLM_COLOR_YUV):
-        case (NLM_EXTRA_TRUE | NLM_CLIP_UNORM | NLM_COLOR_YUV):
-        case (NLM_EXTRA_FALSE | NLM_CLIP_STACKED | NLM_COLOR_YUV):
-        case (NLM_EXTRA_TRUE | NLM_CLIP_STACKED | NLM_COLOR_YUV):
-            ret |= clSetKernelArg(kernel[nlmUnpack], 3, sizeof(cl_mem), &mem_out);
-            ret |= clEnqueueNDRangeKernel(command_queue, kernel[nlmUnpack],
-                2, NULL, global_work, NULL, 0, NULL, NULL);
-            ret |= clEnqueueReadImage(command_queue, mem_P[0], CL_TRUE, origin, region_p,
-                (size_t) dst->GetPitch(PLANAR_Y), 0, dst->GetWritePtr(PLANAR_Y), 0, NULL, NULL);
-            ret |= clEnqueueReadImage(command_queue, mem_P[1], CL_TRUE, origin, region_p,
-                (size_t) dst->GetPitch(PLANAR_U), 0, dst->GetWritePtr(PLANAR_U), 0, NULL, NULL);
-            ret |= clEnqueueReadImage(command_queue, mem_P[2], CL_TRUE, origin, region_p,
-                (size_t) dst->GetPitch(PLANAR_V), 0, dst->GetWritePtr(PLANAR_V), 0, NULL, NULL);
-            break;
-        case (NLM_EXTRA_FALSE | NLM_CLIP_UNORM | NLM_COLOR_RGB):
-        case (NLM_EXTRA_TRUE | NLM_CLIP_UNORM | NLM_COLOR_RGB):
-            ret |= clEnqueueReadImage(command_queue, mem_out, CL_TRUE, origin, region,
-                (size_t) dst->GetPitch(), 0, dst->GetWritePtr(), 0, NULL, NULL);
-            break;
-        default:
-            env->ThrowError("KNLMeansCL: fatal error!\n (AviSynthGetFrame)");
-            break;
+        switch (clip_t) {
+            case (NLM_EXTRA_FALSE | NLM_CLIP_UNORM | NLM_COLOR_GRAY):
+            case (NLM_EXTRA_TRUE | NLM_CLIP_UNORM | NLM_COLOR_GRAY):
+                ret |= clEnqueueReadImage(command_queue, mem_out, CL_TRUE, origin, region,
+                    (size_t) dst->GetPitch(PLANAR_Y), 0, dst->GetWritePtr(PLANAR_Y), 0, NULL, NULL);
+                break;
+            case (NLM_EXTRA_FALSE | NLM_CLIP_STACKED | NLM_COLOR_GRAY):
+            case (NLM_EXTRA_TRUE | NLM_CLIP_STACKED | NLM_COLOR_GRAY):
+                ret |= clSetKernelArg(kernel[nlmSpatialUnpack], 3, sizeof(cl_mem), &mem_out);
+                ret |= clEnqueueNDRangeKernel(command_queue, kernel[nlmSpatialUnpack],
+                    2, NULL, global_work, NULL, 0, NULL, NULL);
+                ret |= clEnqueueReadImage(command_queue, mem_P[0], CL_TRUE, origin, region_p,
+                    (size_t) dst->GetPitch(PLANAR_Y), 0, dst->GetWritePtr(PLANAR_Y), 0, NULL, NULL);
+                break;
+            case (NLM_EXTRA_FALSE | NLM_CLIP_UNORM | NLM_COLOR_YUV):
+            case (NLM_EXTRA_TRUE | NLM_CLIP_UNORM | NLM_COLOR_YUV):
+            case (NLM_EXTRA_FALSE | NLM_CLIP_STACKED | NLM_COLOR_YUV):
+            case (NLM_EXTRA_TRUE | NLM_CLIP_STACKED | NLM_COLOR_YUV):
+                ret |= clSetKernelArg(kernel[nlmSpatialUnpack], 3, sizeof(cl_mem), &mem_out);
+                ret |= clEnqueueNDRangeKernel(command_queue, kernel[nlmSpatialUnpack],
+                    2, NULL, global_work, NULL, 0, NULL, NULL);
+                ret |= clEnqueueReadImage(command_queue, mem_P[0], CL_TRUE, origin, region_p,
+                    (size_t) dst->GetPitch(PLANAR_Y), 0, dst->GetWritePtr(PLANAR_Y), 0, NULL, NULL);
+                ret |= clEnqueueReadImage(command_queue, mem_P[1], CL_TRUE, origin, region_p,
+                    (size_t) dst->GetPitch(PLANAR_U), 0, dst->GetWritePtr(PLANAR_U), 0, NULL, NULL);
+                ret |= clEnqueueReadImage(command_queue, mem_P[2], CL_TRUE, origin, region_p,
+                    (size_t) dst->GetPitch(PLANAR_V), 0, dst->GetWritePtr(PLANAR_V), 0, NULL, NULL);
+                break;
+            case (NLM_EXTRA_FALSE | NLM_CLIP_UNORM | NLM_COLOR_RGB):
+            case (NLM_EXTRA_TRUE | NLM_CLIP_UNORM | NLM_COLOR_RGB):
+                ret |= clEnqueueReadImage(command_queue, mem_out, CL_TRUE, origin, region,
+                    (size_t) dst->GetPitch(), 0, dst->GetWritePtr(), 0, NULL, NULL);
+                break;
+            default:
+                env->ThrowError("KNLMeansCL: fatal error!\n (AviSynthGetFrame)");
+                break;
+        }
     }
     ret |= clFinish(command_queue);
     ret |= clReleaseCommandQueue(command_queue);
@@ -781,12 +820,13 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
             dst = vsapi->newVideoFrame(fi, (int) d->idmn[0], (int) d->idmn[1], src, core);        
         vsapi->freeFrame(src);
 
-        // Processing.
+        // Set-up buffers.        
         cl_int ret = CL_SUCCESS;
         cl_command_queue command_queue = clCreateCommandQueue(d->context, d->deviceID, 0, NULL);
         ret |= clEnqueueFillBuffer(command_queue, d->mem_U[0], &pattern_u0, sizeof(cl_float), 0, size_u0, 0, NULL, NULL);
         ret |= clEnqueueFillBuffer(command_queue, d->mem_U[3], &pattern_u3, sizeof(cl_float), 0, size_u3, 0, NULL, NULL);
         if (d->d) {
+            // Spatio-temporal processing.
             for (int k = int64ToIntS(-d->d); k <= d->d; k++) {
                 src = vsapi->getFrameFilter(clamp(n + k, 0, maxframe), d->node, frameCtx);
                 ref = (d->knot) ? vsapi->getFrameFilter(clamp(n + k, 0, maxframe), d->knot, frameCtx) : nullptr;
@@ -907,7 +947,45 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
                 }
             }
             ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[nlmFinish], 2, NULL, global_work, NULL, 0, NULL, NULL);
+            switch (d->clip_t) {
+                case (NLM_EXTRA_FALSE | NLM_CLIP_UNORM | NLM_COLOR_GRAY):
+                case (NLM_EXTRA_TRUE | NLM_CLIP_UNORM | NLM_COLOR_GRAY):
+                    ret |= clEnqueueReadImage(command_queue, d->mem_out, CL_TRUE, origin, region,
+                        (size_t) vsapi->getStride(dst, 0), 0, vsapi->getWritePtr(dst, 0), 0, NULL, NULL);
+                    break;
+                case (NLM_EXTRA_FALSE | NLM_CLIP_UNSIGNED | NLM_COLOR_GRAY):
+                case (NLM_EXTRA_TRUE | NLM_CLIP_UNSIGNED | NLM_COLOR_GRAY):
+                    ret |= clSetKernelArg(d->kernel[nlmUnpack], 3, sizeof(cl_mem), &d->mem_out);
+                    ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[nlmUnpack],
+                        2, NULL, global_work, NULL, 0, NULL, NULL);
+                    ret |= clEnqueueReadImage(command_queue, d->mem_P[0], CL_TRUE, origin, region,
+                        (size_t) vsapi->getStride(dst, 0), 0, vsapi->getWritePtr(dst, 0), 0, NULL, NULL);
+                    break;
+                case (NLM_EXTRA_FALSE | NLM_CLIP_UNORM | NLM_COLOR_YUV):
+                case (NLM_EXTRA_TRUE | NLM_CLIP_UNORM | NLM_COLOR_YUV):
+                case (NLM_EXTRA_FALSE | NLM_CLIP_UNSIGNED | NLM_COLOR_YUV):
+                case (NLM_EXTRA_TRUE | NLM_CLIP_UNSIGNED | NLM_COLOR_YUV):
+                case (NLM_EXTRA_FALSE | NLM_CLIP_UNORM | NLM_COLOR_RGB):
+                case (NLM_EXTRA_TRUE | NLM_CLIP_UNORM | NLM_COLOR_RGB):
+                case (NLM_EXTRA_FALSE | NLM_CLIP_UNSIGNED | NLM_COLOR_RGB):
+                case (NLM_EXTRA_TRUE | NLM_CLIP_UNSIGNED | NLM_COLOR_RGB):
+                    ret |= clSetKernelArg(d->kernel[nlmUnpack], 3, sizeof(cl_mem), &d->mem_out);
+                    ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[nlmUnpack],
+                        2, NULL, global_work, NULL, 0, NULL, NULL);
+                    ret |= clEnqueueReadImage(command_queue, d->mem_P[0], CL_TRUE, origin, region,
+                        (size_t) vsapi->getStride(dst, 0), 0, vsapi->getWritePtr(dst, 0), 0, NULL, NULL);
+                    ret |= clEnqueueReadImage(command_queue, d->mem_P[1], CL_TRUE, origin, region,
+                        (size_t) vsapi->getStride(dst, 1), 0, vsapi->getWritePtr(dst, 1), 0, NULL, NULL);
+                    ret |= clEnqueueReadImage(command_queue, d->mem_P[2], CL_TRUE, origin, region,
+                        (size_t) vsapi->getStride(dst, 2), 0, vsapi->getWritePtr(dst, 2), 0, NULL, NULL);
+                    break;
+                default:
+                    vsapi->setFilterError("knlm.KNLMeansCL: fatal error!\n (VapourSynthGetFrame)", frameCtx);
+                    vsapi->freeFrame(dst);
+                    return 0;
+            }
         } else {
+            // Spatial processing.
             src = vsapi->getFrameFilter(n, d->node, frameCtx);
             ref = (d->knot) ? vsapi->getFrameFilter(n, d->knot, frameCtx) : nullptr;
             switch (d->clip_t) {
@@ -1002,42 +1080,44 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
                 }
             }
             ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[nlmSpatialFinish], 2, NULL, global_work, NULL, 0, NULL, NULL);
-        }
-        switch (d->clip_t) {
-            case (NLM_EXTRA_FALSE | NLM_CLIP_UNORM | NLM_COLOR_GRAY):
-            case (NLM_EXTRA_TRUE | NLM_CLIP_UNORM | NLM_COLOR_GRAY):
-                ret |= clEnqueueReadImage(command_queue, d->mem_out, CL_TRUE, origin, region,
-                    (size_t) vsapi->getStride(dst, 0), 0, vsapi->getWritePtr(dst, 0), 0, NULL, NULL);
-                break;
-            case (NLM_EXTRA_FALSE | NLM_CLIP_UNSIGNED | NLM_COLOR_GRAY):
-            case (NLM_EXTRA_TRUE | NLM_CLIP_UNSIGNED | NLM_COLOR_GRAY):
-                ret |= clSetKernelArg(d->kernel[nlmUnpack], 3, sizeof(cl_mem), &d->mem_out);
-                ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[nlmUnpack], 2, NULL, global_work, NULL, 0, NULL, NULL);
-                ret |= clEnqueueReadImage(command_queue, d->mem_P[0], CL_TRUE, origin, region,
-                    (size_t) vsapi->getStride(dst, 0), 0, vsapi->getWritePtr(dst, 0), 0, NULL, NULL);
-                break;
-            case (NLM_EXTRA_FALSE | NLM_CLIP_UNORM | NLM_COLOR_YUV):
-            case (NLM_EXTRA_TRUE | NLM_CLIP_UNORM | NLM_COLOR_YUV):
-            case (NLM_EXTRA_FALSE | NLM_CLIP_UNSIGNED | NLM_COLOR_YUV):
-            case (NLM_EXTRA_TRUE | NLM_CLIP_UNSIGNED | NLM_COLOR_YUV):
-            case (NLM_EXTRA_FALSE | NLM_CLIP_UNORM | NLM_COLOR_RGB):
-            case (NLM_EXTRA_TRUE | NLM_CLIP_UNORM | NLM_COLOR_RGB):
-            case (NLM_EXTRA_FALSE | NLM_CLIP_UNSIGNED | NLM_COLOR_RGB):
-            case (NLM_EXTRA_TRUE | NLM_CLIP_UNSIGNED | NLM_COLOR_RGB):
-                ret |= clSetKernelArg(d->kernel[nlmUnpack], 3, sizeof(cl_mem), &d->mem_out);
-                ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[nlmUnpack], 2, NULL, global_work, NULL, 0, NULL, NULL);
-                ret |= clEnqueueReadImage(command_queue, d->mem_P[0], CL_TRUE, origin, region,
-                    (size_t) vsapi->getStride(dst, 0), 0, vsapi->getWritePtr(dst, 0), 0, NULL, NULL);
-                ret |= clEnqueueReadImage(command_queue, d->mem_P[1], CL_TRUE, origin, region,
-                    (size_t) vsapi->getStride(dst, 1), 0, vsapi->getWritePtr(dst, 1), 0, NULL, NULL);
-                ret |= clEnqueueReadImage(command_queue, d->mem_P[2], CL_TRUE, origin, region,
-                    (size_t) vsapi->getStride(dst, 2), 0, vsapi->getWritePtr(dst, 2), 0, NULL, NULL);
-                break;
-            default:
-                vsapi->setFilterError("knlm.KNLMeansCL: fatal error!\n (VapourSynthGetFrame)", frameCtx);
-                vsapi->freeFrame(dst);
-                return 0;
-        }
+            switch (d->clip_t) {
+                case (NLM_EXTRA_FALSE | NLM_CLIP_UNORM | NLM_COLOR_GRAY):
+                case (NLM_EXTRA_TRUE | NLM_CLIP_UNORM | NLM_COLOR_GRAY):
+                    ret |= clEnqueueReadImage(command_queue, d->mem_out, CL_TRUE, origin, region,
+                        (size_t) vsapi->getStride(dst, 0), 0, vsapi->getWritePtr(dst, 0), 0, NULL, NULL);
+                    break;
+                case (NLM_EXTRA_FALSE | NLM_CLIP_UNSIGNED | NLM_COLOR_GRAY):
+                case (NLM_EXTRA_TRUE | NLM_CLIP_UNSIGNED | NLM_COLOR_GRAY):
+                    ret |= clSetKernelArg(d->kernel[nlmSpatialUnpack], 3, sizeof(cl_mem), &d->mem_out);
+                    ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[nlmSpatialUnpack],
+                        2, NULL, global_work, NULL, 0, NULL, NULL);
+                    ret |= clEnqueueReadImage(command_queue, d->mem_P[0], CL_TRUE, origin, region,
+                        (size_t) vsapi->getStride(dst, 0), 0, vsapi->getWritePtr(dst, 0), 0, NULL, NULL);
+                    break;
+                case (NLM_EXTRA_FALSE | NLM_CLIP_UNORM | NLM_COLOR_YUV):
+                case (NLM_EXTRA_TRUE | NLM_CLIP_UNORM | NLM_COLOR_YUV):
+                case (NLM_EXTRA_FALSE | NLM_CLIP_UNSIGNED | NLM_COLOR_YUV):
+                case (NLM_EXTRA_TRUE | NLM_CLIP_UNSIGNED | NLM_COLOR_YUV):
+                case (NLM_EXTRA_FALSE | NLM_CLIP_UNORM | NLM_COLOR_RGB):
+                case (NLM_EXTRA_TRUE | NLM_CLIP_UNORM | NLM_COLOR_RGB):
+                case (NLM_EXTRA_FALSE | NLM_CLIP_UNSIGNED | NLM_COLOR_RGB):
+                case (NLM_EXTRA_TRUE | NLM_CLIP_UNSIGNED | NLM_COLOR_RGB):
+                    ret |= clSetKernelArg(d->kernel[nlmSpatialUnpack], 3, sizeof(cl_mem), &d->mem_out);
+                    ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[nlmSpatialUnpack],
+                        2, NULL, global_work, NULL, 0, NULL, NULL);
+                    ret |= clEnqueueReadImage(command_queue, d->mem_P[0], CL_TRUE, origin, region,
+                        (size_t) vsapi->getStride(dst, 0), 0, vsapi->getWritePtr(dst, 0), 0, NULL, NULL);
+                    ret |= clEnqueueReadImage(command_queue, d->mem_P[1], CL_TRUE, origin, region,
+                        (size_t) vsapi->getStride(dst, 1), 0, vsapi->getWritePtr(dst, 1), 0, NULL, NULL);
+                    ret |= clEnqueueReadImage(command_queue, d->mem_P[2], CL_TRUE, origin, region,
+                        (size_t) vsapi->getStride(dst, 2), 0, vsapi->getWritePtr(dst, 2), 0, NULL, NULL);
+                    break;
+                default:
+                    vsapi->setFilterError("knlm.KNLMeansCL: fatal error!\n (VapourSynthGetFrame)", frameCtx);
+                    vsapi->freeFrame(dst);
+                    return 0;
+            }
+        }        
         ret |= clFinish(command_queue);
         ret |= clReleaseCommandQueue(command_queue);
         if (ret != CL_SUCCESS) {
