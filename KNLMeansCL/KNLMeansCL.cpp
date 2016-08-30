@@ -1119,13 +1119,14 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
             DrawString(frm, pitch, 0, y++, "KNLMeansCL");
             DrawString(frm, pitch, 0, y++, " Version " VERSION);
             DrawString(frm, pitch, 0, y++, " Copyright(C) Khanattila");
-            snprintf(buffer, 2048, " Search window: %llix%llix%lli", 2 * d->a + 1, 2 * d->a + 1, 2 * d->d + 1);
+            snprintf(buffer, 2048, " Search window: %" PRId64 "x%" PRId64 "x%" PRId64,
+                2 * d->a + 1, 2 * d->a + 1, 2 * d->d + 1);
             DrawString(frm, pitch, 0, y++, buffer);
-            snprintf(buffer, 2048, " Similarity neighborhood: %llix%lli", 2 * d->s + 1, 2 * d->s + 1);
+            snprintf(buffer, 2048, " Similarity neighborhood: %" PRId64 "x%" PRId64, 2 * d->s + 1, 2 * d->s + 1);
             DrawString(frm, pitch, 0, y++, buffer);
-            snprintf(buffer, 2048, " Num of ref pixels: %lli", (2 * d->a + 1)*(2 * d->a + 1)*(2 * d->d + 1) - 1);
+            snprintf(buffer, 2048, " Num of ref pixels: %" PRId64, (2 * d->a + 1)*(2 * d->a + 1)*(2 * d->d + 1) - 1);
             DrawString(frm, pitch, 0, y++, buffer);
-            snprintf(buffer, 2048, " Global work size: %lux%lu", (unsigned long) global_work[0], (unsigned long) global_work[1]);
+            snprintf(buffer, 2048, " Global work size: %zux%zu", global_work[0], global_work[1]);
             DrawString(frm, pitch, 0, y++, buffer);
             snprintf(buffer, 2048, " Local work size: %ux%u - %ux%u",
                 d->HRZ_BLOCK_X, d->HRZ_BLOCK_Y, d->VRT_BLOCK_X, d->VRT_BLOCK_Y);
