@@ -207,25 +207,8 @@ _NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _
         clip_t, d, s, wmode, wref, 65025.0 / (3 * h * h * (2 * s + 1)*(2 * s + 1)), 0u);
     ret = clBuildProgram(program, 1, &deviceID, options, NULL, NULL);
     if (ret != CL_SUCCESS) {
-        size_t options_size, log_size;
-        clGetProgramBuildInfo(program, deviceID, CL_PROGRAM_BUILD_OPTIONS, 0, NULL, &options_size);
-        clGetProgramBuildInfo(program, deviceID, CL_PROGRAM_BUILD_LOG, 0, NULL, &log_size);
-        char *options_txt = (char*) malloc(options_size);
-        char *log_txt = (char*) malloc(log_size);
-        clGetProgramBuildInfo(program, deviceID, CL_PROGRAM_BUILD_OPTIONS, options_size, options_txt, NULL);
-        clGetProgramBuildInfo(program, deviceID, CL_PROGRAM_BUILD_LOG, log_size, log_txt, NULL);
-        std::ofstream outfile("Log-KNLMeansCL.txt", std::ofstream::out);
-        outfile << "---------------------------------" << std::endl;
-        outfile << "*** Error in OpenCL compiler ***" << std::endl;
-        outfile << "---------------------------------" << std::endl;
-        outfile << std::endl << "# Build Options" << std::endl;
-        outfile << options_txt << std::endl;
-        outfile << std::endl << "# Build Log" << std::endl;
-        outfile << log_txt << std::endl;
-        outfile.close();
-        free(log_txt);
-        free(options_txt);
-        env->ThrowError("KNLMeansCL: fatal error!\n (clBuildProgram: please report Log-KNLMeansCL.txt.)");
+        oclUtilsDebugInfo(platformID, deviceID, program);
+        env->ThrowError("KNLMeansCL: build program error!\n Please report Log-KNLMeansCL.txt.");
     }
     setlocale(LC_ALL, "");
 
@@ -1661,25 +1644,8 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
 #    endif
     ret = clBuildProgram(d.program, 1, &d.deviceID, options, NULL, NULL);
     if (ret != CL_SUCCESS) {
-        size_t options_size, log_size;
-        clGetProgramBuildInfo(d.program, d.deviceID, CL_PROGRAM_BUILD_OPTIONS, 0, NULL, &options_size);
-        clGetProgramBuildInfo(d.program, d.deviceID, CL_PROGRAM_BUILD_LOG, 0, NULL, &log_size);
-        char *options_txt = (char*) malloc(options_size);
-        char *log_txt = (char*) malloc(log_size);
-        clGetProgramBuildInfo(d.program, d.deviceID, CL_PROGRAM_BUILD_OPTIONS, options_size, options_txt, NULL);
-        clGetProgramBuildInfo(d.program, d.deviceID, CL_PROGRAM_BUILD_LOG, log_size, log_txt, NULL);
-        std::ofstream outfile("Log-KNLMeansCL.txt", std::ofstream::out);
-        outfile << "---------------------------------" << std::endl;
-        outfile << "*** Error in OpenCL compiler ***" << std::endl;
-        outfile << "---------------------------------" << std::endl;
-        outfile << std::endl << "# Build Options" << std::endl;
-        outfile << options_txt << std::endl;
-        outfile << std::endl << "# Build Log" << std::endl;
-        outfile << log_txt << std::endl;
-        outfile.close();
-        free(log_txt);
-        free(options_txt);
-        vsapi->setError(out, "knlm.KNLMeansCL: fatal error!\n (clBuildProgram: please report Log-KNLMeansCL.txt.)");
+        oclUtilsDebugInfo(d.platformID, d.deviceID, d.program);
+        vsapi->setError(out, "knlm.KNLMeansCL: build programm error!\n Please report Log-KNLMeansCL.txt.");
         vsapi->freeNode(d.node);
         vsapi->freeNode(d.knot);
         return;

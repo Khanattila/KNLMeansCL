@@ -193,3 +193,100 @@ cl_int oclUtilsGetPlaformDeviceIDs(cl_uint ver_opencl, ocl_utils_device_type dev
             return OCL_UTILS_INVALID_DEVICE_TYPE;
     }
 }
+
+void oclUtilsDebugInfo(cl_platform_id platform, cl_device_id device, cl_program program) {
+    cl_int ret = CL_SUCCESS;
+    std::ofstream outfile("Log-KNLMeansCL.txt", std::ofstream::out);
+    
+    // clGetPlatformInfo
+    outfile << " OpenCL Platform" << std::endl;
+    outfile << "------------------------------------------------------------" << std::endl;
+    size_t plt_vendor, plt_name, plt_version, plt_profile;
+    ret |= clGetPlatformInfo(platform, CL_PLATFORM_VENDOR, 0, NULL, &plt_vendor);
+    ret |= clGetPlatformInfo(platform, CL_PLATFORM_NAME, 0, NULL, &plt_name);    
+    ret |= clGetPlatformInfo(platform, CL_PLATFORM_VERSION, 0, NULL, &plt_version);
+    ret |= clGetPlatformInfo(platform, CL_PLATFORM_PROFILE, 0, NULL, &plt_profile);
+    char *plt_vendor_txt = (char*) malloc(plt_vendor);
+    char *plt_name_txt = (char*) malloc(plt_name);  
+    char *plt_version_txt = (char*) malloc(plt_version);
+    char *plt_profile_txt = (char*) malloc(plt_profile);
+    ret |= clGetPlatformInfo(platform, CL_PLATFORM_VENDOR, plt_vendor, plt_vendor_txt, NULL);
+    ret |= clGetPlatformInfo(platform, CL_PLATFORM_NAME, plt_name, plt_name_txt, NULL);    
+    ret |= clGetPlatformInfo(platform, CL_PLATFORM_VERSION, plt_version, plt_version_txt, NULL);
+    ret |= clGetPlatformInfo(platform, CL_PLATFORM_PROFILE, plt_profile, plt_profile_txt, NULL);
+    outfile << " CL_PLATFORM_VENDOR:                " << plt_vendor_txt << std::endl;
+    outfile << " CL_PLATFORM_NAME:                  " << plt_name_txt << std::endl;   
+    outfile << " CL_PLATFORM_VERSION:               " << plt_version_txt << std::endl;
+    outfile << " CL_PLATFORM_PROFILE:               " << plt_profile_txt << std::endl << std::endl; 
+    free(plt_vendor_txt);
+    free(plt_name_txt);   
+    free(plt_version_txt);
+    free(plt_profile_txt);
+
+    // clGetDeviceInfo
+    outfile << " OpenCL Device" << std::endl;
+    outfile << "------------------------------------------------------------" << std::endl;
+    size_t dvc_vendor, dvc_name, drv_version, dvc_version, dvc_profile;   
+    ret |= clGetDeviceInfo(device, CL_DEVICE_VENDOR, 0, NULL, &dvc_vendor);
+    ret |= clGetDeviceInfo(device, CL_DEVICE_NAME, 0, NULL, &dvc_name);
+    ret |= clGetDeviceInfo(device, CL_DRIVER_VERSION, 0, NULL, &drv_version);
+    ret |= clGetDeviceInfo(device, CL_DEVICE_VERSION, 0, NULL, &dvc_version);
+    ret |= clGetDeviceInfo(device, CL_DEVICE_PROFILE, 0, NULL, &dvc_profile);
+    char *dvc_vendor_txt = (char*) malloc(dvc_vendor);
+    char *dvc_name_txt = (char*) malloc(dvc_name);
+    char *drv_version_txt = (char*) malloc(drv_version);
+    char *dvc_version_txt = (char*) malloc(dvc_version);
+    char *dvc_profile_txt = (char*) malloc(dvc_profile);
+    cl_bool img_support;
+    size_t max_width, max_height, arr_size;
+    ret |= clGetDeviceInfo(device, CL_DEVICE_VENDOR, dvc_vendor, dvc_vendor_txt, NULL);
+    ret |= clGetDeviceInfo(device, CL_DEVICE_NAME, dvc_name, dvc_name_txt, NULL);    
+    ret |= clGetDeviceInfo(device, CL_DRIVER_VERSION, drv_version, drv_version_txt, NULL);
+    ret |= clGetDeviceInfo(device, CL_DEVICE_VERSION, dvc_version, dvc_version_txt, NULL);
+    ret |= clGetDeviceInfo(device, CL_DEVICE_PROFILE, dvc_profile, dvc_profile_txt, NULL);
+    ret |= clGetDeviceInfo(device, CL_DEVICE_IMAGE_SUPPORT, sizeof(cl_bool), &img_support, NULL);
+    ret |= clGetDeviceInfo(device, CL_DEVICE_IMAGE2D_MAX_WIDTH, sizeof(size_t), &max_width, NULL);
+    ret |= clGetDeviceInfo(device, CL_DEVICE_IMAGE2D_MAX_HEIGHT, sizeof(size_t), &max_height, NULL);
+    ret |= clGetDeviceInfo(device, CL_DEVICE_IMAGE_MAX_ARRAY_SIZE, sizeof(size_t), &arr_size, NULL);
+    outfile << " CL_DEVICE_VENDOR:                  " << dvc_vendor_txt << std::endl;
+    outfile << " CL_DEVICE_NAME:                    " << dvc_name_txt << std::endl;
+    outfile << " CL_DRIVER_VERSION:                 " << drv_version_txt << std::endl;
+    outfile << " CL_DEVICE_VERSION:                 " << dvc_version_txt << std::endl;
+    outfile << " CL_DEVICE_PROFILE:                 " << dvc_profile_txt << std::endl;
+    outfile << " CL_DEVICE_IMAGE_SUPPORT:           " << img_support << std::endl;
+    outfile << " CL_DEVICE_IMAGE2D_MAX_WIDTH:       " << max_width << std::endl;
+    outfile << " CL_DEVICE_IMAGE2D_MAX_HEIGHT:      " << max_height << std::endl;
+    outfile << " CL_DEVICE_IMAGE_MAX_ARRAY_SIZE:    " << arr_size << std::endl << std::endl;
+    free(dvc_vendor_txt);
+    free(dvc_name_txt);
+    free(drv_version_txt);
+    free(dvc_version_txt);
+    free(dvc_profile_txt);
+
+    // clGetProgramBuildInfo
+    outfile << " Program Build" << std::endl;
+    outfile << "------------------------------------------------------------" << std::endl;
+    size_t bld_options, bld_log;    
+    ret |= clGetProgramBuildInfo(program, device, CL_PROGRAM_BUILD_OPTIONS, 0, NULL, &bld_options);
+    ret |= clGetProgramBuildInfo(program, device, CL_PROGRAM_BUILD_LOG, 0, NULL, &bld_log); 
+    char *bld_options_txt = (char*) malloc(bld_options);
+    char *bld_log_txt = (char*) malloc(bld_log);  
+    ret |= clGetProgramBuildInfo(program, device, CL_PROGRAM_BUILD_OPTIONS, bld_options, bld_options_txt, NULL);
+    ret |= clGetProgramBuildInfo(program, device, CL_PROGRAM_BUILD_LOG, bld_log, bld_log_txt, NULL);
+    std::string str_options = bld_options_txt;
+    std::string search = " -";
+    std::string format = "\n                                    -";
+    size_t pos = 0;
+    while ((pos = str_options.find(search, pos)) != std::string::npos) {
+        str_options.replace(pos, search.length(), format);
+        pos += format.length();
+    }
+    outfile << " CL_PROGRAM_BUILD_OPTIONS:          " << str_options.c_str() << std::endl;
+    outfile << " CL_PROGRAM_BUILD_LOG:              " << bld_log_txt << std::endl << std::endl;
+    free(bld_options_txt);
+    free(bld_log_txt);
+
+    // Close
+    outfile << " RETURN:                            " << ret << std::endl;
+    outfile.close();   
+}
