@@ -1,3 +1,8 @@
+v0.7.7
+   - Improved debugging information.
+   - Improved the overall stability.
+   - Minor changes.
+
 v0.7.6
   - Fixed wrong version displaying.
   - VapourSynth: fixed wrong API usage.
@@ -41,12 +46,12 @@ v0.6.4
   - VapourSynth: OpenMP no more needed.
 
 v0.6.3
-  - Enhanced OpenCL device selection (device_id).
+  - Improved OpenCL device selection (device_id).
   - VapourSynth linux: fixed wrong locate.
   - Minor changes and bug fixes.
 
 v0.6.2
-  - Enhanced error log.
+  - Improved error log.
   - Fixed warning use of logical '||' with constant operand.
 
 v0.6.1
