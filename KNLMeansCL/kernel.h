@@ -23,14 +23,6 @@
 
 //////////////////////////////////////////
 // Type Definition
-#define NLM_COLOR_GRAY           (1 << 0)
-#define NLM_COLOR_YUV            (1 << 1)
-#define NLM_COLOR_RGB            (1 << 2)
-#define NLM_CLIP_UNORM           (1 << 3)
-#define NLM_CLIP_UNSIGNED        (1 << 4)
-#define NLM_CLIP_STACKED         (1 << 5)
-#define NLM_EXTRA_FALSE          (1 << 6)
-#define NLM_EXTRA_TRUE           (1 << 7)
 
 #define nlmSpatialDistance        0x0
 #define nlmSpatialHorizontal      0x1
@@ -48,6 +40,20 @@
 #define nlmPack                   0xD
 #define nlmUnpack                 0xE
 #define NLM_NUMBER_KERNELS        0xF
+
+#define NLM_COLOR_GRAY           (1 << 0)
+#define NLM_COLOR_YUV            (1 << 1)
+#define NLM_COLOR_RGB            (1 << 2)
+#define NLM_CLIP_UNORM           (1 << 3)
+#define NLM_CLIP_UNSIGNED        (1 << 4)
+#define NLM_CLIP_STACKED         (1 << 5)
+#define NLM_EXTRA_FALSE          (1 << 6)
+#define NLM_EXTRA_TRUE           (1 << 7)
+
+#define NLM_WMODE_CAUCHY          0
+#define NLM_WMODE_WELSCH          1
+#define NLM_WMODE_BISQUARE        2
+#define NLM_WMODE_MOD_BISQUARE    3
 
 #define NLM_RGBA_RED              0.6664827524
 #define NLM_RGBA_GREEN            1.2866580779
@@ -146,14 +152,17 @@ static const char* kernel_source_code_spatial =
 "   for(int j = -NLM_S; j <= NLM_S; j++)                                                                          \n" \
 "       sum += buffer[ly + VRT_BLOCK_Y + j][lx];                                                                  \n" \
 "                                                                                                                 \n" \
-"   if(NLM_WMODE == 0) {                                                                                          \n" \
+"   if(NLM_WMODE == NLM_WMODE_CAUCHY) {                                                                           \n" \
 "       const float val = native_recip(1.0f + sum * NLM_H2_INV_NORM);                                             \n" \
 "       write_imagef(U4_out, p, (float4) val);                                                                    \n" \
-"   } else if (NLM_WMODE == 1) {                                                                                  \n" \
+"   } else if (NLM_WMODE == NLM_WMODE_WELSCH) {                                                                   \n" \
 "       const float val = native_exp(- sum * NLM_H2_INV_NORM);                                                    \n" \
 "       write_imagef(U4_out, p, (float4) val);                                                                    \n" \
-"   } else if (NLM_WMODE == 2) {                                                                                  \n" \
+"   } else if (NLM_WMODE == NLM_WMODE_BISQUARE) {                                                                 \n" \
 "       const float val = pown(fdim(1.0f, sum * NLM_H2_INV_NORM), 2);                                             \n" \
+"       write_imagef(U4_out, p, (float4) val);                                                                    \n" \
+"   } else if (NLM_WMODE == NLM_WMODE_MOD_BISQUARE) {                                                             \n" \
+"       const float val = pown(fdim(1.0f, sum * NLM_H2_INV_NORM), 8);                                             \n" \
 "       write_imagef(U4_out, p, (float4) val);                                                                    \n" \
 "   }                                                                                                             \n" \
 "}                                                                                                                \n" \
@@ -459,14 +468,17 @@ static const char* kernel_source_code =
 "   for(int j = -NLM_S; j <= NLM_S; j++)                                                                          \n" \
 "       sum += buffer[ly + VRT_BLOCK_Y + j][lx];                                                                  \n" \
 "                                                                                                                 \n" \
-"   if(NLM_WMODE == 0) {                                                                                          \n" \
+"   if(NLM_WMODE == NLM_WMODE_CAUCHY) {                                                                           \n" \
 "       const float val = native_recip(1.0f + sum * NLM_H2_INV_NORM);                                             \n" \
 "       write_imagef(U4_out, p, (float4) val);                                                                    \n" \
-"   } else if (NLM_WMODE == 1) {                                                                                  \n" \
+"   } else if (NLM_WMODE == NLM_WMODE_WELSCH) {                                                                   \n" \
 "       const float val = native_exp(- sum * NLM_H2_INV_NORM);                                                    \n" \
 "       write_imagef(U4_out, p, (float4) val);                                                                    \n" \
-"   } else if (NLM_WMODE == 2) {                                                                                  \n" \
+"   } else if (NLM_WMODE == NLM_WMODE_BISQUARE) {                                                                 \n" \
 "       const float val = pown(fdim(1.0f, sum * NLM_H2_INV_NORM), 2);                                             \n" \
+"       write_imagef(U4_out, p, (float4) val);                                                                    \n" \
+"   } else if (NLM_WMODE == NLM_WMODE_MOD_BISQUARE) {                                                             \n" \
+"       const float val = pown(fdim(1.0f, sum * NLM_H2_INV_NORM), 8);                                             \n" \
 "       write_imagef(U4_out, p, (float4) val);                                                                    \n" \
 "   }                                                                                                             \n" \
 "}                                                                                                                \n" \
