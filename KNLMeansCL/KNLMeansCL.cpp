@@ -126,8 +126,9 @@ _NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _
 
     // Gets PlatformID and DeviceID.
     cl_device_type deviceTYPE;
-    cl_int ret = oclUtilsGetPlaformDeviceIDs(OCL_UTILS_OPENCL_1_2, ocl_device_type,
-        (cl_uint) ocl_id, &platformID, &deviceID, &deviceTYPE);
+    cl_bool deviceIMAGE2DARRAY;
+    cl_int ret = oclUtilsGetPlaformDeviceIDs(ocl_device_type, (cl_uint) ocl_id, &platformID, &deviceID,
+        &deviceTYPE, &deviceIMAGE2DARRAY);
     if (ret == OCL_UTILS_NO_DEVICE_AVAILABLE) env->ThrowError("KNLMeansCL: no compatible opencl platforms available!");
     else if (ret != CL_SUCCESS) oclErrorCheck("oclUtilsGetPlaformDeviceIDs", ret, env);
 
@@ -1478,8 +1479,9 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
 
     // Gets PlatformID and DeviceID.
     cl_device_type deviceTYPE;
-    cl_int ret = oclUtilsGetPlaformDeviceIDs(OCL_UTILS_OPENCL_1_2, ocl_device_type, 
-        (cl_uint) d.ocl_id, &d.platformID, &d.deviceID, &deviceTYPE);
+    cl_bool deviceIMAGE2DARRAY;
+    cl_int ret = oclUtilsGetPlaformDeviceIDs(ocl_device_type, (cl_uint) d.ocl_id, &d.platformID, &d.deviceID,
+        &deviceTYPE, &deviceIMAGE2DARRAY);
     if (ret == OCL_UTILS_NO_DEVICE_AVAILABLE) {
         vsapi->setError(out, "knlm.KNLMeansCL: no compatible opencl platforms available!");
         vsapi->freeNode(d.node);
