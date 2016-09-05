@@ -59,7 +59,7 @@ private:
     cl_context context;
     cl_program program;
     cl_kernel kernel[NLM_NUMBER_KERNELS];
-    cl_mem mem_in[2], mem_out, mem_U[4], mem_P[3];
+    cl_mem mem_in[2], mem_out, mem_U[4], mem_P[6];
     bool equals(VideoInfo *v, VideoInfo *w);
     void oclErrorCheck(const char* function, cl_int errcode, IScriptEnvironment *env);
 public:

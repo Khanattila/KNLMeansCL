@@ -192,6 +192,12 @@ _NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _
     oclErrorCheck("clCreateImage(mem_P[1])", ret, env);
     mem_P[2] = clCreateImage(context, CL_MEM_READ_WRITE, &image_format_p, &image_desc_p, NULL, &ret);
     oclErrorCheck("clCreateImage(mem_P[2])", ret, env);
+    mem_P[3] = clCreateImage(context, CL_MEM_READ_WRITE, &image_format_p, &image_desc_p, NULL, &ret);
+    oclErrorCheck("clCreateImage(mem_P[3])", ret, env);
+    mem_P[4] = clCreateImage(context, CL_MEM_READ_WRITE, &image_format_p, &image_desc_p, NULL, &ret);
+    oclErrorCheck("clCreateImage(mem_P[4])", ret, env);
+    mem_P[5] = clCreateImage(context, CL_MEM_READ_WRITE, &image_format_p, &image_desc_p, NULL, &ret);
+    oclErrorCheck("clCreateImage(mem_P[5])", ret, env);
 
     // Creates and Build a program executable from the program source.
     program = clCreateProgramWithSource(context, 1, d ? &kernel_source_code : &kernel_source_code_spatial, NULL, NULL);
@@ -302,8 +308,14 @@ _NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _
         oclErrorCheck("clSetKernelArg(nlmPack[1])", ret, env);
         ret = clSetKernelArg(kernel[nlmPack], 2, sizeof(cl_mem), &mem_P[2]);
         oclErrorCheck("clSetKernelArg(nlmPack[2])", ret, env);
-        ret = clSetKernelArg(kernel[nlmPack], 5, 2 * sizeof(cl_uint), &idmn);
+        ret = clSetKernelArg(kernel[nlmPack], 3, sizeof(cl_mem), &mem_P[3]);
+        oclErrorCheck("clSetKernelArg(nlmPack[3])", ret, env);
+        ret = clSetKernelArg(kernel[nlmPack], 4, sizeof(cl_mem), &mem_P[4]);
+        oclErrorCheck("clSetKernelArg(nlmPack[4])", ret, env);
+        ret = clSetKernelArg(kernel[nlmPack], 5, sizeof(cl_mem), &mem_P[5]);
         oclErrorCheck("clSetKernelArg(nlmPack[5])", ret, env);
+        ret = clSetKernelArg(kernel[nlmPack], 8, 2 * sizeof(cl_uint), &idmn);
+        oclErrorCheck("clSetKernelArg(nlmPack[8])", ret, env);
         ret = clSetKernelArg(kernel[nlmUnpack], 0, sizeof(cl_mem), &mem_P[0]);
         oclErrorCheck("clSetKernelArg(nlmUnpack[0])", ret, env);
         ret = clSetKernelArg(kernel[nlmUnpack], 1, sizeof(cl_mem), &mem_P[1]);
@@ -441,7 +453,7 @@ PVideoFrame __stdcall _NLMAvisynth::GetFrame(int n, IScriptEnvironment* env) {
                     ret |= clEnqueueWriteImage(command_queue, mem_P[0], CL_TRUE, origin, region_p,
                         (size_t) src->GetPitch(PLANAR_Y), 0, src->GetReadPtr(PLANAR_Y), 0, NULL, NULL);
                     ret |= clSetKernelArg(kernel[nlmPack], 3, sizeof(cl_mem), &mem_in[0]);
-                    ret |= clSetKernelArg(kernel[nlmPack], 4, sizeof(cl_int), &t_pk);
+                    ret |= clSetKernelArg(kernel[nlmPack], 7, sizeof(cl_int), &t_pk);
                     ret |= clEnqueueNDRangeKernel(command_queue, kernel[nlmPack],
                         2, NULL, global_work, NULL, 0, NULL, NULL);
                     break;
@@ -449,13 +461,13 @@ PVideoFrame __stdcall _NLMAvisynth::GetFrame(int n, IScriptEnvironment* env) {
                     ret |= clEnqueueWriteImage(command_queue, mem_P[0], CL_TRUE, origin, region_p,
                         (size_t) src->GetPitch(PLANAR_Y), 0, src->GetReadPtr(PLANAR_Y), 0, NULL, NULL);
                     ret |= clSetKernelArg(kernel[nlmPack], 3, sizeof(cl_mem), &mem_in[0]);
-                    ret |= clSetKernelArg(kernel[nlmPack], 4, sizeof(cl_int), &t_pk);
+                    ret |= clSetKernelArg(kernel[nlmPack], 7, sizeof(cl_int), &t_pk);
                     ret |= clEnqueueNDRangeKernel(command_queue, kernel[nlmPack],
                         2, NULL, global_work, NULL, 0, NULL, NULL);
                     ret |= clEnqueueWriteImage(command_queue, mem_P[1], CL_TRUE, origin, region_p,
                         (size_t) ref->GetPitch(PLANAR_Y), 0, ref->GetReadPtr(PLANAR_Y), 0, NULL, NULL);
                     ret |= clSetKernelArg(kernel[nlmPack], 3, sizeof(cl_mem), &mem_in[1]);
-                    ret |= clSetKernelArg(kernel[nlmPack], 4, sizeof(cl_int), &t_pk);
+                    ret |= clSetKernelArg(kernel[nlmPack], 7, sizeof(cl_int), &t_pk);
                     ret |= clEnqueueNDRangeKernel(command_queue, kernel[nlmPack],
                         2, NULL, global_work, NULL, 0, NULL, NULL);
                     break;
@@ -468,7 +480,7 @@ PVideoFrame __stdcall _NLMAvisynth::GetFrame(int n, IScriptEnvironment* env) {
                     ret |= clEnqueueWriteImage(command_queue, mem_P[2], CL_TRUE, origin, region_p,
                         (size_t) src->GetPitch(PLANAR_V), 0, src->GetReadPtr(PLANAR_V), 0, NULL, NULL);
                     ret |= clSetKernelArg(kernel[nlmPack], 3, sizeof(cl_mem), &mem_in[0]);
-                    ret |= clSetKernelArg(kernel[nlmPack], 4, sizeof(cl_int), &t_pk);
+                    ret |= clSetKernelArg(kernel[nlmPack], 7, sizeof(cl_int), &t_pk);
                     ret |= clEnqueueNDRangeKernel(command_queue, kernel[nlmPack],
                         2, NULL, global_work, NULL, 0, NULL, NULL);
                     break;
@@ -481,7 +493,7 @@ PVideoFrame __stdcall _NLMAvisynth::GetFrame(int n, IScriptEnvironment* env) {
                     ret |= clEnqueueWriteImage(command_queue, mem_P[2], CL_TRUE, origin, region_p,
                         (size_t) src->GetPitch(PLANAR_V), 0, src->GetReadPtr(PLANAR_V), 0, NULL, NULL);
                     ret |= clSetKernelArg(kernel[nlmPack], 3, sizeof(cl_mem), &mem_in[0]);
-                    ret |= clSetKernelArg(kernel[nlmPack], 4, sizeof(cl_int), &t_pk);
+                    ret |= clSetKernelArg(kernel[nlmPack], 7, sizeof(cl_int), &t_pk);
                     ret |= clEnqueueNDRangeKernel(command_queue, kernel[nlmPack],
                         2, NULL, global_work, NULL, 0, NULL, NULL);
                     ret |= clEnqueueWriteImage(command_queue, mem_P[0], CL_TRUE, origin, region_p,
@@ -491,7 +503,7 @@ PVideoFrame __stdcall _NLMAvisynth::GetFrame(int n, IScriptEnvironment* env) {
                     ret |= clEnqueueWriteImage(command_queue, mem_P[2], CL_TRUE, origin, region_p,
                         (size_t) ref->GetPitch(PLANAR_V), 0, ref->GetReadPtr(PLANAR_Y), 0, NULL, NULL);
                     ret |= clSetKernelArg(kernel[nlmPack], 3, sizeof(cl_mem), &mem_in[1]);
-                    ret |= clSetKernelArg(kernel[nlmPack], 4, sizeof(cl_int), &t_pk);
+                    ret |= clSetKernelArg(kernel[nlmPack], 7, sizeof(cl_int), &t_pk);
                     ret |= clEnqueueNDRangeKernel(command_queue, kernel[nlmPack],
                         2, NULL, global_work, NULL, 0, NULL, NULL);
                     break;
@@ -833,7 +845,7 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
                         ret |= clEnqueueWriteImage(command_queue, d->mem_P[0], CL_TRUE, origin, region,
                             (size_t) vsapi->getStride(src, 0), 0, vsapi->getReadPtr(src, 0), 0, NULL, NULL);
                         ret |= clSetKernelArg(d->kernel[nlmPack], 3, sizeof(cl_mem), &d->mem_in[0]);
-                        ret |= clSetKernelArg(d->kernel[nlmPack], 4, sizeof(cl_int), &t_pk);
+                        ret |= clSetKernelArg(d->kernel[nlmPack], 7, sizeof(cl_int), &t_pk);
                         ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[nlmPack],
                             2, NULL, global_work, NULL, 0, NULL, NULL);
                         break;
@@ -841,13 +853,13 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
                         ret |= clEnqueueWriteImage(command_queue, d->mem_P[0], CL_TRUE, origin, region,
                             (size_t) vsapi->getStride(src, 0), 0, vsapi->getReadPtr(src, 0), 0, NULL, NULL);
                         ret |= clSetKernelArg(d->kernel[nlmPack], 3, sizeof(cl_mem), &d->mem_in[0]);
-                        ret |= clSetKernelArg(d->kernel[nlmPack], 4, sizeof(cl_int), &t_pk);
+                        ret |= clSetKernelArg(d->kernel[nlmPack], 7, sizeof(cl_int), &t_pk);
                         ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[nlmPack],
                             2, NULL, global_work, NULL, 0, NULL, NULL);
                         ret |= clEnqueueWriteImage(command_queue, d->mem_P[1], CL_TRUE, origin, region,
                             (size_t) vsapi->getStride(ref, 0), 0, vsapi->getReadPtr(ref, 0), 0, NULL, NULL);
                         ret |= clSetKernelArg(d->kernel[nlmPack], 3, sizeof(cl_mem), &d->mem_in[1]);
-                        ret |= clSetKernelArg(d->kernel[nlmPack], 4, sizeof(cl_int), &t_pk);
+                        ret |= clSetKernelArg(d->kernel[nlmPack], 7, sizeof(cl_int), &t_pk);
                         ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[nlmPack],
                             2, NULL, global_work, NULL, 0, NULL, NULL);
                         break;
@@ -862,7 +874,7 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
                         ret |= clEnqueueWriteImage(command_queue, d->mem_P[2], CL_TRUE, origin, region,
                             (size_t) vsapi->getStride(src, 2), 0, vsapi->getReadPtr(src, 2), 0, NULL, NULL);
                         ret |= clSetKernelArg(d->kernel[nlmPack], 3, sizeof(cl_mem), &d->mem_in[0]);
-                        ret |= clSetKernelArg(d->kernel[nlmPack], 4, sizeof(cl_int), &t_pk);
+                        ret |= clSetKernelArg(d->kernel[nlmPack], 7, sizeof(cl_int), &t_pk);
                         ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[nlmPack],
                             2, NULL, global_work, NULL, 0, NULL, NULL);
                         break;
@@ -877,7 +889,7 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
                         ret |= clEnqueueWriteImage(command_queue, d->mem_P[2], CL_TRUE, origin, region,
                             (size_t) vsapi->getStride(src, 2), 0, vsapi->getReadPtr(src, 2), 0, NULL, NULL);
                         ret |= clSetKernelArg(d->kernel[nlmPack], 3, sizeof(cl_mem), &d->mem_in[0]);
-                        ret |= clSetKernelArg(d->kernel[nlmPack], 4, sizeof(cl_int), &t_pk);
+                        ret |= clSetKernelArg(d->kernel[nlmPack], 7, sizeof(cl_int), &t_pk);
                         ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[nlmPack],
                             2, NULL, global_work, NULL, 0, NULL, NULL);
                         ret |= clEnqueueWriteImage(command_queue, d->mem_P[0], CL_TRUE, origin, region,
@@ -887,7 +899,7 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
                         ret |= clEnqueueWriteImage(command_queue, d->mem_P[2], CL_TRUE, origin, region,
                             (size_t) vsapi->getStride(ref, 2), 0, vsapi->getReadPtr(ref, 2), 0, NULL, NULL);
                         ret |= clSetKernelArg(d->kernel[nlmPack], 3, sizeof(cl_mem), &d->mem_in[1]);
-                        ret |= clSetKernelArg(d->kernel[nlmPack], 4, sizeof(cl_int), &t_pk);
+                        ret |= clSetKernelArg(d->kernel[nlmPack], 7, sizeof(cl_int), &t_pk);
                         ret |= clEnqueueNDRangeKernel(command_queue, d->kernel[nlmPack],
                             2, NULL, global_work, NULL, 0, NULL, NULL);
                         break;
@@ -1171,6 +1183,9 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
 // AviSynthFree
 #ifdef __AVISYNTH_6_H__
 _NLMAvisynth::~_NLMAvisynth() {
+    clReleaseMemObject(mem_P[5]);
+    clReleaseMemObject(mem_P[4]);
+    clReleaseMemObject(mem_P[3]);
     clReleaseMemObject(mem_P[2]);
     clReleaseMemObject(mem_P[1]);
     clReleaseMemObject(mem_P[0]);
@@ -1600,7 +1615,7 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
         if (ret != CL_SUCCESS) {
             d.oclErrorCheck("clCreateImage(d.mem_P[2])", ret, out, vsapi);
             return;
-        }
+        }            
     } else {
         const cl_image_format image_format_p = { CL_LUMINANCE, channel_type };
         d.mem_P[0] = clCreateImage(d.context, CL_MEM_READ_WRITE, &image_format_p, &image_out, NULL, &ret);
@@ -1617,7 +1632,7 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
         if (ret != CL_SUCCESS) {
             d.oclErrorCheck("clCreateImage(d.mem_P[2])", ret, out, vsapi);
             return;
-        }
+        }      
     }
 
     // Creates and Build a program executable from the program source.
@@ -1867,10 +1882,10 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
         if (ret != CL_SUCCESS) {
             d.oclErrorCheck("clCreateKernel(nlmPack[2])", ret, out, vsapi);
             return;
-        }
-        ret = clSetKernelArg(d.kernel[nlmPack], 5, 2 * sizeof(cl_uint), &d.idmn);
+        }        
+        ret = clSetKernelArg(d.kernel[nlmPack], 8, 2 * sizeof(cl_uint), &d.idmn);
         if (ret != CL_SUCCESS) {
-            d.oclErrorCheck("clCreateKernel(nlmPack[5])", ret, out, vsapi);
+            d.oclErrorCheck("clCreateKernel(nlmPack[8])", ret, out, vsapi);
             return;
         }
         ret = clSetKernelArg(d.kernel[nlmUnpack], 0, sizeof(cl_mem), &d.mem_P[0]);

@@ -246,6 +246,7 @@ static const char* kernel_source_code_spatial =
 "                                                                                                                 \n" \
 "__kernel                                                                                                         \n" \
 "void nlmSpatialPack(__read_only image2d_t R, __read_only image2d_t G, __read_only image2d_t B,                   \n" \
+"__read_only image2d_t R_lsb, __read_only image2d_t G_lsb, __read_only image2d_t B_lsb,                           \n" \
 "__write_only image2d_t U1, const int2 dim) {                                                                     \n" \
 "                                                                                                                 \n" \
 "   const int x = get_global_id(0);                                                                               \n" \
@@ -259,15 +260,14 @@ static const char* kernel_source_code_spatial =
 "       const float r     = norm(read_imageui(R, smp, p).x);                                                      \n" \
 "       write_imagef(U1, p, (float4) r);                                                                          \n" \
 "   } else if (CHECK_FLAG(NLM_CLIP_STACKED | NLM_COLOR_GRAY)) {                                                   \n" \
-"       const int2  p_lsb = (int2) (x, y + dim.y);                                                                \n" \
-"       const float r_msb = read_imagef(R, smp, p    ).x;                                                         \n" \
-"       const float r_lsb = read_imagef(R, smp, p_lsb).x;                                                         \n" \
+"       const float r_msb = read_imagef(R,     smp, p    ).x;                                                     \n" \
+"       const float r_lsb = read_imagef(R_lsb, smp, p    ).x;                                                     \n" \
 "       const float r     = NLM_16BIT_MSB * r_msb + NLM_16BIT_LSB * r_lsb;                                        \n" \
 "       write_imagef(U1, p, (float4) r);                                                                          \n" \
 "   } else if (CHECK_FLAG(NLM_CLIP_UNORM | NLM_COLOR_YUV)) {                                                      \n" \
-"       const float r     = read_imagef(R, smp, p).x;                                                             \n" \
-"       const float g     = read_imagef(G, smp, p).x;                                                             \n" \
-"       const float b     = read_imagef(B, smp, p).x;                                                             \n" \
+"       const float r     = read_imagef(R,     smp, p).x;                                                         \n" \
+"       const float g     = read_imagef(G,     smp, p).x;                                                         \n" \
+"       const float b     = read_imagef(B,     smp, p).x;                                                         \n" \
 "       write_imagef(U1, p, (float4) (r, g, b, 1.0f));                                                            \n" \
 "   } else if (CHECK_FLAG(NLM_CLIP_UNSIGNED | NLM_COLOR_YUV)) {                                                   \n" \
 "       const float r     = norm(read_imageui(R, smp, p).x);                                                      \n" \
@@ -275,21 +275,20 @@ static const char* kernel_source_code_spatial =
 "       const float b     = norm(read_imageui(B, smp, p).x);                                                      \n" \
 "       write_imagef(U1, p, (float4) (r, g, b, 1.0f));                                                            \n" \
 "   } else if (CHECK_FLAG(NLM_CLIP_STACKED | NLM_COLOR_YUV)) {                                                    \n" \
-"       const int2 p_lsb  = (int2) (x, y + dim.y);                                                                \n" \
-"       const float r_msb = read_imagef(R, smp, p    ).x;                                                         \n" \
-"       const float g_msb = read_imagef(G, smp, p    ).x;                                                         \n" \
-"       const float b_msb = read_imagef(B, smp, p    ).x;                                                         \n" \
-"       const float r_lsb = read_imagef(R, smp, p_lsb).x;                                                         \n" \
-"       const float g_lsb = read_imagef(G, smp, p_lsb).x;                                                         \n" \
-"       const float b_lsb = read_imagef(B, smp, p_lsb).x;                                                         \n" \
+"       const float r_msb = read_imagef(R,     smp, p).x;                                                         \n" \
+"       const float g_msb = read_imagef(G,     smp, p).x;                                                         \n" \
+"       const float b_msb = read_imagef(B,     smp, p).x;                                                         \n" \
+"       const float r_lsb = read_imagef(R_lsb, smp, p).x;                                                         \n" \
+"       const float g_lsb = read_imagef(G_lsb, smp, p).x;                                                         \n" \
+"       const float b_lsb = read_imagef(B_lsb, smp, p).x;                                                         \n" \
 "       const float r     = NLM_16BIT_MSB * r_msb + NLM_16BIT_LSB * r_lsb;                                        \n" \
 "       const float g     = NLM_16BIT_MSB * g_msb + NLM_16BIT_LSB * g_lsb;                                        \n" \
 "       const float b     = NLM_16BIT_MSB * b_msb + NLM_16BIT_LSB * b_lsb;                                        \n" \
 "       write_imagef(U1, p, (float4) (r, g, b, 1.0f));                                                            \n" \
 "   } else if (CHECK_FLAG(NLM_CLIP_UNORM | NLM_COLOR_RGB)) {                                                      \n" \
-"       const float r     = read_imagef(R, smp, p).x;                                                             \n" \
-"       const float g     = read_imagef(G, smp, p).x;                                                             \n" \
-"       const float b     = read_imagef(B, smp, p).x;                                                             \n" \
+"       const float r     = read_imagef(R,     smp, p).x;                                                         \n" \
+"       const float g     = read_imagef(G,     smp, p).x;                                                         \n" \
+"       const float b     = read_imagef(B,     smp, p).x;                                                         \n" \
 "       write_imagef(U1, p, (float4) (r, g, b, 1.0f));                                                            \n" \
 "   } else if (CHECK_FLAG(NLM_CLIP_UNSIGNED | NLM_COLOR_RGB)) {                                                   \n" \
 "       const float r     = norm(read_imageui(R, smp, p).x);                                                      \n" \
@@ -563,6 +562,7 @@ static const char* kernel_source_code =
 "                                                                                                                 \n" \
 "__kernel                                                                                                         \n" \
 "void nlmPack(__read_only image2d_t R, __read_only image2d_t G, __read_only image2d_t B,                          \n" \
+"__read_only image2d_t R_lsb, __read_only image2d_t G_lsb, __read_only image2d_t B_lsb,                           \n" \
 "__write_only image2d_array_t U1, const int t, const int2 dim) {                                                  \n" \
 "                                                                                                                 \n" \
 "   const int x = get_global_id(0);                                                                               \n" \
@@ -577,15 +577,14 @@ static const char* kernel_source_code =
 "       const float r     = norm(read_imageui(R, smp, s).x);                                                      \n" \
 "       write_imagef(U1, p, (float4) r);                                                                          \n" \
 "   } else if (CHECK_FLAG(NLM_CLIP_STACKED | NLM_COLOR_GRAY)) {                                                   \n" \
-"       const int2  s_lsb = (int2) (x, y + dim.y);                                                                \n" \
-"       const float r_msb = read_imagef(R, smp, s    ).x;                                                         \n" \
-"       const float r_lsb = read_imagef(R, smp, s_lsb).x;                                                         \n" \
+"       const float r_msb = read_imagef(R,     smp, s    ).x;                                                     \n" \
+"       const float r_lsb = read_imagef(R_lsb, smp, s    ).x;                                                     \n" \
 "       const float r     = NLM_16BIT_MSB * r_msb + NLM_16BIT_LSB * r_lsb;                                        \n" \
 "       write_imagef(U1, p, (float4) r);                                                                          \n" \
 "   } else if (CHECK_FLAG(NLM_CLIP_UNORM | NLM_COLOR_YUV)) {                                                      \n" \
-"       const float r     = read_imagef(R, smp, s).x;                                                             \n" \
-"       const float g     = read_imagef(G, smp, s).x;                                                             \n" \
-"       const float b     = read_imagef(B, smp, s).x;                                                             \n" \
+"       const float r     = read_imagef(R,     smp, s).x;                                                         \n" \
+"       const float g     = read_imagef(G,     smp, s).x;                                                         \n" \
+"       const float b     = read_imagef(B,     smp, s).x;                                                         \n" \
 "       write_imagef(U1, p, (float4) (r, g, b, 1.0f));                                                            \n" \
 "   } else if (CHECK_FLAG(NLM_CLIP_UNSIGNED | NLM_COLOR_YUV)) {                                                   \n" \
 "       const float r     = norm(read_imageui(R, smp, s).x);                                                      \n" \
@@ -593,21 +592,20 @@ static const char* kernel_source_code =
 "       const float b     = norm(read_imageui(B, smp, s).x);                                                      \n" \
 "       write_imagef(U1, p, (float4) (r, g, b, 1.0f));                                                            \n" \
 "   } else if (CHECK_FLAG(NLM_CLIP_STACKED | NLM_COLOR_YUV)) {                                                    \n" \
-"       const int2 s_lsb  = (int2) (x, y + dim.y);                                                                \n" \
-"       const float r_msb = read_imagef(R, smp, s    ).x;                                                         \n" \
-"       const float g_msb = read_imagef(G, smp, s    ).x;                                                         \n" \
-"       const float b_msb = read_imagef(B, smp, s    ).x;                                                         \n" \
-"       const float r_lsb = read_imagef(R, smp, s_lsb).x;                                                         \n" \
-"       const float g_lsb = read_imagef(G, smp, s_lsb).x;                                                         \n" \
-"       const float b_lsb = read_imagef(B, smp, s_lsb).x;                                                         \n" \
+"       const float r_msb = read_imagef(R,     smp, s).x;                                                         \n" \
+"       const float g_msb = read_imagef(G,     smp, s).x;                                                         \n" \
+"       const float b_msb = read_imagef(B,     smp, s).x;                                                         \n" \
+"       const float r_lsb = read_imagef(R_lsb, smp, s).x;                                                         \n" \
+"       const float g_lsb = read_imagef(G_lsb, smp, s).x;                                                         \n" \
+"       const float b_lsb = read_imagef(B_lsb, smp, s).x;                                                         \n" \
 "       const float r     = NLM_16BIT_MSB * r_msb + NLM_16BIT_LSB * r_lsb;                                        \n" \
 "       const float g     = NLM_16BIT_MSB * g_msb + NLM_16BIT_LSB * g_lsb;                                        \n" \
 "       const float b     = NLM_16BIT_MSB * b_msb + NLM_16BIT_LSB * b_lsb;                                        \n" \
 "       write_imagef(U1, p, (float4) (r, g, b, 1.0f));                                                            \n" \
 "   } else if (CHECK_FLAG(NLM_CLIP_UNORM | NLM_COLOR_RGB)) {                                                      \n" \
-"       const float r     = read_imagef(R, smp, s).x;                                                             \n" \
-"       const float g     = read_imagef(G, smp, s).x;                                                             \n" \
-"       const float b     = read_imagef(B, smp, s).x;                                                             \n" \
+"       const float r     = read_imagef(R,     smp, s).x;                                                         \n" \
+"       const float g     = read_imagef(G,     smp, s).x;                                                         \n" \
+"       const float b     = read_imagef(B,     smp, s).x;                                                         \n" \
 "       write_imagef(U1, p, (float4) (r, g, b, 1.0f));                                                            \n" \
 "   } else if (CHECK_FLAG(NLM_CLIP_UNSIGNED | NLM_COLOR_RGB)) {                                                   \n" \
 "       const float r     = norm(read_imageui(R, smp, s).x);                                                      \n" \
