@@ -24,6 +24,15 @@
 //////////////////////////////////////////
 // Type Definition
 
+#define nlmLegacyDistance         0x0
+#define nlmLegacyHorizontal       0x1
+#define nlmLegacyVertical         0x2
+#define nlmLegacyAccumulation     0x3
+#define nlmLegacyFinish           0x4
+#define nlmLegacyPack             0x5
+#define nlmLegacyUnpack           0x6
+#define nlmLegacyTotal            0x7
+
 #define nlmSpatialDistance        0x0
 #define nlmSpatialHorizontal      0x1
 #define nlmSpatialVertical        0x2
@@ -31,15 +40,19 @@
 #define nlmSpatialFinish          0x4
 #define nlmSpatialPack            0x5
 #define nlmSpatialUnpack          0x6
-#define nlmDistanceLeft           0x7
-#define nlmDistanceRight          0x8
-#define nlmHorizontal             0x9
-#define nlmVertical               0xA
-#define nlmAccumulation           0xB
-#define nlmFinish                 0xC
-#define nlmPack                   0xD
-#define nlmUnpack                 0xE
-#define NLM_NUMBER_KERNELS        0xF
+#define nlmSpatialTotal           0x7
+
+#define nlmDistanceLeft           0x0
+#define nlmDistanceRight          0x1
+#define nlmHorizontal             0x2
+#define nlmVertical               0x3
+#define nlmAccumulation           0x4
+#define nlmFinish                 0x5
+#define nlmPack                   0x6
+#define nlmUnpack                 0x7
+#define nlmTotal                  0x8
+
+#define NLM_NUMBER_KERNELS        nlmTotal
 
 #define NLM_COLOR_GRAY           (1 << 0)
 #define NLM_COLOR_YUV            (1 << 1)
@@ -50,10 +63,10 @@
 #define NLM_EXTRA_FALSE          (1 << 6)
 #define NLM_EXTRA_TRUE           (1 << 7)
 
-#define NLM_WMODE_CAUCHY          0
-#define NLM_WMODE_WELSCH          1
-#define NLM_WMODE_BISQUARE        2
-#define NLM_WMODE_MOD_BISQUARE    3
+#define NLM_WMODE_CAUCHY          0x0
+#define NLM_WMODE_WELSCH          0x1
+#define NLM_WMODE_BISQUARE        0x2
+#define NLM_WMODE_MOD_BISQUARE    0x3
 
 #define NLM_RGBA_RED              0.6664827524
 #define NLM_RGBA_GREEN            1.2866580779
