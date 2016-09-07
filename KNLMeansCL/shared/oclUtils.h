@@ -33,10 +33,13 @@ typedef cl_bitfield                          ocl_utils_device_type;
 #define OCL_UTILS_OPENCL_1_0                  10
 #define OCL_UTILS_OPENCL_1_1                  11
 #define OCL_UTILS_OPENCL_1_2                  12
-#define OCL_UTILS_STRING_SIZE                 512
 
 //////////////////////////////////////////
 // Common
+double maxvalue(const int digits) {
+    return (1 << digits) - 1;
+}
+
 inline size_t mrounds(const size_t number, const size_t multiple) {
     return ((number + multiple - 1) / multiple) * multiple;
 }

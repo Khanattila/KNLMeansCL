@@ -80,13 +80,13 @@
 static const char* kernel_source_code_spatial =
 "#define CHECK_FLAG(flag) ((NLM_TCLIP & (flag)) == (flag))                                                        \n" \
 "                                                                                                                 \n" \
-"float   norm(uint u);                                                                                            \n" \
-"ushort  denorm(float f);                                                                                         \n" \
+"float   norm   (uint   u);                                                                                       \n" \
+"ushort  denorm (float  f);                                                                                       \n" \
 "ushort4 denorm4(float4 f);                                                                                       \n" \
 "                                                                                                                 \n" \
-"float   norm(uint u)      { return native_divide((float) (u << NLM_BIT_SHIFT), (float) USHRT_MAX); }             \n" \
-"ushort  denorm(float f)   { return convert_ushort_sat(f * (float) USHRT_MAX) >> (ushort) NLM_BIT_SHIFT; }        \n" \
-"ushort4 denorm4(float4 f) { return convert_ushort4_sat(f * (float4) USHRT_MAX) >> (ushort4) NLM_BIT_SHIFT; }     \n" \
+"float   norm   (uint   u) { return native_divide(convert_float(u),  NLM_UNORM_MAX); }                            \n" \
+"ushort  denorm (float  f) { return convert_ushort_sat (f *          NLM_UNORM_MAX); }                            \n" \
+"ushort4 denorm4(float4 f) { return convert_ushort4_sat(f * (float4) NLM_UNORM_MAX); }                            \n" \
 "                                                                                                                 \n" \
 "__kernel                                                                                                         \n" \
 "void nlmSpatialDistance(__read_only image2d_t U1, __write_only image2d_t U4, const int2 dim, const int2 q) {     \n" \
@@ -359,13 +359,13 @@ static const char* kernel_source_code_spatial =
 static const char* kernel_source_code =
 "#define CHECK_FLAG(flag) ((NLM_TCLIP & (flag)) == (flag))                                                        \n" \
 "                                                                                                                 \n" \
-"float   norm(uint u);                                                                                            \n" \
-"ushort  denorm(float f);                                                                                         \n" \
+"float   norm   (uint   u);                                                                                       \n" \
+"ushort  denorm (float  f);                                                                                       \n" \
 "ushort4 denorm4(float4 f);                                                                                       \n" \
 "                                                                                                                 \n" \
-"float   norm(uint u)      { return native_divide((float) (u << NLM_BIT_SHIFT), (float) USHRT_MAX); }             \n" \
-"ushort  denorm(float f)   { return convert_ushort_sat(f * (float) USHRT_MAX) >> (ushort) NLM_BIT_SHIFT; }        \n" \
-"ushort4 denorm4(float4 f) { return convert_ushort4_sat(f * (float4) USHRT_MAX) >> (ushort4) NLM_BIT_SHIFT; }     \n" \
+"float   norm   (uint   u) { return native_divide(convert_float(u),  NLM_UNORM_MAX); }                            \n" \
+"ushort  denorm (float  f) { return convert_ushort_sat (f *          NLM_UNORM_MAX); }                            \n" \
+"ushort4 denorm4(float4 f) { return convert_ushort4_sat(f * (float4) NLM_UNORM_MAX); }                            \n" \
 "                                                                                                                 \n" \
 "__kernel                                                                                                         \n" \
 "void nlmDistanceLeft(__read_only image2d_array_t U1, __write_only image2d_array_t U4, const int2 dim,            \n" \

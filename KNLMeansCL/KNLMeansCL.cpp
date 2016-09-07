@@ -222,12 +222,12 @@ _NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _
 -D NLM_WMODE_CAUCHY=%u -D NLM_WMODE_WELSCH=%u -D NLM_WMODE_BISQUARE=%u -D NLM_WMODE_MOD_BISQUARE=%u \
 -D NLM_RGBA_RED=%.17f -D NLM_RGBA_GREEN=%.17f -D NLM_RGBA_BLUE=%.17f -D NLM_RGBA_ALPHA=%.17f \
 -D NLM_16BIT_MSB=%.17f -D NLM_16BIT_LSB=%.17f -D HRZ_BLOCK_X=%u -D HRZ_BLOCK_Y=%u -D VRT_BLOCK_X=%u -D VRT_BLOCK_Y=%u \
--D NLM_TCLIP=%u -D NLM_D=%i -D NLM_S=%i -D NLM_WMODE=%i -D NLM_WREF=%.17f -D NLM_H2_INV_NORM=%.17f -D NLM_BIT_SHIFT=%u ",
+-D NLM_TCLIP=%u -D NLM_D=%i -D NLM_S=%i -D NLM_WMODE=%i -D NLM_WREF=%.17f -D NLM_H2_INV_NORM=%.17f -D NLM_UNORM_MAX=%f ",
         NLM_COLOR_GRAY, NLM_COLOR_YUV, NLM_COLOR_RGB, NLM_CLIP_UNORM, NLM_CLIP_UNSIGNED, NLM_CLIP_STACKED, 
         NLM_WMODE_CAUCHY, NLM_WMODE_WELSCH, NLM_WMODE_BISQUARE, NLM_WMODE_MOD_BISQUARE, 
         NLM_RGBA_RED, NLM_RGBA_GREEN, NLM_RGBA_BLUE, NLM_RGBA_ALPHA,
         NLM_16BIT_MSB, NLM_16BIT_LSB, HRZ_BLOCK_X, HRZ_BLOCK_Y, VRT_BLOCK_X, VRT_BLOCK_Y,
-        clip_t, d, s, wmode, wref, 65025.0 / (3 * h * h * (2 * s + 1)*(2 * s + 1)), 0u);
+        clip_t, d, s, wmode, wref, 65025.0 / (3 * h * h * (2 * s + 1)*(2 * s + 1)), 0.0f);
     ret = clBuildProgram(program, 1, &deviceID, options, NULL, NULL);
     if (ret != CL_SUCCESS) {
         oclUtilsDebugInfo(platformID, deviceID, program);
@@ -1480,7 +1480,6 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
         d.clip_t = NLM_EXTRA_FALSE;
     } else d.clip_t = NLM_EXTRA_TRUE;
     d.vi = vsapi->getVideoInfo(d.node);
-    d.bit_shift = d.vi->format->bytesPerSample * 8u - d.vi->format->bitsPerSample;
     if (isConstantFormat(d.vi)) {
         d.cmode = vsapi->propGetInt(in, "cmode", 0, &err);
         if (err) d.cmode = DFT_cmode;
@@ -1730,7 +1729,7 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
     const cl_image_desc image_in = { (cl_mem_object_type) (d.d ? CL_MEM_OBJECT_IMAGE2D_ARRAY : CL_MEM_OBJECT_IMAGE2D),
         d.idmn[0], d.idmn[1], 1, 2 * (size_t) d.d + 1, 0, 0, 0, 0, NULL };
     const cl_image_desc image_out = { CL_MEM_OBJECT_IMAGE2D, d.idmn[0], d.idmn[1], 1, 1, 0, 0, 0, 0, NULL };
-    if ((d.clip_t & NLM_COLOR_GRAY) && !d.bit_shift) {
+    if ((d.clip_t & NLM_COLOR_GRAY) && (d.vi->format->bitsPerSample !=9) && (d.vi->format->bitsPerSample != 10)) {
         d.mem_in[0] = clCreateImage(d.context, CL_MEM_READ_ONLY | CL_MEM_HOST_WRITE_ONLY, &image_format, &image_in, NULL, &ret);
         if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateImage(d.mem_in[0])", ret, out, vsapi);  return; }
         d.mem_in[1] = clCreateImage(d.context, CL_MEM_READ_ONLY | CL_MEM_HOST_WRITE_ONLY, &image_format, &image_in, NULL, &ret);
@@ -1756,19 +1755,19 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
     if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateImage(d.mem_U[2])", ret, out, vsapi); return; }
     d.mem_U[3] = clCreateBuffer(d.context, CL_MEM_READ_WRITE | CL_MEM_HOST_WRITE_ONLY, size_u3, NULL, &ret);
     if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateBuffer(d.mem_U[3])", ret, out, vsapi); return; }
-    if (d.bit_shift) {
-        const cl_image_format image_format_p = { CL_R, CL_UNSIGNED_INT16 };
+    if ((d.vi->format->bitsPerSample != 9) && (d.vi->format->bitsPerSample != 10)) {
+        const cl_image_format image_format_p = { CL_LUMINANCE, channel_type };
         d.mem_P[0] = clCreateImage(d.context, CL_MEM_READ_WRITE, &image_format_p, &image_out, NULL, &ret);
         if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateImage(d.mem_P[0])", ret, out, vsapi); return; }
         d.mem_P[1] = clCreateImage(d.context, CL_MEM_READ_WRITE, &image_format_p, &image_out, NULL, &ret);
         if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateImage(d.mem_P[1])", ret, out, vsapi); return; }
         d.mem_P[2] = clCreateImage(d.context, CL_MEM_READ_WRITE, &image_format_p, &image_out, NULL, &ret);
-        if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateImage(d.mem_P[2])", ret, out, vsapi); return; }
+        if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateImage(d.mem_P[2])", ret, out, vsapi); return; }        
         // d.mem_P[3] is only required to AviSynth
         // d.mem_P[4] is only required to AviSynth
         // d.mem_P[5] is only required to AviSynth
     } else {
-        const cl_image_format image_format_p = { CL_LUMINANCE, channel_type };
+        const cl_image_format image_format_p = { CL_R, CL_UNSIGNED_INT16 };
         d.mem_P[0] = clCreateImage(d.context, CL_MEM_READ_WRITE, &image_format_p, &image_out, NULL, &ret);
         if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateImage(d.mem_P[0])", ret, out, vsapi); return; }
         d.mem_P[1] = clCreateImage(d.context, CL_MEM_READ_WRITE, &image_format_p, &image_out, NULL, &ret);
@@ -1790,26 +1789,26 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
 -D NLM_WMODE_CAUCHY=%u -D NLM_WMODE_WELSCH=%u -D NLM_WMODE_BISQUARE=%u -D NLM_WMODE_MOD_BISQUARE=%u \
 -D NLM_RGBA_RED=%.17ff -D NLM_RGBA_GREEN=%.17ff -D NLM_RGBA_BLUE=%.17ff -D NLM_RGBA_ALPHA=%.17ff \
 -D NLM_16BIT_MSB=%.17ff -D NLM_16BIT_LSB=%.17ff -D HRZ_BLOCK_X=%u -D HRZ_BLOCK_Y=%u -D VRT_BLOCK_X=%u -D VRT_BLOCK_Y=%u \
--D NLM_TCLIP=%u -D NLM_D=%i -D NLM_S=%i -D NLM_WMODE=%i -D NLM_WREF=%.17ff -D NLM_H2_INV_NORM=%.17ff -D NLM_BIT_SHIFT=%u ",
+-D NLM_TCLIP=%u -D NLM_D=%i -D NLM_S=%i -D NLM_WMODE=%i -D NLM_WREF=%.17ff -D NLM_H2_INV_NORM=%.17ff -D NLM_UNORM_MAX=%ff ",
         NLM_COLOR_GRAY, NLM_COLOR_YUV, NLM_COLOR_RGB, NLM_CLIP_UNORM, NLM_CLIP_UNSIGNED, NLM_CLIP_STACKED,
         NLM_WMODE_CAUCHY, NLM_WMODE_WELSCH, NLM_WMODE_BISQUARE, NLM_WMODE_MOD_BISQUARE,
         NLM_RGBA_RED, NLM_RGBA_GREEN, NLM_RGBA_BLUE, NLM_RGBA_ALPHA,
         NLM_16BIT_MSB, NLM_16BIT_LSB, d.HRZ_BLOCK_X, d.HRZ_BLOCK_Y, d.VRT_BLOCK_X, d.VRT_BLOCK_Y,
         d.clip_t, int64ToIntS(d.d), int64ToIntS(d.s), int64ToIntS(d.wmode), d.wref, 
-        65025.0 / (3 * d.h * d.h * (2 * d.s + 1)*(2 * d.s + 1)), d.bit_shift);
+        65025.0 / (3 * d.h * d.h * (2 * d.s + 1)*(2 * d.s + 1)), maxvalue(d.vi->format->bitsPerSample));
 #    else
     snprintf(options, 2048, "-cl-single-precision-constant -cl-denorms-are-zero -cl-fast-relaxed-math -Werror \
 -D NLM_COLOR_GRAY=%u -D NLM_COLOR_YUV=%u -D NLM_COLOR_RGB=%u -D NLM_CLIP_UNORM=%u -D NLM_CLIP_UNSIGNED=%u -D NLM_CLIP_STACKED=%u \
 -D NLM_WMODE_CAUCHY=%u -D NLM_WMODE_WELSCH=%u -D NLM_WMODE_BISQUARE=%u -D NLM_WMODE_MOD_BISQUARE=%u \
 -D NLM_RGBA_RED=%.17f -D NLM_RGBA_GREEN=%.17f -D NLM_RGBA_BLUE=%.17f -D NLM_RGBA_ALPHA=%.17f \
 -D NLM_16BIT_MSB=%.17f -D NLM_16BIT_LSB=%.17f -D HRZ_BLOCK_X=%u -D HRZ_BLOCK_Y=%u -D VRT_BLOCK_X=%u -D VRT_BLOCK_Y=%u \
--D NLM_TCLIP=%u -D NLM_D=%i -D NLM_S=%i -D NLM_WMODE=%i -D NLM_WREF=%.17f -D NLM_H2_INV_NORM=%.17f -D NLM_BIT_SHIFT=%u ",
+-D NLM_TCLIP=%u -D NLM_D=%i -D NLM_S=%i -D NLM_WMODE=%i -D NLM_WREF=%.17f -D NLM_H2_INV_NORM=%.17f -D NLM_UNORM_MAX=%f ",
         NLM_COLOR_GRAY, NLM_COLOR_YUV, NLM_COLOR_RGB, NLM_CLIP_UNORM, NLM_CLIP_UNSIGNED, NLM_CLIP_STACKED,
         NLM_WMODE_CAUCHY, NLM_WMODE_WELSCH, NLM_WMODE_BISQUARE, NLM_WMODE_MOD_BISQUARE,
         NLM_RGBA_RED, NLM_RGBA_GREEN, NLM_RGBA_BLUE, NLM_RGBA_ALPHA,
         NLM_16BIT_MSB, NLM_16BIT_LSB, d.HRZ_BLOCK_X, d.HRZ_BLOCK_Y, d.VRT_BLOCK_X, d.VRT_BLOCK_Y,
         d.clip_t, int64ToIntS(d.d), int64ToIntS(d.s), int64ToIntS(d.wmode), d.wref, 
-        65025.0 / (3 * d.h * d.h * (2 * d.s + 1)*(2 * d.s + 1)), d.bit_shift);
+        65025.0 / (3 * d.h * d.h * (2 * d.s + 1)*(2 * d.s + 1)), maxvalue(d.vi->format->bitsPerSample));
 #    endif
     ret = clBuildProgram(d.program, 1, &d.deviceID, options, NULL, NULL);
     if (ret != CL_SUCCESS) {

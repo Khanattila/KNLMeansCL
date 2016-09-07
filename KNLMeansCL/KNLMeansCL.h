@@ -79,7 +79,7 @@ public:
     int64_t d, a, s, cmode, wmode, ocl_id, info;
     double wref, h;
     const char* ocl_device;
-    unsigned int bit_shift, clip_t;
+    unsigned int clip_t;
     cl_uint idmn[2], HRZ_BLOCK_X, HRZ_BLOCK_Y, VRT_BLOCK_X, VRT_BLOCK_Y;
     cl_platform_id platformID;
     cl_device_id deviceID;
