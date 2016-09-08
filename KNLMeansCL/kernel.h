@@ -311,12 +311,12 @@ static const char* kernel_source_code_spatial =
 "   const int2 s = (int2) (x, y);                                                                                 \n" \
 "                                                                                                                 \n" \
 "   if (CHECK_FLAG(NLM_CLIP_UNSIGNED | NLM_COLOR_GRAY)) {                                                         \n" \
-"       const ushort  val     = denorm(read_imagef(U1, smp, s).x);                                                \n" \
+"       const ushort  val    = denorm(read_imagef(U1, smp, s).x);                                                 \n" \
 "       write_imageui(R, s,    (uint4) val);                                                                      \n" \
 "   } else if (CHECK_FLAG(NLM_CLIP_STACKED | NLM_COLOR_GRAY)) {                                                   \n" \
-"       const uint    r      = convert_ushort_sat(read_imagef(U1, smp, s).x * (float) USHRT_MAX);                 \n" \
-"       const uint    r_msb  = r >> CHAR_BIT;                                                                     \n" \
-"       const uint    r_lsb  = r &  0xFF;                                                                         \n" \
+"       const ushort  r      = convert_ushort_sat(read_imagef(U1, smp, s).x * (float) USHRT_MAX);                 \n" \
+"       const ushort  r_msb  = r >> CHAR_BIT;                                                                     \n" \
+"       const ushort  r_lsb  = r &  0xFF;                                                                         \n" \
 "       write_imageui(R,     s, (uint4)  r_msb);                                                                  \n" \
 "       write_imageui(R_lsb, s, (uint4)  r_lsb);                                                                  \n" \
 "   } else if (CHECK_FLAG(NLM_CLIP_UNORM | NLM_COLOR_YUV)) {                                                      \n" \
@@ -330,9 +330,9 @@ static const char* kernel_source_code_spatial =
 "       write_imageui(G,     s, (uint4)  val.y);                                                                  \n" \
 "       write_imageui(B,     s, (uint4)  val.z);                                                                  \n" \
 "   } else if (CHECK_FLAG(NLM_CLIP_STACKED | NLM_COLOR_YUV)) {                                                    \n" \
-"       const uint4   in     = convert_ushort4_sat(read_imagef(U1, smp, s) * (float4) USHRT_MAX);                 \n" \
-"       const uint4   in_msb = in >> (ushort4) CHAR_BIT;                                                          \n" \
-"       const uint4   in_lsb = in &  (ushort4) 0xFF;                                                              \n" \
+"       const ushort4 in     = convert_ushort4_sat(read_imagef(U1, smp, s) * (float4) USHRT_MAX);                 \n" \
+"       const ushort4 in_msb = in >> (ushort4) CHAR_BIT;                                                          \n" \
+"       const ushort4 in_lsb = in &  (ushort4) 0xFF;                                                              \n" \
 "       write_imageui(R,     s, (uint4)  in_msb.x);                                                               \n" \
 "       write_imageui(G,     s, (uint4)  in_msb.y);                                                               \n" \
 "       write_imageui(B,     s, (uint4)  in_msb.z);                                                               \n" \
@@ -623,7 +623,7 @@ static const char* kernel_source_code =
 "   const int2 s = (int2) (x, y);                                                                                 \n" \
 "                                                                                                                 \n" \
 "   if (CHECK_FLAG(NLM_CLIP_UNSIGNED | NLM_COLOR_GRAY)) {                                                         \n" \
-"       const ushort  val     = denorm(read_imagef(U1, smp, s).x);                                                \n" \
+"       const ushort  val    = denorm(read_imagef(U1, smp, s).x);                                                 \n" \
 "       write_imageui(R, s,    (uint4) val);                                                                      \n" \
 "   } else if (CHECK_FLAG(NLM_CLIP_STACKED | NLM_COLOR_GRAY)) {                                                   \n" \
 "       const ushort  r      = convert_ushort_sat(read_imagef(U1, smp, s).x * (float) USHRT_MAX);                 \n" \

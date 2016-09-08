@@ -36,7 +36,7 @@ typedef cl_bitfield                          ocl_utils_device_type;
 
 //////////////////////////////////////////
 // Common
-double maxvalue(const int digits) {
+inline int maxvalue(const int digits) {
     return (1 << digits) - 1;
 }
 
@@ -347,7 +347,7 @@ void oclUtilsDebugInfo(cl_platform_id platform, cl_device_id device, cl_program 
         pos += format.length();
     }
     outfile << " CL_PROGRAM_BUILD_OPTIONS:          " << str_options.c_str() << std::endl;
-    outfile << " CL_PROGRAM_BUILD_LOG:              " << bld_log_txt << std::endl << std::endl;
+    outfile << " CL_PROGRAM_BUILD_LOG:              " << std::endl << bld_log_txt << std::endl << std::endl;
     free(bld_options_txt);
     free(bld_log_txt);
 

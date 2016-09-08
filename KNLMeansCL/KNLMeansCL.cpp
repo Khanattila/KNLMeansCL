@@ -104,7 +104,7 @@ _NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _
         else if (cmode) clip_t |= (NLM_CLIP_UNORM | NLM_COLOR_YUV);
         else clip_t |= (NLM_CLIP_UNORM | NLM_COLOR_GRAY);
     }
-    if (clip_t & NLM_COLOR_GRAY) channel_order = CL_LUMINANCE;
+    if (clip_t & NLM_COLOR_GRAY) channel_order = CL_R;
     else if (clip_t & NLM_COLOR_YUV) channel_order = CL_RGBA;
     else if (clip_t & NLM_COLOR_RGB) channel_order = CL_RGBA;
     if (clip_t & NLM_CLIP_UNORM) channel_type = CL_UNORM_INT8;
@@ -187,7 +187,7 @@ _NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _
         mem_out = clCreateImage(context, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, &image_format, &image_out, NULL, &ret);
         oclErrorCheck("clCreateImage(mem_out)", ret, env);
     }
-    const cl_image_format image_format_u = { CL_LUMINANCE, CL_HALF_FLOAT };
+    const cl_image_format image_format_u = { CL_R, CL_FLOAT };
     const size_t size_u0 = sizeof(cl_float) * idmn[0] * idmn[1] * ((clip_t & NLM_COLOR_GRAY) ? 2 : 4);
     const size_t size_u3 = sizeof(cl_float) * idmn[0] * idmn[1];
     mem_U[0] = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_HOST_WRITE_ONLY, size_u0, NULL, &ret);
@@ -199,7 +199,7 @@ _NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _
     mem_U[3] = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_HOST_WRITE_ONLY, size_u3, NULL, &ret);
     oclErrorCheck("clCreateBuffer(mem_U[3])", ret, env);   
     if (!lsb) {
-        const cl_image_format image_format_p = { CL_LUMINANCE, CL_UNORM_INT8 };
+        const cl_image_format image_format_p = { CL_R, CL_UNORM_INT8 };
         mem_P[0] = clCreateImage(context, CL_MEM_READ_WRITE, &image_format_p, &image_out, NULL, &ret);
         oclErrorCheck("clCreateImage(mem_P[0])", ret, env);
         mem_P[1] = clCreateImage(context, CL_MEM_READ_WRITE, &image_format_p, &image_out, NULL, &ret);
@@ -711,6 +711,15 @@ PVideoFrame __stdcall _NLMAvisynth::GetFrame(int n, IScriptEnvironment* env) {
                 break;
             case (NLM_EXTRA_FALSE | NLM_CLIP_UNORM | NLM_COLOR_YUV):
             case (NLM_EXTRA_TRUE | NLM_CLIP_UNORM | NLM_COLOR_YUV):
+                ret |= clEnqueueNDRangeKernel(command_queue, kernel[nlmUnpack],
+                    2, NULL, global_work, NULL, 0, NULL, NULL);
+                ret |= clEnqueueReadImage(command_queue, mem_P[0], CL_TRUE, origin, region,
+                    (size_t) dst->GetPitch(PLANAR_Y), 0, dst->GetWritePtr(PLANAR_Y), 0, NULL, NULL);
+                ret |= clEnqueueReadImage(command_queue, mem_P[1], CL_TRUE, origin, region,
+                    (size_t) dst->GetPitch(PLANAR_U), 0, dst->GetWritePtr(PLANAR_U), 0, NULL, NULL);
+                ret |= clEnqueueReadImage(command_queue, mem_P[2], CL_TRUE, origin, region,
+                    (size_t) dst->GetPitch(PLANAR_V), 0, dst->GetWritePtr(PLANAR_V), 0, NULL, NULL);     
+                break;
             case (NLM_EXTRA_FALSE | NLM_CLIP_STACKED | NLM_COLOR_YUV):
             case (NLM_EXTRA_TRUE | NLM_CLIP_STACKED | NLM_COLOR_YUV):
                 ret |= clEnqueueNDRangeKernel(command_queue, kernel[nlmUnpack],
@@ -1512,7 +1521,7 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
             case VSPresetFormat::pfYUV411P8:
             case VSPresetFormat::pfYUV440P8:
                 d.clip_t |= (NLM_CLIP_UNORM | NLM_COLOR_GRAY);
-                channel_order = CL_LUMINANCE;
+                channel_order = CL_R;
                 channel_type = CL_UNORM_INT8;
                 break;
             case VSPresetFormat::pfYUV420P9:
@@ -1520,50 +1529,50 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
             case VSPresetFormat::pfYUV420P10:
             case VSPresetFormat::pfYUV422P10:
                 d.clip_t |= (NLM_CLIP_UNSIGNED | NLM_COLOR_GRAY);
-                channel_order = CL_LUMINANCE;
+                channel_order = CL_R;
                 channel_type = CL_UNORM_INT16;
                 break;
             case VSPresetFormat::pfGray16:
             case VSPresetFormat::pfYUV420P16:
             case VSPresetFormat::pfYUV422P16:
                 d.clip_t |= (NLM_CLIP_UNORM | NLM_COLOR_GRAY);
-                channel_order = CL_LUMINANCE;
+                channel_order = CL_R;
                 channel_type = CL_UNORM_INT16;
                 break;
             case VSPresetFormat::pfGrayH:
                 d.clip_t |= (NLM_CLIP_UNORM | NLM_COLOR_GRAY);
-                channel_order = CL_LUMINANCE;
+                channel_order = CL_R;
                 channel_type = CL_HALF_FLOAT;
                 break;
             case VSPresetFormat::pfGrayS:
                 d.clip_t |= (NLM_CLIP_UNORM | NLM_COLOR_GRAY);
-                channel_order = CL_LUMINANCE;
+                channel_order = CL_R;
                 channel_type = CL_FLOAT;
                 break;
             case VSPresetFormat::pfYUV444P8:
                 d.clip_t |= d.cmode ? (NLM_CLIP_UNORM | NLM_COLOR_YUV) : (NLM_CLIP_UNORM | NLM_COLOR_GRAY);
-                channel_order = (cl_channel_order) (d.cmode ? CL_RGBA : CL_LUMINANCE);
+                channel_order = (cl_channel_order) (d.cmode ? CL_RGBA : CL_R);
                 channel_type = CL_UNORM_INT8;
                 break;
             case VSPresetFormat::pfYUV444P9:
             case VSPresetFormat::pfYUV444P10:
                 d.clip_t |= d.cmode ? (NLM_CLIP_UNSIGNED | NLM_COLOR_YUV) : (NLM_CLIP_UNSIGNED | NLM_COLOR_GRAY);
-                channel_order = (cl_channel_order) (d.cmode ? CL_RGBA : CL_LUMINANCE);
+                channel_order = (cl_channel_order) (d.cmode ? CL_RGBA : CL_R);
                 channel_type = CL_UNORM_INT16;
                 break;
             case VSPresetFormat::pfYUV444P16:
                 d.clip_t |= d.cmode ? (NLM_CLIP_UNORM | NLM_COLOR_YUV) : (NLM_CLIP_UNORM | NLM_COLOR_GRAY);
-                channel_order = (cl_channel_order) (d.cmode ? CL_RGBA : CL_LUMINANCE);
+                channel_order = (cl_channel_order) (d.cmode ? CL_RGBA : CL_R);
                 channel_type = CL_UNORM_INT16;
                 break;
             case VSPresetFormat::pfYUV444PH:
                 d.clip_t |= d.cmode ? (NLM_CLIP_UNORM | NLM_COLOR_YUV) : (NLM_CLIP_UNORM | NLM_COLOR_GRAY);
-                channel_order = (cl_channel_order) (d.cmode ? CL_RGBA : CL_LUMINANCE);
+                channel_order = (cl_channel_order) (d.cmode ? CL_RGBA : CL_R);
                 channel_type = CL_HALF_FLOAT;
                 break;
             case VSPresetFormat::pfYUV444PS:
                 d.clip_t |= d.cmode ? (NLM_CLIP_UNORM | NLM_COLOR_YUV) : (NLM_CLIP_UNORM | NLM_COLOR_GRAY);
-                channel_order = (cl_channel_order) (d.cmode ? CL_RGBA : CL_LUMINANCE);
+                channel_order = (cl_channel_order) (d.cmode ? CL_RGBA : CL_R);
                 channel_type = CL_FLOAT;
                 break;
             case VSPresetFormat::pfRGB24:
@@ -1759,7 +1768,7 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
         d.mem_out = clCreateImage(d.context, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, &image_format, &image_out, NULL, &ret);
         if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateImage(d.mem_out)", ret, out, vsapi);  return; }
     }
-    const cl_image_format image_format_u = { CL_LUMINANCE, CL_HALF_FLOAT };
+    const cl_image_format image_format_u = { CL_R, CL_FLOAT };
     const size_t size_u0 = sizeof(cl_float) * d.idmn[0] * d.idmn[1] * ((d.clip_t & NLM_COLOR_GRAY) ? 2 : 4);
     const size_t size_u3 = sizeof(cl_float) * d.idmn[0] * d.idmn[1];
     d.mem_U[0] = clCreateBuffer(d.context, CL_MEM_READ_WRITE | CL_MEM_HOST_WRITE_ONLY, size_u0, NULL, &ret);
@@ -1771,7 +1780,7 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
     d.mem_U[3] = clCreateBuffer(d.context, CL_MEM_READ_WRITE | CL_MEM_HOST_WRITE_ONLY, size_u3, NULL, &ret);
     if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateBuffer(d.mem_U[3])", ret, out, vsapi); return; }
     if ((d.vi->format->bitsPerSample != 9) && (d.vi->format->bitsPerSample != 10)) {
-        const cl_image_format image_format_p = { CL_LUMINANCE, channel_type };
+        const cl_image_format image_format_p = { CL_R, channel_type };
         d.mem_P[0] = clCreateImage(d.context, CL_MEM_READ_WRITE, &image_format_p, &image_out, NULL, &ret);
         if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateImage(d.mem_P[0])", ret, out, vsapi); return; }
         d.mem_P[1] = clCreateImage(d.context, CL_MEM_READ_WRITE, &image_format_p, &image_out, NULL, &ret);
@@ -1810,7 +1819,7 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
         NLM_RGBA_RED, NLM_RGBA_GREEN, NLM_RGBA_BLUE, NLM_RGBA_ALPHA,
         NLM_16BIT_MSB, NLM_16BIT_LSB, d.HRZ_BLOCK_X, d.HRZ_BLOCK_Y, d.VRT_BLOCK_X, d.VRT_BLOCK_Y,
         d.clip_t, int64ToIntS(d.d), int64ToIntS(d.s), int64ToIntS(d.wmode), d.wref, 
-        65025.0 / (3 * d.h * d.h * (2 * d.s + 1)*(2 * d.s + 1)), maxvalue(d.vi->format->bitsPerSample));
+        65025.0 / (3 * d.h * d.h * (2 * d.s + 1)*(2 * d.s + 1)), (double) maxvalue(d.vi->format->bitsPerSample));
 #    else
     snprintf(options, 2048, "-cl-single-precision-constant -cl-denorms-are-zero -cl-fast-relaxed-math -Werror \
 -D NLM_COLOR_GRAY=%u -D NLM_COLOR_YUV=%u -D NLM_COLOR_RGB=%u -D NLM_CLIP_UNORM=%u -D NLM_CLIP_UNSIGNED=%u -D NLM_CLIP_STACKED=%u \
@@ -1823,7 +1832,7 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
         NLM_RGBA_RED, NLM_RGBA_GREEN, NLM_RGBA_BLUE, NLM_RGBA_ALPHA,
         NLM_16BIT_MSB, NLM_16BIT_LSB, d.HRZ_BLOCK_X, d.HRZ_BLOCK_Y, d.VRT_BLOCK_X, d.VRT_BLOCK_Y,
         d.clip_t, int64ToIntS(d.d), int64ToIntS(d.s), int64ToIntS(d.wmode), d.wref, 
-        65025.0 / (3 * d.h * d.h * (2 * d.s + 1)*(2 * d.s + 1)), maxvalue(d.vi->format->bitsPerSample));
+        65025.0 / (3 * d.h * d.h * (2 * d.s + 1)*(2 * d.s + 1)), (double) maxvalue(d.vi->format->bitsPerSample));
 #    endif
     ret = clBuildProgram(d.program, 1, &d.deviceID, options, NULL, NULL);
     if (ret != CL_SUCCESS) {
@@ -1937,9 +1946,12 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
         if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateKernel(nlmPack[1])", ret, out, vsapi); return; }
         ret = clSetKernelArg(d.kernel[nlmPack], 2, sizeof(cl_mem), &d.mem_P[2]);
         if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateKernel(nlmPack[2])", ret, out, vsapi); return; }
-        // d.kernel[nlmPack] -> 3 is reserved for AviSynth
-        // d.kernel[nlmPack] -> 4 is reserved for AviSynth
-        // d.kernel[nlmPack] -> 5 is reserved for AviSynth
+        ret = clSetKernelArg(d.kernel[nlmPack], 3, sizeof(cl_mem), &d.mem_P[0]); // dummy, 3 is reserved for AviSynth
+        if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateKernel(nlmPack[3])", ret, out, vsapi); return; }
+        ret = clSetKernelArg(d.kernel[nlmPack], 4, sizeof(cl_mem), &d.mem_P[1]); // dummy, 4 is reserved for AviSynth
+        if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateKernel(nlmPack[4])", ret, out, vsapi); return; }
+        ret = clSetKernelArg(d.kernel[nlmPack], 5, sizeof(cl_mem), &d.mem_P[2]); // dummy, 5 is reserved for AviSynth
+        if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateKernel(nlmPack[5])", ret, out, vsapi); return; }
         // d.kernel[nlmPack] -> 6 is set by VapourSynthPluginGetFrame
         // d.kernel[nlmPack] -> 7 is set by VapourSynthPluginGetFrame
         ret = clSetKernelArg(d.kernel[nlmPack], 8, 2 * sizeof(cl_uint), &d.idmn);
@@ -1952,9 +1964,12 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
         if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateKernel(nlmUnpack[1])", ret, out, vsapi); return; }
         ret = clSetKernelArg(d.kernel[nlmUnpack], 2, sizeof(cl_mem), &d.mem_P[2]);
         if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateKernel(nlmUnpack[2])", ret, out, vsapi); return; }
-        // d.kernel[nlmUnpack] -> 3 is reserved for AviSynth
-        // d.kernel[nlmUnpack] -> 4 is reserved for AviSynth
-        // d.kernel[nlmUnpack] -> 5 is reserved for AviSynth
+        ret = clSetKernelArg(d.kernel[nlmUnpack], 3, sizeof(cl_mem), &d.mem_P[0]); // dummy, 3 is reserved for AviSynth
+        if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateKernel(nlmUnpack[3])", ret, out, vsapi); return; }
+        ret = clSetKernelArg(d.kernel[nlmUnpack], 4, sizeof(cl_mem), &d.mem_P[1]); // dummy, 4 is reserved for AviSynth
+        if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateKernel(nlmUnpack[4])", ret, out, vsapi); return; }
+        ret = clSetKernelArg(d.kernel[nlmUnpack], 5, sizeof(cl_mem), &d.mem_P[2]); // dummy, 5 is reserved for AviSynth
+        if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateKernel(nlmUnpack[5])", ret, out, vsapi); return; }
         ret = clSetKernelArg(d.kernel[nlmUnpack], 6, sizeof(cl_mem), &d.mem_out);
         if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateKernel(nlmUnpack[6])", ret, out, vsapi); return; }
         ret = clSetKernelArg(d.kernel[nlmUnpack], 7, 2 * sizeof(cl_uint), &d.idmn);
@@ -2015,9 +2030,12 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
         if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateKernel(nlmSpatialPack[1])", ret, out, vsapi); return; }
         ret = clSetKernelArg(d.kernel[nlmSpatialPack], 2, sizeof(cl_mem), &d.mem_P[2]);
         if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateKernel(nlmSpatialPack[2])", ret, out, vsapi); return; }
-        // d.kernel[nlmSpatialPack] -> 3 is reserved for AviSynth
-        // d.kernel[nlmSpatialPack] -> 4 is reserved for AviSynth
-        // d.kernel[nlmSpatialPack] -> 5 is reserved for AviSynth
+        ret = clSetKernelArg(d.kernel[nlmSpatialPack], 3, sizeof(cl_mem), &d.mem_P[0]); // dummy, 3 is reserved for AviSynth
+        if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateKernel(nlmSpatialPack[3])", ret, out, vsapi); return; }
+        ret = clSetKernelArg(d.kernel[nlmSpatialPack], 4, sizeof(cl_mem), &d.mem_P[1]); // dummy, 4 is reserved for AviSynth
+        if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateKernel(nlmSpatialPack[4])", ret, out, vsapi); return; }
+        ret = clSetKernelArg(d.kernel[nlmSpatialPack], 5, sizeof(cl_mem), &d.mem_P[2]); // dummy, 5 is reserved for AviSynth
+        if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateKernel(nlmSpatialPack[5])", ret, out, vsapi); return; }
         // d.kernel[nlmSpatialPack] -> 6 is set by VapourSynthPluginGetFrame
         ret = clSetKernelArg(d.kernel[nlmSpatialPack], 7, 2 * sizeof(cl_uint), &d.idmn);
         if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateKernel(nlmSpatialPack[7])", ret, out, vsapi); return; }        
@@ -2029,10 +2047,13 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
         if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateKernel(nlmSpatialUnpack[1])", ret, out, vsapi); return; }
         ret = clSetKernelArg(d.kernel[nlmSpatialUnpack], 2, sizeof(cl_mem), &d.mem_P[2]);
         if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateKernel(nlmSpatialUnpack[2])", ret, out, vsapi); return; }
-        // d.kernel[nlmSpatialUnpack] -> 3 is reserved for AviSynth
-        // d.kernel[nlmSpatialUnpack] -> 4 is reserved for AviSynth
-        // d.kernel[nlmSpatialUnpack] -> 5 is reserved for AviSynth
-        ret = clSetKernelArg(d.kernel[nlmSpatialUnpack], 6, sizeof(cl_mem), &d.mem_out);        
+        ret = clSetKernelArg(d.kernel[nlmSpatialUnpack], 3, sizeof(cl_mem), &d.mem_P[0]); // dummy, 3 is reserved for AviSynth
+        if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateKernel(nlmSpatialUnpack[3])", ret, out, vsapi); return; }
+        ret = clSetKernelArg(d.kernel[nlmSpatialUnpack], 4, sizeof(cl_mem), &d.mem_P[1]); // dummy, 4 is reserved for AviSynth
+        if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateKernel(nlmSpatialUnpack[4])", ret, out, vsapi); return; }
+        ret = clSetKernelArg(d.kernel[nlmSpatialUnpack], 5, sizeof(cl_mem), &d.mem_P[2]); // dummy, 5 is reserved for AviSynth
+        if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateKernel(nlmSpatialUnpack[5])", ret, out, vsapi); return; }
+        ret = clSetKernelArg(d.kernel[nlmSpatialUnpack], 6, sizeof(cl_mem), &d.mem_out);         
         if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateKernel(nlmSpatialUnpack[6])", ret, out, vsapi); return; }
         ret = clSetKernelArg(d.kernel[nlmSpatialUnpack], 7, 2 * sizeof(cl_uint), &d.idmn);
         if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateKernel(nlmSpatialUnpack[7])", ret, out, vsapi); return; }
