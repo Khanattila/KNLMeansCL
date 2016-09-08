@@ -72,8 +72,8 @@
 #define NLM_RGBA_GREEN            1.2866580779
 #define NLM_RGBA_BLUE             1.0468591696
 #define NLM_RGBA_ALPHA            0.0
-#define NLM_16BIT_MSB             0.9961089494163424
-#define NLM_16BIT_LSB             0.003891050583657588
+#define NLM_16BIT_MSB             0.003906309605554284
+#define NLM_16BIT_LSB             0.000015259021896696
 
 //////////////////////////////////////////
 // Kernel Definition
@@ -260,14 +260,14 @@ static const char* kernel_source_code_spatial =
 "       const float r     = norm(read_imageui(R, smp, p).x);                                                      \n" \
 "       write_imagef(U1, p, (float4) r);                                                                          \n" \
 "   } else if (CHECK_FLAG(NLM_CLIP_STACKED | NLM_COLOR_GRAY)) {                                                   \n" \
-"       const float r_msb = read_imagef(R,     smp, p    ).x;                                                     \n" \
-"       const float r_lsb = read_imagef(R_lsb, smp, p    ).x;                                                     \n" \
+"       const float r_msb = convert_float(read_imageui(R,     smp, p).x);                                         \n" \
+"       const float r_lsb = convert_float(read_imageui(R_lsb, smp, p).x);                                         \n" \
 "       const float r     = NLM_16BIT_MSB * r_msb + NLM_16BIT_LSB * r_lsb;                                        \n" \
 "       write_imagef(U1, p, (float4) r);                                                                          \n" \
 "   } else if (CHECK_FLAG(NLM_CLIP_UNORM | NLM_COLOR_YUV)) {                                                      \n" \
-"       const float r     = read_imagef(R,     smp, p).x;                                                         \n" \
-"       const float g     = read_imagef(G,     smp, p).x;                                                         \n" \
-"       const float b     = read_imagef(B,     smp, p).x;                                                         \n" \
+"       const float r     = read_imagef(R, smp, p).x;                                                             \n" \
+"       const float g     = read_imagef(G, smp, p).x;                                                             \n" \
+"       const float b     = read_imagef(B, smp, p).x;                                                             \n" \
 "       write_imagef(U1, p, (float4) (r, g, b, 1.0f));                                                            \n" \
 "   } else if (CHECK_FLAG(NLM_CLIP_UNSIGNED | NLM_COLOR_YUV)) {                                                   \n" \
 "       const float r     = norm(read_imageui(R, smp, p).x);                                                      \n" \
@@ -275,20 +275,20 @@ static const char* kernel_source_code_spatial =
 "       const float b     = norm(read_imageui(B, smp, p).x);                                                      \n" \
 "       write_imagef(U1, p, (float4) (r, g, b, 1.0f));                                                            \n" \
 "   } else if (CHECK_FLAG(NLM_CLIP_STACKED | NLM_COLOR_YUV)) {                                                    \n" \
-"       const float r_msb = read_imagef(R,     smp, p).x;                                                         \n" \
-"       const float g_msb = read_imagef(G,     smp, p).x;                                                         \n" \
-"       const float b_msb = read_imagef(B,     smp, p).x;                                                         \n" \
-"       const float r_lsb = read_imagef(R_lsb, smp, p).x;                                                         \n" \
-"       const float g_lsb = read_imagef(G_lsb, smp, p).x;                                                         \n" \
-"       const float b_lsb = read_imagef(B_lsb, smp, p).x;                                                         \n" \
+"       const float r_msb = convert_float(read_imageui(R,     smp, p).x);                                         \n" \
+"       const float g_msb = convert_float(read_imageui(G,     smp, p).x);                                         \n" \
+"       const float b_msb = convert_float(read_imageui(B,     smp, p).x);                                         \n" \
+"       const float r_lsb = convert_float(read_imageui(R_lsb, smp, p).x);                                         \n" \
+"       const float g_lsb = convert_float(read_imageui(G_lsb, smp, p).x);                                         \n" \
+"       const float b_lsb = convert_float(read_imageui(B_lsb, smp, p).x);                                         \n" \
 "       const float r     = NLM_16BIT_MSB * r_msb + NLM_16BIT_LSB * r_lsb;                                        \n" \
 "       const float g     = NLM_16BIT_MSB * g_msb + NLM_16BIT_LSB * g_lsb;                                        \n" \
 "       const float b     = NLM_16BIT_MSB * b_msb + NLM_16BIT_LSB * b_lsb;                                        \n" \
 "       write_imagef(U1, p, (float4) (r, g, b, 1.0f));                                                            \n" \
 "   } else if (CHECK_FLAG(NLM_CLIP_UNORM | NLM_COLOR_RGB)) {                                                      \n" \
-"       const float r     = read_imagef(R,     smp, p).x;                                                         \n" \
-"       const float g     = read_imagef(G,     smp, p).x;                                                         \n" \
-"       const float b     = read_imagef(B,     smp, p).x;                                                         \n" \
+"       const float r     = read_imagef(R, smp, p).x;                                                             \n" \
+"       const float g     = read_imagef(G, smp, p).x;                                                             \n" \
+"       const float b     = read_imagef(B, smp, p).x;                                                             \n" \
 "       write_imagef(U1, p, (float4) (r, g, b, 1.0f));                                                            \n" \
 "   } else if (CHECK_FLAG(NLM_CLIP_UNSIGNED | NLM_COLOR_RGB)) {                                                   \n" \
 "       const float r     = norm(read_imageui(R, smp, p).x);                                                      \n" \
@@ -314,45 +314,41 @@ static const char* kernel_source_code_spatial =
 "       const ushort  val     = denorm(read_imagef(U1, smp, s).x);                                                \n" \
 "       write_imageui(R, s,    (uint4) val);                                                                      \n" \
 "   } else if (CHECK_FLAG(NLM_CLIP_STACKED | NLM_COLOR_GRAY)) {                                                   \n" \
-"       const ushort  in      = convert_ushort_sat(read_imagef(U1, smp, s).x * (float) USHRT_MAX);                \n" \
-"       const float   in_msb  = convert_float(in >> CHAR_BIT);                                                    \n" \
-"       const float   in_lsb  = convert_float(in & 0xFF);                                                         \n" \
-"       const float   val_msb = native_divide(in_msb, (float) UCHAR_MAX);                                         \n" \
-"       const float   val_lsb = native_divide(in_lsb, (float) UCHAR_MAX);                                         \n" \
-"       write_imagef(R,     s, (float4) val_msb);                                                                 \n" \
-"       write_imagef(R,     s, (float4) val_lsb);                                                                 \n" \
+"       const uint    r      = convert_ushort_sat(read_imagef(U1, smp, s).x * (float) USHRT_MAX);                 \n" \
+"       const uint    r_msb  = r >> CHAR_BIT;                                                                     \n" \
+"       const uint    r_lsb  = r &  0xFF;                                                                         \n" \
+"       write_imageui(R,     s, (uint4)  r_msb);                                                                  \n" \
+"       write_imageui(R_lsb, s, (uint4)  r_lsb);                                                                  \n" \
 "   } else if (CHECK_FLAG(NLM_CLIP_UNORM | NLM_COLOR_YUV)) {                                                      \n" \
-"       const float4  val     = read_imagef(U1, smp, s);                                                          \n" \
-"       write_imagef(R,     s, (float4) val.x);                                                                   \n" \
-"       write_imagef(G,     s, (float4) val.y);                                                                   \n" \
-"       write_imagef(B,     s, (float4) val.z);                                                                   \n" \
+"       const float4  val    = read_imagef(U1, smp, s);                                                           \n" \
+"       write_imagef(R,      s, (float4) val.x);                                                                  \n" \
+"       write_imagef(G,      s, (float4) val.y);                                                                  \n" \
+"       write_imagef(B,      s, (float4) val.z);                                                                  \n" \
 "   } else if (CHECK_FLAG(NLM_CLIP_UNSIGNED | NLM_COLOR_YUV)) {                                                   \n" \
-"       const ushort4 val     = denorm4(read_imagef(U1, smp, s));                                                 \n" \
-"       write_imageui(R,    s, (uint4) val.x);                                                                    \n" \
-"       write_imageui(G,    s, (uint4) val.y);                                                                    \n" \
-"       write_imageui(B,    s, (uint4) val.z);                                                                    \n" \
+"       const ushort4 val    = denorm4(read_imagef(U1, smp, s));                                                  \n" \
+"       write_imageui(R,     s, (uint4)  val.x);                                                                  \n" \
+"       write_imageui(G,     s, (uint4)  val.y);                                                                  \n" \
+"       write_imageui(B,     s, (uint4)  val.z);                                                                  \n" \
 "   } else if (CHECK_FLAG(NLM_CLIP_STACKED | NLM_COLOR_YUV)) {                                                    \n" \
-"       const ushort4 in      = convert_ushort4_sat(read_imagef(U1, smp, s) * (float4) USHRT_MAX);                \n" \
-"       const float4  in_msb  = convert_float4(in >> (ushort4) CHAR_BIT);                                         \n" \
-"       const float4  in_lsb  = convert_float4(in & (ushort4) 0xFF);                                              \n" \
-"       const float4  val_msb = native_divide(in_msb, (float4) UCHAR_MAX);                                        \n" \
-"       const float4  val_lsb = native_divide(in_lsb, (float4) UCHAR_MAX);                                        \n" \
-"       write_imagef(R,     s, (float4) val_msb.x);                                                               \n" \
-"       write_imagef(G,     s, (float4) val_msb.y);                                                               \n" \
-"       write_imagef(B,     s, (float4) val_msb.z);                                                               \n" \
-"       write_imagef(R_lsb, s, (float4) val_lsb.x);                                                               \n" \
-"       write_imagef(G_lsb, s, (float4) val_lsb.y);                                                               \n" \
-"       write_imagef(B_lsb, s, (float4) val_lsb.z);                                                               \n" \
+"       const uint4   in     = convert_ushort4_sat(read_imagef(U1, smp, s) * (float4) USHRT_MAX);                 \n" \
+"       const uint4   in_msb = in >> (ushort4) CHAR_BIT;                                                          \n" \
+"       const uint4   in_lsb = in &  (ushort4) 0xFF;                                                              \n" \
+"       write_imageui(R,     s, (uint4)  in_msb.x);                                                               \n" \
+"       write_imageui(G,     s, (uint4)  in_msb.y);                                                               \n" \
+"       write_imageui(B,     s, (uint4)  in_msb.z);                                                               \n" \
+"       write_imageui(R_lsb, s, (uint4)  in_lsb.x);                                                               \n" \
+"       write_imageui(G_lsb, s, (uint4)  in_lsb.y);                                                               \n" \
+"       write_imageui(B_lsb, s, (uint4)  in_lsb.z);                                                               \n" \
 "   } else if (CHECK_FLAG(NLM_CLIP_UNORM | NLM_COLOR_RGB)) {                                                      \n" \
-"       const float4  val     = read_imagef(U1, smp, s);                                                          \n" \
-"       write_imagef(R,     s, (float4) val.x);                                                                   \n" \
-"       write_imagef(G,     s, (float4) val.y);                                                                   \n" \
-"       write_imagef(B,     s, (float4) val.z);                                                                   \n" \
+"       const float4  val    = read_imagef(U1, smp, s);                                                           \n" \
+"       write_imagef(R,      s, (float4) val.x);                                                                  \n" \
+"       write_imagef(G,      s, (float4) val.y);                                                                  \n" \
+"       write_imagef(B,      s, (float4) val.z);                                                                  \n" \
 "   } else if (CHECK_FLAG(NLM_CLIP_UNSIGNED | NLM_COLOR_RGB)) {                                                   \n" \
-"       const ushort4 val     = denorm4(read_imagef(U1, smp, s));                                                 \n" \
-"       write_imageui(R,    s, (uint4) val.x);                                                                    \n" \
-"       write_imageui(G,    s, (uint4) val.y);                                                                    \n" \
-"       write_imageui(B,    s, (uint4) val.z);                                                                    \n" \
+"       const ushort4 val    = denorm4(read_imagef(U1, smp, s));                                                  \n" \
+"       write_imageui(R,     s, (uint4)  val.x);                                                                  \n" \
+"       write_imageui(G,     s, (uint4)  val.y);                                                                  \n" \
+"       write_imageui(B,     s, (uint4)  val.z);                                                                  \n" \
 "   }                                                                                                             \n" \
 "}                                                                                                                ";
 
@@ -576,14 +572,14 @@ static const char* kernel_source_code =
 "       const float r     = norm(read_imageui(R, smp, s).x);                                                      \n" \
 "       write_imagef(U1, p, (float4) r);                                                                          \n" \
 "   } else if (CHECK_FLAG(NLM_CLIP_STACKED | NLM_COLOR_GRAY)) {                                                   \n" \
-"       const float r_msb = read_imagef(R,     smp, s    ).x;                                                     \n" \
-"       const float r_lsb = read_imagef(R_lsb, smp, s    ).x;                                                     \n" \
+"       const float r_msb = convert_float(read_imageui(R,     smp, s).x);                                         \n" \
+"       const float r_lsb = convert_float(read_imageui(R_lsb, smp, s).x);                                         \n" \
 "       const float r     = NLM_16BIT_MSB * r_msb + NLM_16BIT_LSB * r_lsb;                                        \n" \
 "       write_imagef(U1, p, (float4) r);                                                                          \n" \
 "   } else if (CHECK_FLAG(NLM_CLIP_UNORM | NLM_COLOR_YUV)) {                                                      \n" \
-"       const float r     = read_imagef(R,     smp, s).x;                                                         \n" \
-"       const float g     = read_imagef(G,     smp, s).x;                                                         \n" \
-"       const float b     = read_imagef(B,     smp, s).x;                                                         \n" \
+"       const float r     = read_imagef(R, smp, s).x;                                                             \n" \
+"       const float g     = read_imagef(G, smp, s).x;                                                             \n" \
+"       const float b     = read_imagef(B, smp, s).x;                                                             \n" \
 "       write_imagef(U1, p, (float4) (r, g, b, 1.0f));                                                            \n" \
 "   } else if (CHECK_FLAG(NLM_CLIP_UNSIGNED | NLM_COLOR_YUV)) {                                                   \n" \
 "       const float r     = norm(read_imageui(R, smp, s).x);                                                      \n" \
@@ -591,20 +587,20 @@ static const char* kernel_source_code =
 "       const float b     = norm(read_imageui(B, smp, s).x);                                                      \n" \
 "       write_imagef(U1, p, (float4) (r, g, b, 1.0f));                                                            \n" \
 "   } else if (CHECK_FLAG(NLM_CLIP_STACKED | NLM_COLOR_YUV)) {                                                    \n" \
-"       const float r_msb = read_imagef(R,     smp, s).x;                                                         \n" \
-"       const float g_msb = read_imagef(G,     smp, s).x;                                                         \n" \
-"       const float b_msb = read_imagef(B,     smp, s).x;                                                         \n" \
-"       const float r_lsb = read_imagef(R_lsb, smp, s).x;                                                         \n" \
-"       const float g_lsb = read_imagef(G_lsb, smp, s).x;                                                         \n" \
-"       const float b_lsb = read_imagef(B_lsb, smp, s).x;                                                         \n" \
+"       const float r_msb = convert_float(read_imageui(R,     smp, s).x);                                         \n" \
+"       const float g_msb = convert_float(read_imageui(G,     smp, s).x);                                         \n" \
+"       const float b_msb = convert_float(read_imageui(B,     smp, s).x);                                         \n" \
+"       const float r_lsb = convert_float(read_imageui(R_lsb, smp, s).x);                                         \n" \
+"       const float g_lsb = convert_float(read_imageui(G_lsb, smp, s).x);                                         \n" \
+"       const float b_lsb = convert_float(read_imageui(B_lsb, smp, s).x);                                         \n" \
 "       const float r     = NLM_16BIT_MSB * r_msb + NLM_16BIT_LSB * r_lsb;                                        \n" \
 "       const float g     = NLM_16BIT_MSB * g_msb + NLM_16BIT_LSB * g_lsb;                                        \n" \
 "       const float b     = NLM_16BIT_MSB * b_msb + NLM_16BIT_LSB * b_lsb;                                        \n" \
 "       write_imagef(U1, p, (float4) (r, g, b, 1.0f));                                                            \n" \
 "   } else if (CHECK_FLAG(NLM_CLIP_UNORM | NLM_COLOR_RGB)) {                                                      \n" \
-"       const float r     = read_imagef(R,     smp, s).x;                                                         \n" \
-"       const float g     = read_imagef(G,     smp, s).x;                                                         \n" \
-"       const float b     = read_imagef(B,     smp, s).x;                                                         \n" \
+"       const float r     = read_imagef(R, smp, s).x;                                                             \n" \
+"       const float g     = read_imagef(G, smp, s).x;                                                             \n" \
+"       const float b     = read_imagef(B, smp, s).x;                                                             \n" \
 "       write_imagef(U1, p, (float4) (r, g, b, 1.0f));                                                            \n" \
 "   } else if (CHECK_FLAG(NLM_CLIP_UNSIGNED | NLM_COLOR_RGB)) {                                                   \n" \
 "       const float r     = norm(read_imageui(R, smp, s).x);                                                      \n" \
@@ -630,44 +626,40 @@ static const char* kernel_source_code =
 "       const ushort  val     = denorm(read_imagef(U1, smp, s).x);                                                \n" \
 "       write_imageui(R, s,    (uint4) val);                                                                      \n" \
 "   } else if (CHECK_FLAG(NLM_CLIP_STACKED | NLM_COLOR_GRAY)) {                                                   \n" \
-"       const ushort  in      = convert_ushort_sat(read_imagef(U1, smp, s).x * (float) USHRT_MAX);                \n" \
-"       const float   in_msb  = convert_float(in >> CHAR_BIT);                                                    \n" \
-"       const float   in_lsb  = convert_float(in & 0xFF);                                                         \n" \
-"       const float   val_msb = native_divide(in_msb, (float) UCHAR_MAX);                                         \n" \
-"       const float   val_lsb = native_divide(in_lsb, (float) UCHAR_MAX);                                         \n" \
-"       write_imagef(R,     s, (float4) val_msb);                                                                 \n" \
-"       write_imagef(R_lsb, s, (float4) val_lsb);                                                                 \n" \
+"       const ushort  r      = convert_ushort_sat(read_imagef(U1, smp, s).x * (float) USHRT_MAX);                 \n" \
+"       const ushort  r_msb  = r >> CHAR_BIT;                                                                     \n" \
+"       const ushort  r_lsb  = r &  0xFF;                                                                         \n" \
+"       write_imageui(R,     s, (uint4)  r_msb);                                                                  \n" \
+"       write_imageui(R_lsb, s, (uint4)  r_lsb);                                                                  \n" \
 "   } else if (CHECK_FLAG(NLM_CLIP_UNORM | NLM_COLOR_YUV)) {                                                      \n" \
-"       const float4  val     = read_imagef(U1, smp, s);                                                          \n" \
-"       write_imagef(R,     s, (float4) val.x);                                                                   \n" \
-"       write_imagef(G,     s, (float4) val.y);                                                                   \n" \
-"       write_imagef(B,     s, (float4) val.z);                                                                   \n" \
+"       const float4  val    = read_imagef(U1, smp, s);                                                           \n" \
+"       write_imagef(R,      s, (float4) val.x);                                                                  \n" \
+"       write_imagef(G,      s, (float4) val.y);                                                                  \n" \
+"       write_imagef(B,      s, (float4) val.z);                                                                  \n" \
 "   } else if (CHECK_FLAG(NLM_CLIP_UNSIGNED | NLM_COLOR_YUV)) {                                                   \n" \
-"       const ushort4 val     = denorm4(read_imagef(U1, smp, s));                                                 \n" \
-"       write_imageui(R,    s, (uint4) val.x);                                                                    \n" \
-"       write_imageui(G,    s, (uint4) val.y);                                                                    \n" \
-"       write_imageui(B,    s, (uint4) val.z);                                                                    \n" \
+"       const ushort4 val    = denorm4(read_imagef(U1, smp, s));                                                  \n" \
+"       write_imageui(R,     s, (uint4)  val.x);                                                                  \n" \
+"       write_imageui(G,     s, (uint4)  val.y);                                                                  \n" \
+"       write_imageui(B,     s, (uint4)  val.z);                                                                  \n" \
 "   } else if (CHECK_FLAG(NLM_CLIP_STACKED | NLM_COLOR_YUV)) {                                                    \n" \
-"       const ushort4 in      = convert_ushort4_sat(read_imagef(U1, smp, s) * (float4) USHRT_MAX);                \n" \
-"       const float4  in_msb  = convert_float4(in >> (ushort4) CHAR_BIT);                                         \n" \
-"       const float4  in_lsb  = convert_float4(in & (ushort4) 0xFF);                                              \n" \
-"       const float4  val_msb = native_divide(in_msb, (float4) UCHAR_MAX);                                        \n" \
-"       const float4  val_lsb = native_divide(in_lsb, (float4) UCHAR_MAX);                                        \n" \
-"       write_imagef(R,     s, (float4) val_msb.x);                                                               \n" \
-"       write_imagef(G,     s, (float4) val_msb.y);                                                               \n" \
-"       write_imagef(B,     s, (float4) val_msb.z);                                                               \n" \
-"       write_imagef(R_lsb, s, (float4) val_lsb.x);                                                               \n" \
-"       write_imagef(G_lsb, s, (float4) val_lsb.y);                                                               \n" \
-"       write_imagef(B_lsb, s, (float4) val_lsb.z);                                                               \n" \
+"       const ushort4 in     = convert_ushort4_sat(read_imagef(U1, smp, s) * (float4) USHRT_MAX);                 \n" \
+"       const ushort4 in_msb = in >> (ushort4) CHAR_BIT;                                                          \n" \
+"       const ushort4 in_lsb = in &  (ushort4) 0xFF;                                                              \n" \
+"       write_imageui(R,     s, (uint4)  in_msb.x);                                                               \n" \
+"       write_imageui(G,     s, (uint4)  in_msb.y);                                                               \n" \
+"       write_imageui(B,     s, (uint4)  in_msb.z);                                                               \n" \
+"       write_imageui(R_lsb, s, (uint4)  in_lsb.x);                                                               \n" \
+"       write_imageui(G_lsb, s, (uint4)  in_lsb.y);                                                               \n" \
+"       write_imageui(B_lsb, s, (uint4)  in_lsb.z);                                                               \n" \
 "   } else if (CHECK_FLAG(NLM_CLIP_UNORM | NLM_COLOR_RGB)) {                                                      \n" \
-"       const float4  val     = read_imagef(U1, smp, s);                                                          \n" \
-"       write_imagef(R,     s, (float4) val.x);                                                                   \n" \
-"       write_imagef(G,     s, (float4) val.y);                                                                   \n" \
-"       write_imagef(B,     s, (float4) val.z);                                                                   \n" \
+"       const float4  val    = read_imagef(U1, smp, s);                                                           \n" \
+"       write_imagef(R,      s, (float4) val.x);                                                                  \n" \
+"       write_imagef(G,      s, (float4) val.y);                                                                  \n" \
+"       write_imagef(B,      s, (float4) val.z);                                                                  \n" \
 "   } else if (CHECK_FLAG(NLM_CLIP_UNSIGNED | NLM_COLOR_RGB)) {                                                   \n" \
-"       const ushort4 val     = denorm4(read_imagef(U1, smp, s));                                                 \n" \
-"       write_imageui(R,    s, (uint4) val.x);                                                                    \n" \
-"       write_imageui(G,    s, (uint4) val.y);                                                                    \n" \
-"       write_imageui(B,    s, (uint4) val.z);                                                                    \n" \
+"       const ushort4 val    = denorm4(read_imagef(U1, smp, s));                                                  \n" \
+"       write_imageui(R,     s, (uint4)  val.x);                                                                  \n" \
+"       write_imageui(G,     s, (uint4)  val.y);                                                                  \n" \
+"       write_imageui(B,     s, (uint4)  val.z);                                                                  \n" \
 "   }                                                                                                             \n" \
 "}                                                                                                                ";

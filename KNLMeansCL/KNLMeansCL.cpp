@@ -197,22 +197,37 @@ _NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _
     mem_U[2] = clCreateImage(context, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, &image_format_u, &image_in, NULL, &ret);
     oclErrorCheck("clCreateImage(mem_U[2])", ret, env);
     mem_U[3] = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_HOST_WRITE_ONLY, size_u3, NULL, &ret);
-    oclErrorCheck("clCreateBuffer(mem_U[3])", ret, env);
-    const cl_image_format image_format_p = { CL_LUMINANCE, CL_UNORM_INT8 };
-    const cl_image_desc image_desc_p = { CL_MEM_OBJECT_IMAGE2D, idmn[0], idmn[1], 1, 1, 0, 0, 0, 0, NULL };
-    mem_P[0] = clCreateImage(context, CL_MEM_READ_WRITE, &image_format_p, &image_desc_p, NULL, &ret);
-    oclErrorCheck("clCreateImage(mem_P[0])", ret, env);
-    mem_P[1] = clCreateImage(context, CL_MEM_READ_WRITE, &image_format_p, &image_desc_p, NULL, &ret);
-    oclErrorCheck("clCreateImage(mem_P[1])", ret, env);
-    mem_P[2] = clCreateImage(context, CL_MEM_READ_WRITE, &image_format_p, &image_desc_p, NULL, &ret);
-    oclErrorCheck("clCreateImage(mem_P[2])", ret, env);
-    mem_P[3] = clCreateImage(context, CL_MEM_READ_WRITE, &image_format_p, &image_desc_p, NULL, &ret);
-    oclErrorCheck("clCreateImage(mem_P[3])", ret, env);
-    mem_P[4] = clCreateImage(context, CL_MEM_READ_WRITE, &image_format_p, &image_desc_p, NULL, &ret);
-    oclErrorCheck("clCreateImage(mem_P[4])", ret, env);
-    mem_P[5] = clCreateImage(context, CL_MEM_READ_WRITE, &image_format_p, &image_desc_p, NULL, &ret);
-    oclErrorCheck("clCreateImage(mem_P[5])", ret, env);
-
+    oclErrorCheck("clCreateBuffer(mem_U[3])", ret, env);   
+    if (!lsb) {
+        const cl_image_format image_format_p = { CL_LUMINANCE, CL_UNORM_INT8 };
+        mem_P[0] = clCreateImage(context, CL_MEM_READ_WRITE, &image_format_p, &image_out, NULL, &ret);
+        oclErrorCheck("clCreateImage(mem_P[0])", ret, env);
+        mem_P[1] = clCreateImage(context, CL_MEM_READ_WRITE, &image_format_p, &image_out, NULL, &ret);
+        oclErrorCheck("clCreateImage(mem_P[1])", ret, env);
+        mem_P[2] = clCreateImage(context, CL_MEM_READ_WRITE, &image_format_p, &image_out, NULL, &ret);
+        oclErrorCheck("clCreateImage(mem_P[2])", ret, env);
+        mem_P[3] = clCreateImage(context, CL_MEM_READ_WRITE, &image_format_p, &image_out, NULL, &ret);
+        oclErrorCheck("clCreateImage(mem_P[3])", ret, env);
+        mem_P[4] = clCreateImage(context, CL_MEM_READ_WRITE, &image_format_p, &image_out, NULL, &ret);
+        oclErrorCheck("clCreateImage(mem_P[4])", ret, env);
+        mem_P[5] = clCreateImage(context, CL_MEM_READ_WRITE, &image_format_p, &image_out, NULL, &ret);
+        oclErrorCheck("clCreateImage(mem_P[5])", ret, env);
+    } else {
+        const cl_image_format image_format_p = { CL_R, CL_UNSIGNED_INT8 };
+        mem_P[0] = clCreateImage(context, CL_MEM_READ_WRITE, &image_format_p, &image_out, NULL, &ret);
+        oclErrorCheck("clCreateImage(mem_P[0])", ret, env);
+        mem_P[1] = clCreateImage(context, CL_MEM_READ_WRITE, &image_format_p, &image_out, NULL, &ret);
+        oclErrorCheck("clCreateImage(mem_P[1])", ret, env);
+        mem_P[2] = clCreateImage(context, CL_MEM_READ_WRITE, &image_format_p, &image_out, NULL, &ret);
+        oclErrorCheck("clCreateImage(mem_P[2])", ret, env);
+        mem_P[3] = clCreateImage(context, CL_MEM_READ_WRITE, &image_format_p, &image_out, NULL, &ret);
+        oclErrorCheck("clCreateImage(mem_P[3])", ret, env);
+        mem_P[4] = clCreateImage(context, CL_MEM_READ_WRITE, &image_format_p, &image_out, NULL, &ret);
+        oclErrorCheck("clCreateImage(mem_P[4])", ret, env);
+        mem_P[5] = clCreateImage(context, CL_MEM_READ_WRITE, &image_format_p, &image_out, NULL, &ret);
+        oclErrorCheck("clCreateImage(mem_P[5])", ret, env);
+    }
+    
     // Creates and Build a program executable from the program source.
     program = clCreateProgramWithSource(context, 1, d ? &kernel_source_code : &kernel_source_code_spatial, NULL, NULL);
     char options[2048];
