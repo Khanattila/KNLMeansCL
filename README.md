@@ -5,6 +5,8 @@
 
 For end user **KNLMeansCL** is a plugin for **[AviSynth](http://avisynth.nl)** or **[AviSynth+](http://avs-plus.net/)** and for **[VapourSynth](http://www.vapoursynth.com)**. Windows, OS X and Linux are supported.
 
-Donations are welcome and will go towards further development of this project (BTC): `18tFFH3Pfhq8cPecsT27xW4oHqTjvqDMB1`
+KNLMeansCL is a free and open source project. All development is done in my free time, but if you find it useful as a home user or in your business, then please consider contributing. Donations are welcome and will go towards further development of this project (BTC): `18tFFH3Pfhq8cPecsT27xW4oHqTjvqDMB1`
 
-You can find the documentation in the **[Wiki](https://github.com/Khanattila/KNLMeansCL/wiki)**.
+See the **[Wiki](https://github.com/Khanattila/KNLMeansCL/wiki)** for more information.
+
+Support on the [Doom9](http://forum.doom9.org/showthread.php?t=171379) forums.
