@@ -54,14 +54,22 @@
 
 #define NLM_NUMBER_KERNELS        nlmTotal
 
-#define NLM_COLOR_GRAY           (1 << 0)
-#define NLM_COLOR_YUV            (1 << 1)
-#define NLM_COLOR_RGB            (1 << 2)
-#define NLM_CLIP_UNORM           (1 << 3)
-#define NLM_CLIP_UNSIGNED        (1 << 4)
-#define NLM_CLIP_STACKED         (1 << 5)
-#define NLM_EXTRA_FALSE          (1 << 6)
-#define NLM_EXTRA_TRUE           (1 << 7)
+#define NLM_COLOR_GRAY           (1 <<  0)
+#define NLM_COLOR_CHRO           (1 <<  1)
+#define NLM_COLOR_YUV            (1 <<  2)
+#define NLM_COLOR_RGB            (1 <<  3)
+
+#define NLM_CLIP_UNORM           (1 <<  4)
+#define NLM_CLIP_UNSIGNED        (1 <<  5)
+#define NLM_CLIP_STACKED         (1 <<  6)
+
+#define NLM_EXTRA_FALSE          (1 <<  7)
+#define NLM_EXTRA_TRUE           (1 <<  8)
+
+#define NLM_CMODE_GRAY           (1 <<  9)
+#define NLM_CMODE_CHRO           (1 << 10)
+#define NLM_CMODE_YUV            (1 << 11)
+#define NLM_CMODE_RGB            (1 << 12)
 
 #define NLM_WMODE_CAUCHY          0x0
 #define NLM_WMODE_WELSCH          0x1

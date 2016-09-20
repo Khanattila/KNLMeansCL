@@ -52,8 +52,7 @@ private:
     PClip baby;
     const char* ocl_device;
     const bool cmode, lsb, info;
-    unsigned int clip_t;
-    cl_uint idmn[3], HRZ_BLOCK_X, HRZ_BLOCK_Y, VRT_BLOCK_X, VRT_BLOCK_Y;
+    cl_uint clip_t, idmn[3], HRZ_BLOCK_X, HRZ_BLOCK_Y, VRT_BLOCK_X, VRT_BLOCK_Y;
     cl_platform_id platformID;
     cl_device_id deviceID;
     cl_context context;
@@ -79,8 +78,7 @@ public:
     int64_t d, a, s, cmode, wmode, ocl_id, info;
     double wref, h;
     const char* ocl_device;
-    unsigned int clip_t;
-    cl_uint idmn[2], HRZ_BLOCK_X, HRZ_BLOCK_Y, VRT_BLOCK_X, VRT_BLOCK_Y;
+    cl_uint clip_t, idmn[2], HRZ_BLOCK_X, HRZ_BLOCK_Y, VRT_BLOCK_X, VRT_BLOCK_Y;
     cl_platform_id platformID;
     cl_device_id deviceID;
     cl_context context;
