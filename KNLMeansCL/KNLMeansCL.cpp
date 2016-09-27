@@ -20,7 +20,7 @@
 #define DFT_a             2
 #define DFT_s             4
 #define DFT_h             1.2f
-#define DFT_cmode         false
+#define DFT_channels      "AUTO"
 #define DFT_wmode         1
 #define DFT_wref          1.0f
 #define DFT_ocl_device    "AUTO"
@@ -93,9 +93,9 @@ inline void _NLMVapoursynth::oclErrorCheck(const char* function, cl_int errcode,
 //////////////////////////////////////////
 // AviSynthInit
 #ifdef __AVISYNTH_6_H__
-_NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _s, const double _h, const bool _cmode, 
+_NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _s, const double _h, const char* _channels,
     const int _wmode, const double _wref, PClip _baby, const char* _ocl_device, const int _ocl_id, const bool _lsb, 
-    const bool _info, IScriptEnvironment *env) : GenericVideoFilter(_child), d(_d), a(_a), s(_s), h(_h), cmode(_cmode), 
+    const bool _info, IScriptEnvironment *env) : GenericVideoFilter(_child), d(_d), a(_a), s(_s), h(_h), channels(_channels),
     wmode(_wmode), wref(_wref), baby(_baby), ocl_device(_ocl_device), ocl_id(_ocl_id), lsb(_lsb), info(_info) {
 
     // Checks AviSynth Version
@@ -107,15 +107,56 @@ _NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _
     cl_channel_type channel_type = 0;
     if (!vi.IsPlanar() && !vi.IsRGB32()) 
         env->ThrowError("KNLMeansCL: planar YUV or RGB32 data!");
-    if (cmode && !vi.IsYV24() && !vi.IsRGB32()) 
-        env->ThrowError("KNLMeansCL: 'cmode' requires 4:4:4 subsampling!");
     if (baby) {
         VideoInfo rvi = baby->GetVideoInfo();
         if (!equals(&vi, &rvi)) env->ThrowError("KNLMeansCL: 'rclip' does not match the source clip!");
         baby->SetCacheHints(CACHE_WINDOW, d);
         clip_t = NLM_EXTRA_TRUE;
     } else clip_t = NLM_EXTRA_FALSE;
-    if (lsb) {
+
+    // Checks user value
+    if (d < 0) 
+        env->ThrowError("KNLMeansCL: 'd' must be greater than or equal to 0!");
+    if (a < 1) 
+        env->ThrowError("KNLMeansCL: 'a' must be greater than or equal to 1!");
+    if (s < 0 || s > 4) 
+        env->ThrowError("KNLMeansCL: 's' must be in range [0, 4]!");
+    if (h <= 0.0f) 
+        env->ThrowError("KNLMeansCL: 'h' must be greater than 0!");
+    if (!strcasecmp(channels, "YUV"))
+        clip_t |= NLM_CPROC_YUV;
+    else if (!strcasecmp(ocl_device, "Y"))
+        clip_t |= NLM_CPROC_GRAY;
+    else if (!strcasecmp(ocl_device, "UV"))
+        clip_t |= NLM_CPROC_CHRO;
+    else if (!strcasecmp(ocl_device, "RGB"))
+        clip_t |= NLM_CPROC_RGB;
+    else if (!strcasecmp(ocl_device, "AUTO"))
+        clip_t |= NLM_CPROC_AUTO;
+    else
+        env->ThrowError("KNLMeansCL: 'channels' must be 'YUV', 'Y', 'UV', 'RGB' or 'auto'!");
+    if (wmode < 0 || wmode > 3) 
+        env->ThrowError("KNLMeansCL: 'wmode' must be in range [0, 3]!");
+    if (wref < 0.0f) 
+        env->ThrowError("KNLMeansCL: 'wref' must be greater than or equal to 0!");
+    cl_uint ocl_device_type = 0;
+    if (!strcasecmp(ocl_device, "CPU")) 
+        ocl_device_type = OCL_UTILS_DEVICE_TYPE_CPU;
+    else if (!strcasecmp(ocl_device, "GPU")) 
+        ocl_device_type = OCL_UTILS_DEVICE_TYPE_GPU;
+    else if (!strcasecmp(ocl_device, "ACCELERATOR")) 
+        ocl_device_type = OCL_UTILS_DEVICE_TYPE_ACCELERATOR;
+    else if (!strcasecmp(ocl_device, "AUTO")) 
+        ocl_device_type = OCL_UTILS_DEVICE_TYPE_AUTO;
+    else 
+        env->ThrowError("KNLMeansCL: 'device_type' must be 'cpu', 'gpu', 'accelerator' or 'auto'!");
+    if (ocl_id < 0) 
+        env->ThrowError("KNLMeansCL: 'device_id' must be greater than or equal to 0!");
+    if (info && vi.IsRGB()) 
+        env->ThrowError("KNLMeansCL: 'info' requires YUV color space!");
+
+    // Consistency check
+    /*if (lsb) {
         if (vi.IsRGB32()) env->ThrowError("KNLMeansCL: RGB64 is not supported!");
         else if (cmode) clip_t |= (NLM_CLIP_STACKED | NLM_COLOR_YUV);
         else clip_t |= (NLM_CLIP_STACKED | NLM_COLOR_GRAY);
@@ -128,36 +169,7 @@ _NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _
     else if (clip_t & NLM_COLOR_YUV) channel_order = CL_RGBA;
     else if (clip_t & NLM_COLOR_RGB) channel_order = CL_RGBA;
     if (clip_t & NLM_CLIP_UNORM) channel_type = CL_UNORM_INT8;
-    else if (clip_t & NLM_CLIP_STACKED) channel_type = CL_UNORM_INT16;
-
-    // Checks user value
-    if (d < 0) 
-        env->ThrowError("KNLMeansCL: 'd' must be greater than or equal to 0!");
-    if (a < 1) 
-        env->ThrowError("KNLMeansCL: 'a' must be greater than or equal to 1!");
-    if (s < 0 || s > 4) 
-        env->ThrowError("KNLMeansCL: 's' must be in range [0, 4]!");
-    if (h <= 0.0f) 
-        env->ThrowError("KNLMeansCL: 'h' must be greater than 0!");
-    if (wmode < 0 || wmode > 3) 
-        env->ThrowError("KNLMeansCL: 'wmode' must be in range [0, 3]!");
-    if (wref < 0.0f) 
-        env->ThrowError("KNLMeansCL: 'wref' must be greater than or equal to 0!");
-    ocl_utils_device_type ocl_device_type = 0;   
-    if (!strcasecmp(ocl_device, "CPU")) 
-        ocl_device_type = OCL_UTILS_DEVICE_TYPE_CPU;
-    else if (!strcasecmp(ocl_device, "GPU")) 
-        ocl_device_type = OCL_UTILS_DEVICE_TYPE_GPU;
-    else if (!strcasecmp(ocl_device, "ACCELERATOR")) 
-        ocl_device_type = OCL_UTILS_DEVICE_TYPE_ACCELERATOR;
-    else if (!strcasecmp(ocl_device, "AUTO")) 
-        ocl_device_type = OCL_UTILS_DEVICE_TYPE_AUTO;
-    else 
-        env->ThrowError("KNLMeansCL: 'device_type' must be 'cpu', 'gpu', 'accelerator' or 'auto'!");   
-    if (ocl_id < 0) 
-        env->ThrowError("KNLMeansCL: 'device_id' must be greater than or equal to 0!");
-    if (info && vi.IsRGB()) 
-        env->ThrowError("KNLMeansCL: 'info' requires YUV color space!");
+    else if (clip_t & NLM_CLIP_STACKED) channel_type = CL_UNORM_INT16;*/
 
     // Gets PlatformID and DeviceID.
     cl_device_type deviceTYPE;
@@ -1499,7 +1511,7 @@ static void VS_CC VapourSynthPluginFree(void *instanceData, VSCore *core, const 
 #ifdef __AVISYNTH_6_H__
 AVSValue __cdecl AviSynthPluginCreate(AVSValue args, void* user_data, IScriptEnvironment* env) {
     return new _NLMAvisynth(args[0].AsClip(), args[1].AsInt(DFT_d), args[2].AsInt(DFT_a), args[3].AsInt(DFT_s),
-        args[4].AsFloat(DFT_h), args[5].AsBool(DFT_cmode), args[6].AsInt(DFT_wmode), args[7].AsFloat(DFT_wref),
+        args[4].AsFloat(DFT_h), args[5].AsString(DFT_channels), args[6].AsInt(DFT_wmode), args[7].AsFloat(DFT_wref),
         args[8].Defined() ? args[8].AsClip() : nullptr, args[9].AsString(DFT_ocl_device), args[10].AsInt(DFT_ocl_id), 
         args[11].AsBool(DFT_lsb), args[12].AsBool(DFT_info), env);
 }
@@ -1524,7 +1536,7 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
     } else d.clip_t = NLM_EXTRA_TRUE;
     d.vi = vsapi->getVideoInfo(d.node);
     if (isConstantFormat(d.vi)) {
-        d.cmode = vsapi->propGetInt(in, "cmode", 0, &err);
+        /*d.cmode = vsapi->propGetInt(in, "cmode", 0, &err);
         if (err) d.cmode = DFT_cmode;
         if (d.cmode && (d.vi->format->subSamplingW != 0) && (d.vi->format->subSamplingH != 0)) {
             vsapi->setError(out, "knlm.KNLMeansCL: 'cmode' requires 4:4:4 subsampling!");
@@ -1625,7 +1637,7 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
                 vsapi->freeNode(d.node);
                 vsapi->freeNode(d.knot);
                 return;
-        }
+        }*/
     } else {
         vsapi->setError(out, "knlm.KNLMeansCL: only constant format!");
         vsapi->freeNode(d.node);
@@ -1648,6 +1660,8 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
     if (err) d.s = DFT_s;
     d.h = vsapi->propGetFloat(in, "h", 0, &err);
     if (err) d.h = DFT_h;
+    d.channels = vsapi->propGetData(in, "channels", 0, &err);
+    if (err) d.channels = DFT_channels;
     d.wmode = vsapi->propGetInt(in, "wmode", 0, &err);
     if (err) d.wmode = DFT_wmode;
     d.wref = vsapi->propGetFloat(in, "wref", 0, &err);
@@ -1696,7 +1710,7 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
         vsapi->freeNode(d.knot);
         return;
     }
-    ocl_utils_device_type ocl_device_type = 0;
+    cl_uint ocl_device_type = 0;
     if (!strcasecmp(d.ocl_device, "CPU"))
         ocl_device_type = OCL_UTILS_DEVICE_TYPE_CPU;
      else if (!strcasecmp(d.ocl_device, "GPU"))
@@ -2090,8 +2104,8 @@ extern "C" __declspec(dllexport) const char* __stdcall AvisynthPluginInit3(IScri
     const AVS_Linkage * const vectors) {
     
     AVS_linkage = vectors;
-    env->AddFunction("KNLMeansCL", "c[d]i[a]i[s]i[h]f[cmode]b[wmode]i[wref]f[rclip]c[device_type]s[device_id]i[lsb_inout]b[info]b",
-        AviSynthPluginCreate, 0);
+    env->AddFunction("KNLMeansCL", "c[d]i[a]i[s]i[h]f[channels]s[wmode]i[wref]f[rclip]c[device_type]s[device_id]i[lsb_inout]b\
+[info]b", AviSynthPluginCreate, 0);
     return "KNLMeansCL for AviSynth";
 }
 #endif //__AVISYNTH_6_H__
@@ -2101,7 +2115,7 @@ extern "C" __declspec(dllexport) const char* __stdcall AvisynthPluginInit3(IScri
 #ifdef VAPOURSYNTH_H
 VS_EXTERNAL_API(void) VapourSynthPluginInit(VSConfigPlugin configFunc, VSRegisterFunction registerFunc, VSPlugin *plugin) {
     configFunc("com.Khanattila.KNLMeansCL", "knlm", "KNLMeansCL for VapourSynth", VAPOURSYNTH_API_VERSION, 1, plugin);
-    registerFunc("KNLMeansCL", "clip:clip;d:int:opt;a:int:opt;s:int:opt;h:float:opt;cmode:int:opt;wmode:int:opt;wref:float:opt;\
-rclip:clip:opt;device_type:data:opt;device_id:int:opt;info:int:opt", VapourSynthPluginCreate, nullptr, plugin);
+    registerFunc("KNLMeansCL", "clip:clip;d:int:opt;a:int:opt;s:int:opt;h:float:opt;channels:data:opt;wmode:int:opt;\
+wref:float:opt;rclip:clip:opt;device_type:data:opt;device_id:int:opt;info:int:opt", VapourSynthPluginCreate, nullptr, plugin);
 }
 #endif //__VAPOURSYNTH_H__

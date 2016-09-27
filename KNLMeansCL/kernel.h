@@ -66,10 +66,11 @@
 #define NLM_EXTRA_FALSE          (1 <<  7)
 #define NLM_EXTRA_TRUE           (1 <<  8)
 
-#define NLM_CMODE_GRAY           (1 <<  9)
-#define NLM_CMODE_CHRO           (1 << 10)
-#define NLM_CMODE_YUV            (1 << 11)
-#define NLM_CMODE_RGB            (1 << 12)
+#define NLM_CPROC_GRAY           (1 <<  9)
+#define NLM_CPROC_CHRO           (1 << 10)
+#define NLM_CPROC_YUV            (1 << 11)
+#define NLM_CPROC_RGB            (1 << 12)
+#define NLM_CPROC_AUTO           (1 << 13)
 
 #define NLM_WMODE_CAUCHY          0x0
 #define NLM_WMODE_WELSCH          0x1

@@ -50,8 +50,8 @@ private:
     const int d, a, s, wmode, ocl_id;
     const double wref, h;
     PClip baby;
-    const char* ocl_device;
-    const bool cmode, lsb, info;
+    const char *channels, *ocl_device;
+    const bool lsb, info;
     cl_uint clip_t, idmn[3], HRZ_BLOCK_X, HRZ_BLOCK_Y, VRT_BLOCK_X, VRT_BLOCK_Y;
     cl_platform_id platformID;
     cl_device_id deviceID;
@@ -62,7 +62,7 @@ private:
     bool equals(VideoInfo *v, VideoInfo *w);
     void oclErrorCheck(const char* function, cl_int errcode, IScriptEnvironment *env);
 public:
-    _NLMAvisynth(PClip _child, const int _d, const int _a, const int _s, const double _h, const bool _cmode, const int _wmode,
+    _NLMAvisynth(PClip _child, const int _d, const int _a, const int _s, const double _h, const char* _channels, const int _wmode,
         const double _wref, PClip _baby, const char* _ocl_device, const int _ocl_id, const bool _lsb, const bool _info, 
         IScriptEnvironment *env);
     ~_NLMAvisynth();
@@ -75,9 +75,9 @@ typedef struct _NLMVapoursynth {
 public:
     VSNodeRef *node, *knot;
     const VSVideoInfo *vi;
-    int64_t d, a, s, cmode, wmode, ocl_id, info;
+    int64_t d, a, s, wmode, ocl_id, info;
     double wref, h;
-    const char* ocl_device;
+    const char *channels, *ocl_device;
     cl_uint clip_t, idmn[2], HRZ_BLOCK_X, HRZ_BLOCK_Y, VRT_BLOCK_X, VRT_BLOCK_Y;
     cl_platform_id platformID;
     cl_device_id deviceID;

@@ -18,8 +18,6 @@
 
 //////////////////////////////////////////
 // Type Definition
-typedef cl_bitfield                          ocl_utils_device_type;
-
 #define OCL_UTILS_DEVICE_TYPE_CPU            (1 << 0)
 #define OCL_UTILS_DEVICE_TYPE_GPU            (1 << 1)
 #define OCL_UTILS_DEVICE_TYPE_ACCELERATOR    (1 << 2)
