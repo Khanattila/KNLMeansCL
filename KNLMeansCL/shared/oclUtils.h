@@ -225,8 +225,8 @@ cl_int oclUtilsGetIDs(cl_device_type device_type, cl_uint shf_device, cl_platfor
     return OCL_UTILS_NO_DEVICE_AVAILABLE;
 }
 
-cl_int oclUtilsGetPlaformDeviceIDs(ocl_utils_device_type device_type, cl_uint shf_device, cl_platform_id *platform, 
-    cl_device_id *device, cl_device_type *type, cl_bool *image2d_array) {
+cl_int oclUtilsGetPlaformDeviceIDs(cl_uint device_type, cl_uint shf_device, cl_platform_id *platform, cl_device_id *device, 
+    cl_device_type *type, cl_bool *image2d_array) {
 
     if (platform == NULL || device == NULL) {
         return OCL_UTILS_INVALID_VALUE;

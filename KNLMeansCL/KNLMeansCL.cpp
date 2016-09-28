@@ -122,19 +122,12 @@ _NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _
     if (s < 0 || s > 4) 
         env->ThrowError("KNLMeansCL: 's' must be in range [0, 4]!");
     if (h <= 0.0f) 
-        env->ThrowError("KNLMeansCL: 'h' must be greater than 0!");
-    if (!strcasecmp(channels, "YUV"))
-        clip_t |= NLM_CPROC_YUV;
-    else if (!strcasecmp(ocl_device, "Y"))
-        clip_t |= NLM_CPROC_GRAY;
-    else if (!strcasecmp(ocl_device, "UV"))
-        clip_t |= NLM_CPROC_CHRO;
-    else if (!strcasecmp(ocl_device, "RGB"))
-        clip_t |= NLM_CPROC_RGB;
-    else if (!strcasecmp(ocl_device, "AUTO"))
-        clip_t |= NLM_CPROC_AUTO;
-    else
-        env->ThrowError("KNLMeansCL: 'channels' must be 'YUV', 'Y', 'UV', 'RGB' or 'auto'!");
+        env->ThrowError("KNLMeansCL: 'h' must be greater than 0!");   
+    if (vi.IsYUV() && strcasecmp(channels, "YUV") && strcasecmp(channels, "Y") && strcasecmp(channels, "UV") &&
+        strcasecmp(channels, "(Y)UV") && strcasecmp(channels, "Y(UV)") && strcasecmp(channels, "auto"))
+        env->ThrowError("KNLMeansCL: 'channels' must be 'YUV', 'Y', 'UV', '(Y)UV, 'Y(UV)' or 'auto' with YUV color space!");
+    if (vi.IsRGB() && strcasecmp(channels, "RGB")) 
+        env->ThrowError("KNLMeansCL: 'channels' must be 'RGB' or 'auto' with RGB color space!");
     if (wmode < 0 || wmode > 3) 
         env->ThrowError("KNLMeansCL: 'wmode' must be in range [0, 3]!");
     if (wref < 0.0f) 
