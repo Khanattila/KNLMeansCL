@@ -54,6 +54,8 @@
 
 #define NLM_NUMBER_KERNELS        nlmTotal
 
+#define NLM_NUMBER_ACCUMULATION    1
+
 #define NLM_CLIP_EXTRA_FALSE      (1 <<  0)
 #define NLM_CLIP_EXTRA_TRUE       (1 <<  1)
 #define NLM_CLIP_TYPE_UNORM       (1 <<  2)

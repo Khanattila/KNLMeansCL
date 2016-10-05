@@ -157,28 +157,28 @@ _NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _
     if (!strcasecmp(channels, "YUV")) {
         clip_t |= NLM_CLIP_REF_YUV;
         channel_order = CL_RGBA;
-        channel_num = 4;
+        channel_num = 3 + NLM_NUMBER_ACCUMULATION;
     } else if (!strcasecmp(channels, "Y")) {
         clip_t |= NLM_CLIP_REF_LUMA;
         channel_order = CL_R;
-        channel_num = 1;
+        channel_num = 1 + NLM_NUMBER_ACCUMULATION;
     } else if (!strcasecmp(channels, "UV")) {
        clip_t |= NLM_CLIP_REF_CHROMA;
        channel_order = CL_RG;
-       channel_num = 2;
+       channel_num = 2 + NLM_NUMBER_ACCUMULATION;
     } else if (!strcasecmp(channels, "RGB")) {
         clip_t |= NLM_CLIP_REF_RGB;
         channel_order = CL_RGBA;
-        channel_num = 4;
+        channel_num = 3 + NLM_NUMBER_ACCUMULATION;
     } else if (!strcasecmp(channels, "AUTO")) {
         if (vi.IsPlanar()) {
             clip_t |= NLM_CLIP_REF_LUMA;
             channel_order = CL_R;
-            channel_num = 1;
+            channel_num = 1 + NLM_NUMBER_ACCUMULATION;
         } else {
             clip_t |= NLM_CLIP_REF_RGB;
             channel_order = CL_RGBA;
-            channel_num = 4;
+            channel_num = 3 + NLM_NUMBER_ACCUMULATION;
         }
     }
     if (lsb) {
