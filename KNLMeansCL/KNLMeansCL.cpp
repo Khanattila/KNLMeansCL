@@ -1545,8 +1545,6 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
 
     // Checks source clip and rclip.
     NLMVapoursynth d;
-    cl_channel_order channel_order = 0;
-    cl_channel_type channel_type = 0;
     int err;
     d.node = vsapi->propGetNode(in, "clip", 0, 0);
     d.knot = vsapi->propGetNode(in, "rclip", 0, &err);
