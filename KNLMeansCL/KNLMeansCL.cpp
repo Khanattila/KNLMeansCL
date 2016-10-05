@@ -1554,116 +1554,6 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
         d.knot = nullptr;
         d.clip_t = NLM_CLIP_EXTRA_FALSE;
     } else d.clip_t = NLM_CLIP_EXTRA_TRUE;
-    d.vi = vsapi->getVideoInfo(d.node);
-    if (isConstantFormat(d.vi)) {
-        /*d.cmode = vsapi->propGetInt(in, "cmode", 0, &err);
-        if (err) d.cmode = DFT_cmode;
-        if (d.cmode && (d.vi->format->subSamplingW != 0) && (d.vi->format->subSamplingH != 0)) {
-            vsapi->setError(out, "knlm.KNLMeansCL: 'cmode' requires 4:4:4 subsampling!");
-            vsapi->freeNode(d.node);
-            vsapi->freeNode(d.knot);
-            return;
-        }
-        switch (d.vi->format->id) {
-            case VSPresetFormat::pfGray8:
-            case VSPresetFormat::pfYUV420P8:
-            case VSPresetFormat::pfYUV422P8:
-            case VSPresetFormat::pfYUV410P8:
-            case VSPresetFormat::pfYUV411P8:
-            case VSPresetFormat::pfYUV440P8:
-                d.clip_t |= (NLM_CLIP_TYPE_UNORM | NLM_CLIP_REF_LUMA);
-                channel_order = CL_R;
-                channel_type = CL_UNORM_INT8;
-                break;                  
-            case VSPresetFormat::pfGray16:
-            case VSPresetFormat::pfYUV420P16:
-            case VSPresetFormat::pfYUV422P16:
-                d.clip_t |= (NLM_CLIP_TYPE_UNORM | NLM_CLIP_REF_LUMA);
-                channel_order = CL_R;
-                channel_type = CL_UNORM_INT16;
-                break;
-            case VSPresetFormat::pfGrayH:
-                d.clip_t |= (NLM_CLIP_TYPE_UNORM | NLM_CLIP_REF_LUMA);
-                channel_order = CL_R;
-                channel_type = CL_HALF_FLOAT;
-                break;
-            case VSPresetFormat::pfGrayS:
-                d.clip_t |= (NLM_CLIP_TYPE_UNORM | NLM_CLIP_REF_LUMA);
-                channel_order = CL_R;
-                channel_type = CL_FLOAT;
-                break;
-            case VSPresetFormat::pfYUV444P8:
-                d.clip_t |= d.cmode ? (NLM_CLIP_TYPE_UNORM | NLM_CLIP_REF_YUV) : (NLM_CLIP_TYPE_UNORM | NLM_CLIP_REF_LUMA);
-                channel_order = (cl_channel_order) (d.cmode ? CL_RGBA : CL_R);
-                channel_type = CL_UNORM_INT8;
-                break;
-            case VSPresetFormat::pfYUV444P9:
-            case VSPresetFormat::pfYUV444P10:
-                if (d.cmode) {
-                    d.clip_t |= (NLM_CLIP_TYPE_UNSIGNED | NLM_CLIP_REF_YUV);
-                    channel_order = CL_RGB;
-                    channel_type = CL_UNORM_INT_101010;
-                    break;
-                } else {
-                    vsapi->setError(out, "knlm.KNLMeansCL: video format not supported!");
-                    vsapi->freeNode(d.node);
-                    vsapi->freeNode(d.knot);
-                    return;
-                }               
-            case VSPresetFormat::pfYUV444P16:
-                d.clip_t |= d.cmode ? (NLM_CLIP_TYPE_UNORM | NLM_CLIP_REF_YUV) : (NLM_CLIP_TYPE_UNORM | NLM_CLIP_REF_LUMA);
-                channel_order = (cl_channel_order) (d.cmode ? CL_RGBA : CL_R);
-                channel_type = CL_UNORM_INT16;
-                break;
-            case VSPresetFormat::pfYUV444PH:
-                d.clip_t |= d.cmode ? (NLM_CLIP_TYPE_UNORM | NLM_CLIP_REF_YUV) : (NLM_CLIP_TYPE_UNORM | NLM_CLIP_REF_LUMA);
-                channel_order = (cl_channel_order) (d.cmode ? CL_RGBA : CL_R);
-                channel_type = CL_HALF_FLOAT;
-                break;
-            case VSPresetFormat::pfYUV444PS:
-                d.clip_t |= d.cmode ? (NLM_CLIP_TYPE_UNORM | NLM_CLIP_REF_YUV) : (NLM_CLIP_TYPE_UNORM | NLM_CLIP_REF_LUMA);
-                channel_order = (cl_channel_order) (d.cmode ? CL_RGBA : CL_R);
-                channel_type = CL_FLOAT;
-                break;
-            case VSPresetFormat::pfRGB24:
-                d.clip_t |= (NLM_CLIP_TYPE_UNORM | NLM_CLIP_REF_RGB);
-                channel_order = CL_RGBA;
-                channel_type = CL_UNORM_INT8;
-                break;
-            case VSPresetFormat::pfRGB27:
-            case VSPresetFormat::pfRGB30:
-                d.clip_t |= (NLM_CLIP_TYPE_UNSIGNED | NLM_CLIP_REF_RGB);
-                channel_order = CL_RGB;
-                channel_type = CL_UNORM_INT_101010;
-                break;
-            case VSPresetFormat::pfRGB48:
-                d.clip_t |= (NLM_CLIP_TYPE_UNORM | NLM_CLIP_REF_RGB);
-                channel_order = CL_RGBA;
-                channel_type = CL_UNORM_INT16;
-                break;
-            case VSPresetFormat::pfRGBH:
-                d.clip_t |= (NLM_CLIP_TYPE_UNORM | NLM_CLIP_REF_RGB);
-                channel_order = CL_RGBA;
-                channel_type = CL_HALF_FLOAT;
-                break;
-            case VSPresetFormat::pfRGBS:
-                d.clip_t |= (NLM_CLIP_TYPE_UNORM | NLM_CLIP_REF_RGB);
-                channel_order = CL_RGBA;
-                channel_type = CL_FLOAT;
-                break;
-            default:
-                // YUV420P9, YUV422P9, YUV420P10 and YUV422P10
-                vsapi->setError(out, "knlm.KNLMeansCL: video format not supported!");
-                vsapi->freeNode(d.node);
-                vsapi->freeNode(d.knot);
-                return;
-        }*/
-    } else {
-        vsapi->setError(out, "knlm.KNLMeansCL: only constant format!");
-        vsapi->freeNode(d.node);
-        vsapi->freeNode(d.knot);
-        return;
-    }
     if (d.knot && !d.equals(d.vi, vsapi->getVideoInfo(d.knot))) {
         vsapi->setError(out, "knlm.KNLMeansCL: 'rclip' does not match the source clip!");
         vsapi->freeNode(d.node);
@@ -1692,7 +1582,7 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
     if (err) d.ocl_id = DFT_ocl_id;
     d.info = vsapi->propGetInt(in, "info", 0, &err);
     if (err) d.info = DFT_info;
-
+    
     // Checks user value.  
     if (d.d < 0) {
         vsapi->setError(out, "knlm.KNLMeansCL: 'd' must be greater than or equal to 0!");
@@ -1714,6 +1604,47 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
     }
     if (d.h <= 0.0) {
         vsapi->setError(out, "knlm.KNLMeansCL: 'h' must be greater than 0!");
+        vsapi->freeNode(d.node);
+        vsapi->freeNode(d.knot);
+        return;
+    }
+    d.vi = vsapi->getVideoInfo(d.node);
+    if (isConstantFormat(d.vi)) {
+        switch (d.vi->format->colorFamily) {
+            case VSColorFamily::cmGray:
+                if (strcasecmp(d.channels, "Y") && strcasecmp(d.channels, "auto")) {
+                    vsapi->setError(out, "knlm.KNLMeansCL: 'channels' must be 'Y' with YUV color space!");
+                    vsapi->freeNode(d.node);
+                    vsapi->freeNode(d.knot);
+                    return;
+                }
+                break;
+            case VSColorFamily::cmYUV:
+            case VSColorFamily::cmYCoCg:
+                if (strcasecmp(d.channels, "YUV") && strcasecmp(d.channels, "Y") &&
+                    strcasecmp(d.channels, "UV") && strcasecmp(d.channels, "auto")) {
+                    vsapi->setError(out, "knlm.KNLMeansCL: 'channels' must be 'YUV', 'Y', or 'UV' with YUV color space!");
+                    vsapi->freeNode(d.node);
+                    vsapi->freeNode(d.knot);
+                    return;
+                }
+                break;
+            case VSColorFamily::cmRGB:
+                if (strcasecmp(d.channels, "RGB") && strcasecmp(d.channels, "auto")) {
+                    vsapi->setError(out, "knlm.KNLMeansCL: 'channels' must be 'RGB' with YUV color space!");
+                    vsapi->freeNode(d.node);
+                    vsapi->freeNode(d.knot);
+                    return;
+                }
+                break;
+            default:
+                vsapi->setError(out, "knlm.KNLMeansCL: video format not supported!");
+                vsapi->freeNode(d.node);
+                vsapi->freeNode(d.knot);
+                return;          
+        }
+    } else {
+        vsapi->setError(out, "knlm.KNLMeansCL: only constant format!");
         vsapi->freeNode(d.node);
         vsapi->freeNode(d.knot);
         return;
@@ -1756,6 +1687,37 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
         vsapi->freeNode(d.node);
         vsapi->freeNode(d.knot);
         return;
+    }
+
+    // Sets clip_t, channel_order and channel_type
+    cl_channel_order channel_order = 0;
+    cl_channel_type channel_type = 0;
+    if (!strcasecmp(d.channels, "YUV")) {
+        d.clip_t |= NLM_CLIP_REF_YUV;
+        channel_order = CL_RGBA;
+        d.channel_num = 3 + NLM_NUMBER_ACCUMULATION;
+    } else if (!strcasecmp(d.channels, "Y")) {
+        d.clip_t |= NLM_CLIP_REF_LUMA;
+        channel_order = CL_R;
+        d.channel_num = 1 + NLM_NUMBER_ACCUMULATION;
+    } else if (!strcasecmp(d.channels, "UV")) {
+        d.clip_t |= NLM_CLIP_REF_CHROMA;
+        channel_order = CL_RG;
+        d.channel_num = 2 + NLM_NUMBER_ACCUMULATION;
+    } else if (!strcasecmp(d.channels, "RGB")) {
+        d.clip_t |= NLM_CLIP_REF_RGB;
+        channel_order = CL_RGBA;
+        d.channel_num = 3 + NLM_NUMBER_ACCUMULATION;
+    } else if (!strcasecmp(d.channels, "AUTO")) {
+        if (d.vi->format->colorFamily == VSColorFamily::cmRGB) {
+            d.clip_t |= NLM_CLIP_REF_RGB;
+            channel_order = CL_RGBA;
+            d.channel_num = 3 + NLM_NUMBER_ACCUMULATION;           
+        } else {
+            d.clip_t |= NLM_CLIP_REF_LUMA;
+            channel_order = CL_R;
+            d.channel_num = 1 + NLM_NUMBER_ACCUMULATION;
+        }
     }
 
     // Gets PlatformID and DeviceID
