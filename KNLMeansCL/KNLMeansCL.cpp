@@ -151,6 +151,10 @@ _NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _
     if (info && vi.IsRGB())
         env->ThrowError("KNLMeansCL: 'info' requires YUV color space!");
 
+    // Set image dimensions
+    idmn[0] = (cl_uint) vi.width;
+    idmn[1] = (cl_uint) (lsb ? (vi.height / 2) : (vi.height));
+
     // Set clip_t, channel_order and channel_type
     cl_channel_order channel_order;
     cl_channel_type channel_type;
@@ -214,13 +218,11 @@ _NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _
     oclErrorCheck("clCreateContext", ret, env);  
   
     // Create mem_in[] and mem_out
-    idmn[0] = (cl_uint) vi.width;
-    idmn[1] = (cl_uint) (lsb ? (vi.height / 2) : (vi.height));
     const cl_image_format format = { channel_order, channel_type };
     const cl_image_desc desc_in = { (cl_mem_object_type) (d ? CL_MEM_OBJECT_IMAGE2D_ARRAY : CL_MEM_OBJECT_IMAGE2D), 
         idmn[0], idmn[1], 1, 2 * (size_t) d + 1, 0, 0, 0, 0, NULL };
     const cl_image_desc desc_out = { CL_MEM_OBJECT_IMAGE2D, idmn[0], idmn[1], 1, 1, 0, 0, 0, 0, NULL };
-    if (!(clip_t & NLM_CLIP_REF_YUV) && (clip_t & NLM_CLIP_REF_CHROMA) && !lsb) {
+    if (!(clip_t & NLM_CLIP_REF_YUV) && !(clip_t & NLM_CLIP_REF_CHROMA) && !lsb) {
         mem_in[0] = clCreateImage(context, CL_MEM_READ_ONLY | CL_MEM_HOST_WRITE_ONLY, &format, &desc_in, NULL, &ret);
         oclErrorCheck("clCreateImage(mem_in[0])", ret, env);
         mem_in[1] = clCreateImage(context, CL_MEM_READ_ONLY | CL_MEM_HOST_WRITE_ONLY, &format, &desc_in, NULL, &ret);
@@ -1690,9 +1692,13 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
         return;
     }
 
+    // Set image dimensions
+    d.idmn[0] = (cl_uint) d.vi->width;
+    d.idmn[1] = (cl_uint) d.vi->height;
+
     // Set clip_t, channel_order and channel_type
-    cl_channel_order channel_order = 0;
-    cl_channel_type channel_type = 0;
+    cl_channel_order channel_order;
+    cl_channel_type channel_type;
     if (!strcasecmp(d.channels, "YUV")) {
         d.clip_t |= NLM_CLIP_REF_YUV;
         channel_order = CL_RGBA;
@@ -1709,7 +1715,7 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
         d.clip_t |= NLM_CLIP_REF_RGB;
         channel_order = CL_RGBA;
         d.channel_num = 3 + NLM_ACCUMULATION_BUFFER;
-    } else if (!strcasecmp(d.channels, "AUTO")) {
+    } else {
         if (d.vi->format->colorFamily == VSColorFamily::cmRGB) {
             d.clip_t |= NLM_CLIP_REF_RGB;
             channel_order = CL_RGBA;
@@ -1760,8 +1766,6 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
     if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateContext", ret, out, vsapi); return; }
 
     // Create mem_in[] and mem_out
-    d.idmn[0] = (cl_uint) d.vi->width;
-    d.idmn[1] = (cl_uint) d.vi->height;
     const cl_image_format image_format = { channel_order, channel_type };
     const cl_image_desc desc_in = { (cl_mem_object_type) (d.d ? CL_MEM_OBJECT_IMAGE2D_ARRAY : CL_MEM_OBJECT_IMAGE2D),
         d.idmn[0], d.idmn[1], 1, 2 * (size_t) d.d + 1, 0, 0, 0, 0, NULL };
