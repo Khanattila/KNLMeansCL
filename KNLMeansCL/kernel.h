@@ -106,6 +106,12 @@ static const char* kernel_source_code_spatial =
 "       const float  u1_pq = read_imagef(U1, smp, p + q).x;                                                       \n" \
 "       const float  val   = 3.0f * (u1 - u1_pq) * (u1 - u1_pq);                                                  \n" \
 "       write_imagef(U4, p, (float4) val);                                                                        \n" \
+"   } else if (CHECK_FLAG(NLM_CLIP_REF_CHROMA)) {                                                                 \n" \
+"       const float2 u1    = read_imagef(U1, smp, p    ).xy;                                                      \n" \
+"       const float2 u1_pq = read_imagef(U1, smp, p + q).xy;                                                      \n" \
+"       const float2 dist  = (u1 - u1_pq) * (u1 - u1_pq);                                                         \n" \
+"       const float  val   = 1.5f * (dist.x + dist.y);                                                            \n" \
+"       write_imagef(U4, p, (float4) val);                                                                        \n" \
 "   } else if (CHECK_FLAG(NLM_CLIP_REF_YUV)) {                                                                    \n" \
 "       const float4 u1    = read_imagef(U1, smp, p    );                                                         \n" \
 "       const float4 u1_pq = read_imagef(U1, smp, p + q);                                                         \n" \
@@ -206,6 +212,13 @@ static const char* kernel_source_code_spatial =
 "       float2 accu;                                                                                              \n" \
 "              accu.x = (u4 * u1_pq) + (u4_mq * u1_mq);                                                           \n" \
 "              accu.y = (u4 + u4_mq);                                                                             \n" \
+"       U2c[gidx] += accu;                                                                                        \n" \
+"   } else if (CHECK_FLAG(NLM_CLIP_REF_CHROMA)) {                                                                 \n" \
+"       __global float3* U2c = (__global float3*) U2;                                                             \n" \
+"       const float2 u1_pq = read_imagef(U1, smp, p + q).xy;                                                      \n" \
+"       const float2 u1_mq = read_imagef(U1, smp, p - q).xy;                                                      \n" \
+"       float3 accu   = (u4 * u1_pq) + (u4_mq * u1_mq);                                                           \n" \
+"              accu.z = (u4 + u4_mq);                                                                             \n" \
 "       U2c[gidx] += accu;                                                                                        \n" \
 "   } else if (CHECK_FLAG(NLM_CLIP_REF_YUV) | CHECK_FLAG(NLM_CLIP_REF_RGB)) {                                     \n" \
 "       __global float4* U2c = (__global float4*) U2;                                                             \n" \
