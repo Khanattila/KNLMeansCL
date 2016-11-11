@@ -45,8 +45,6 @@
 
 #define NLM_NUMBER_KERNELS        nlmTotal
 
-#define NLM_ACCUMULATION_BUFFER    1
-
 #define NLM_CLIP_EXTRA_FALSE      (1 << 0)
 #define NLM_CLIP_EXTRA_TRUE       (1 << 1)
 #define NLM_CLIP_TYPE_UNORM       (1 << 2)
@@ -232,13 +230,13 @@ static const char* kernel_source_code_spatial =
 "                                                                                                                 \n" \
 "   } else if (CHECK_FLAG(NLM_CLIP_REF_CHROMA)) {                                                                 \n" \
 "                                                                                                                 \n" \
-"       __global float3* U2c = (__global float3*) U2;                                                             \n" \
+"       __global float4* U2c = (__global float4*) U2;                                                             \n" \
 "       float2 u1_pq = read_imagef(U1, smp, p + q).xy;                                                            \n" \
 "       float2 u1_mq = read_imagef(U1, smp, p - q).xy;                                                            \n" \
 "       float  acc_u = (u4 * u1_pq.x) + (u4_mq * u1_mq.x);                                                        \n" \
 "       float  acc_v = (u4 * u1_pq.y) + (u4_mq * u1_mq.y);                                                        \n" \
 "       float  sum   = (u4 + u4_mq);                                                                              \n" \
-"       U2c[gidx] += (float3) (acc_u, acc_v, sum);                                                                \n" \
+"       U2c[gidx] += (float4) (acc_u, acc_v, sum, 0.0f);                                                          \n" \
 "                                                                                                                 \n" \
 "   } else if (CHECK_FLAG(NLM_CLIP_REF_YUV)) {                                                                    \n" \
 "                                                                                                                 \n" \
@@ -289,14 +287,14 @@ static const char* kernel_source_code_spatial =
 "                                                                                                                 \n" \
 "   } else if (CHECK_FLAG(NLM_CLIP_REF_CHROMA)) {                                                                 \n" \
 "                                                                                                                 \n" \
-"       __global float3* U2c = (__global float3*) U2;                                                             \n" \
+"       __global float4* U2c = (__global float4*) U2;                                                             \n" \
 "       float2 u1    = read_imagef(U1_in, smp, p).xy;                                                             \n" \
 "       float  num_u = U2c[gidx].x + wM * u1.x;                                                                   \n" \
 "       float  num_v = U2c[gidx].y + wM * u1.y;                                                                   \n" \
 "       float  den   = U2c[gidx].z + wM;                                                                          \n" \
 "       float  val_u = native_divide(num_u, den);                                                                 \n" \
 "       float  val_v = native_divide(num_v, den);                                                                 \n" \
-"       write_imagef(U1_out, p,  (float4) (val_u, val_v, 0.0f, 0.0f));                                            \n" \
+"       write_imagef(U1_out, p, (float4) (val_u, val_v, 0.0f, 0.0f));                                             \n" \
 "                                                                                                                 \n" \
 "   } else if (CHECK_FLAG(NLM_CLIP_REF_YUV)) {                                                                    \n" \
 "                                                                                                                 \n" \
@@ -309,7 +307,7 @@ static const char* kernel_source_code_spatial =
 "       float  val_y = native_divide(num_y, den);                                                                 \n" \
 "       float  val_u = native_divide(num_u, den);                                                                 \n" \
 "       float  val_v = native_divide(num_v, den);                                                                 \n" \
-"       write_imagef(U1_out, p,  (float4) (val_y, val_u, val_v, 0.0f));                                           \n" \
+"       write_imagef(U1_out, p, (float4) (val_y, val_u, val_v, 0.0f));                                            \n" \
 "                                                                                                                 \n" \
 "   } else if (CHECK_FLAG(NLM_CLIP_REF_RGB)) {                                                                    \n" \
 "                                                                                                                 \n" \
@@ -322,7 +320,7 @@ static const char* kernel_source_code_spatial =
 "       float  val_r = native_divide(num_r, den);                                                                 \n" \
 "       float  val_g = native_divide(num_g, den);                                                                 \n" \
 "       float  val_b = native_divide(num_b, den);                                                                 \n" \
-"       write_imagef(U1_out, p,  (float4) (val_r, val_g, val_b, 0.0f));                                           \n" \
+"       write_imagef(U1_out, p, (float4) (val_r, val_g, val_b, 0.0f));                                            \n" \
 "                                                                                                                 \n" \
 "   }                                                                                                             \n" \
 "}                                                                                                                \n" \
@@ -417,6 +415,22 @@ static const char* kernel_source_code_spatial =
 "       ushort y   = denorm(val);                                                                                 \n" \
 "       write_imageui(R,     s, (uint4)  (y >> CHAR_BIT, 0u, 0u, 0u));                                            \n" \
 "       write_imageui(R_lsb, s, (uint4)  (y &  0xFF,     0u, 0u, 0u));                                            \n" \
+"   } else if (CHECK_FLAG(NLM_CLIP_TYPE_UNORM | NLM_CLIP_REF_CHROMA)) {                                           \n" \
+"       float2 val = read_imagef(U1, smp, s).xy;                                                                  \n" \
+"       write_imagef(R,      s, (float4) (val.x, 0.0f, 0.0f, 0.0f));                                              \n" \
+"       write_imagef(G,      s, (float4) (val.y, 0.0f, 0.0f, 0.0f));                                              \n" \
+"   } else if (CHECK_FLAG(NLM_CLIP_TYPE_UNSIGNED | NLM_CLIP_REF_CHROMA)) {                                        \n" \
+"       float2 val = read_imagef(U1, smp, s).xy;                                                                  \n" \
+"       write_imageui(R,     s, (uint4)  (denorm(val.x), 0u, 0u, 0u));                                            \n" \
+"       write_imageui(G,     s, (uint4)  (denorm(val.y), 0u, 0u, 0u));                                            \n" \
+"   } else if (CHECK_FLAG(NLM_CLIP_TYPE_STACKED | NLM_CLIP_REF_CHROMA)) {                                         \n" \
+"       float2 val = read_imagef(U1, smp, s).xy;                                                                  \n" \
+"       ushort u   = denorm(val.x);                                                                               \n" \
+"       ushort v   = denorm(val.y);                                                                               \n" \
+"       write_imageui(R,     s, (uint4)  (u >> CHAR_BIT, 0u, 0u, 0u));                                            \n" \
+"       write_imageui(G,     s, (uint4)  (v >> CHAR_BIT, 0u, 0u, 0u));                                            \n" \
+"       write_imageui(R_lsb, s, (uint4)  (u &  0xFF,     0u, 0u, 0u));                                            \n" \
+"       write_imageui(G_lsb, s, (uint4)  (v &  0xFF,     0u, 0u, 0u));                                            \n" \
 "   } else if (CHECK_FLAG(NLM_CLIP_TYPE_UNORM | NLM_CLIP_REF_YUV)) {                                              \n" \
 "       float3 val = read_imagef(U1, smp, s).xyz;                                                                 \n" \
 "       write_imagef(R,      s, (float4) (val.x, 0.0f, 0.0f, 0.0f));                                              \n" \
@@ -544,8 +558,8 @@ static const char* kernel_source_code =
 "                                                                                                                 \n" \
 "   } else if (CHECK_FLAG(NLM_CLIP_REF_YUV)) {                                                                    \n" \
 "                                                                                                                 \n" \
-"       float4 u1    = read_imagef(U1, smp, p    );                                                               \n" \
-"       float4 u1_mq = read_imagef(U1, smp, p - q);                                                               \n" \
+"       float3 u1    = read_imagef(U1, smp, p    ).xyz;                                                           \n" \
+"       float3 u1_mq = read_imagef(U1, smp, p - q).xyz;                                                           \n" \
 "       float  dst_y  = (u1.x - u1_mq.x) * (u1.x - u1_mq.x);                                                      \n" \
 "       float  dst_u  = (u1.y - u1_mq.y) * (u1.y - u1_mq.y);                                                      \n" \
 "       float  dst_v  = (u1.z - u1_mq.z) * (u1.z - u1_mq.z);                                                      \n" \
@@ -667,13 +681,13 @@ static const char* kernel_source_code =
 "                                                                                                                 \n" \
 "   } else if (CHECK_FLAG(NLM_CLIP_REF_CHROMA)) {                                                                 \n" \
 "                                                                                                                 \n" \
-"       __global float3* U2c = (__global float3*) U2;                                                             \n" \
+"       __global float4* U2c = (__global float4*) U2;                                                             \n" \
 "       float2 u1_pq = read_imagef(U1, smp, p + q).xy;                                                            \n" \
 "       float2 u1_mq = read_imagef(U1, smp, p - q).xy;                                                            \n" \
 "       float  acc_u = (u4 * u1_pq.x) + (u4_mq * u1_mq.x);                                                        \n" \
 "       float  acc_v = (u4 * u1_pq.y) + (u4_mq * u1_mq.y);                                                        \n" \
 "       float  sum   = (u4 + u4_mq);                                                                              \n" \
-"       U2c[gidx] += (float3) (acc_u, acc_v, sum);                                                                \n" \
+"       U2c[gidx] += (float4) (acc_u, acc_v, sum, 0.0f);                                                          \n" \
 "                                                                                                                 \n" \
 "   } else if (CHECK_FLAG(NLM_CLIP_REF_YUV)) {                                                                    \n" \
 "                                                                                                                 \n" \
@@ -725,7 +739,7 @@ static const char* kernel_source_code =
 "                                                                                                                 \n" \
 "   } else if (CHECK_FLAG(NLM_CLIP_REF_CHROMA)) {                                                                 \n" \
 "                                                                                                                 \n" \
-"       __global float3* U2c = (__global float3*) U2;                                                             \n" \
+"       __global float4* U2c = (__global float4*) U2;                                                             \n" \
 "       float2 u1    = read_imagef(U1_in, smp, p).xy;                                                             \n" \
 "       float  num_u = U2c[gidx].x + wM * u1.x;                                                                   \n" \
 "       float  num_v = U2c[gidx].y + wM * u1.y;                                                                   \n" \
@@ -854,6 +868,22 @@ static const char* kernel_source_code =
 "       ushort y   = denorm(val);                                                                                 \n" \
 "       write_imageui(R,     s, (uint4)  (y >> CHAR_BIT, 0u, 0u, 0u));                                            \n" \
 "       write_imageui(R_lsb, s, (uint4)  (y &  0xFF,     0u, 0u, 0u));                                            \n" \
+"   } else if (CHECK_FLAG(NLM_CLIP_TYPE_UNORM | NLM_CLIP_REF_CHROMA)) {                                           \n" \
+"       float2 val = read_imagef(U1, smp, s).xy;                                                                  \n" \
+"       write_imagef(R,      s, (float4) (val.x, 0.0f, 0.0f, 0.0f));                                              \n" \
+"       write_imagef(G,      s, (float4) (val.y, 0.0f, 0.0f, 0.0f));                                              \n" \
+"   } else if (CHECK_FLAG(NLM_CLIP_TYPE_UNSIGNED | NLM_CLIP_REF_CHROMA)) {                                        \n" \
+"       float2 val = read_imagef(U1, smp, s).xy;                                                                  \n" \
+"       write_imageui(R,     s, (uint4)  (denorm(val.x), 0u, 0u, 0u));                                            \n" \
+"       write_imageui(G,     s, (uint4)  (denorm(val.y), 0u, 0u, 0u));                                            \n" \
+"   } else if (CHECK_FLAG(NLM_CLIP_TYPE_STACKED | NLM_CLIP_REF_CHROMA)) {                                         \n" \
+"       float2 val = read_imagef(U1, smp, s).xy;                                                                  \n" \
+"       ushort u   = denorm(val.x);                                                                               \n" \
+"       ushort v   = denorm(val.y);                                                                               \n" \
+"       write_imageui(R,     s, (uint4)  (u >> CHAR_BIT, 0u, 0u, 0u));                                            \n" \
+"       write_imageui(G,     s, (uint4)  (v >> CHAR_BIT, 0u, 0u, 0u));                                            \n" \
+"       write_imageui(R_lsb, s, (uint4)  (u &  0xFF,     0u, 0u, 0u));                                            \n" \
+"       write_imageui(G_lsb, s, (uint4)  (v &  0xFF,     0u, 0u, 0u));                                            \n" \
 "   } else if (CHECK_FLAG(NLM_CLIP_TYPE_UNORM | NLM_CLIP_REF_YUV)) {                                              \n" \
 "       float3 val = read_imagef(U1, smp, s).xyz;                                                                 \n" \
 "       write_imagef(R,      s, (float4) (val.x, 0.0f, 0.0f, 0.0f));                                              \n" \
