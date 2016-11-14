@@ -24,15 +24,6 @@
 //////////////////////////////////////////
 // Type Definition
 
-#define nlmSpatialDistance         0x0
-#define nlmSpatialHorizontal       0x1
-#define nlmSpatialVertical         0x2
-#define nlmSpatialAccumulation     0x3
-#define nlmSpatialFinish           0x4
-#define nlmSpatialPack             0x5
-#define nlmSpatialUnpack           0x6
-#define nlmSpatialTotal            0x7
-
 #define nlmDistanceLeft            0x0
 #define nlmDistanceRight           0x1
 #define nlmHorizontal              0x2
@@ -41,9 +32,7 @@
 #define nlmFinish                  0x5
 #define nlmPack                    0x6
 #define nlmUnpack                  0x7
-#define nlmTotal                   0x8
-
-#define NLM_NUMBER_KERNELS        nlmTotal
+#define NLM_KERNELS                0x8
 
 #define NLM_CLIP_EXTRA_FALSE      (1 << 0)
 #define NLM_CLIP_EXTRA_TRUE       (1 << 1)
@@ -651,7 +640,7 @@ static const char* kernel_source_code =
 "           val = pown(fdim(1.0f, sum * NLM_H2_INV_NORM), 8);                                                     \n" \
 "       }                                                                                                         \n" \
 "       write_imagef(U4_out, (int4) (x, y + i * VRT_BLOCK_Y, t, 0), (float4) (val, 0.0f, 0.0f, 0.0f));            \n" \
-"   }                                                                                                             \n" \ 
+"   }                                                                                                             \n" \
 "}                                                                                                                \n" \
 "                                                                                                                 \n" \
 "__kernel                                                                                                         \n" \
