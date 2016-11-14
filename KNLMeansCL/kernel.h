@@ -60,10 +60,10 @@
 #define NLM_WMODE_BISQUARE         0x2
 #define NLM_WMODE_MOD_BISQUARE     0x3
 
-#define HRZ_BLOCK_X                 16
-#define HRZ_BLOCK_Y                  4
+#define HRZ_BLOCK_X                 32
+#define HRZ_BLOCK_Y                  8
 #define HRZ_RESULT                   4
-#define VRT_BLOCK_X                 16
+#define VRT_BLOCK_X                 32
 #define VRT_BLOCK_Y                  8
 #define VRT_RESULT                   4
 
@@ -651,7 +651,7 @@ static const char* kernel_source_code =
 "           val = pown(fdim(1.0f, sum * NLM_H2_INV_NORM), 8);                                                     \n" \
 "       }                                                                                                         \n" \
 "       write_imagef(U4_out, (int4) (x, y + i * VRT_BLOCK_Y, t, 0), (float4) (val, 0.0f, 0.0f, 0.0f));            \n" \
-"   }                                                                                                             \n" \
+"   }                                                                                                             \n" \ 
 "}                                                                                                                \n" \
 "                                                                                                                 \n" \
 "__kernel                                                                                                         \n" \
@@ -666,8 +666,8 @@ static const char* kernel_source_code =
 "   int4 p = (int4) (x, y, NLM_D, 0);                                                                             \n" \
 "   int gidx = mad24(y, dim.x, x);                                                                                \n" \
 "                                                                                                                 \n" \
-"   const float u4    = read_imagef(U4, smp, p    ).x;                                                            \n" \
-"   const float u4_mq = read_imagef(U4, smp, p - q).x;                                                            \n" \
+"   float u4    = read_imagef(U4, smp, p    ).x;                                                                  \n" \
+"   float u4_mq = read_imagef(U4, smp, p - q).x;                                                                  \n" \
 "   M[gidx] = fmax(M[gidx], fmax(u4, u4_mq));                                                                     \n" \
 "                                                                                                                 \n" \
 "   if (CHECK_FLAG(NLM_CLIP_REF_LUMA)) {                                                                          \n" \

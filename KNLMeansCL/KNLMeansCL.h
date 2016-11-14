@@ -17,7 +17,7 @@
 */
 
 #define VERSION "0.8.0"
-#define CL_USE_DEPRECATED_OPENCL_1_2_APIS
+#define CL_USE_DEPRECATED_OPENCL_2_0_APIS
 
 #include <cstdint>
 #include <cinttypes>
@@ -56,6 +56,7 @@ private:
     cl_platform_id platformID;
     cl_device_id deviceID;
     cl_context context;
+    cl_command_queue command_queue;
     cl_program program;
     cl_kernel kernel[NLM_NUMBER_KERNELS];
     cl_mem mem_in[2], mem_out, mem_U[4], mem_P[6];
