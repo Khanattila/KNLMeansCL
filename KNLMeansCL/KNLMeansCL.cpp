@@ -443,27 +443,6 @@ PVideoFrame __stdcall _NLMAvisynth::GetFrame(int n, IScriptEnvironment* env) {
     const size_t local_work_hrz[2] = { HRZ_BLOCK_X, HRZ_BLOCK_Y };
     const size_t local_work_vrt[2] = { VRT_BLOCK_X, VRT_BLOCK_Y };
 
-    // Copy other data   
-    if (!vi.IsY8() && (clip_t & NLM_CLIP_REF_LUMA)) {
-        env->BitBlt(dst->GetWritePtr(PLANAR_U), dst->GetPitch(PLANAR_U), src->GetReadPtr(PLANAR_U),
-            src->GetPitch(PLANAR_U), src->GetRowSize(PLANAR_U), src->GetHeight(PLANAR_U));
-        env->BitBlt(dst->GetWritePtr(PLANAR_V), dst->GetPitch(PLANAR_V), src->GetReadPtr(PLANAR_V),
-            src->GetPitch(PLANAR_V), src->GetRowSize(PLANAR_V), src->GetHeight(PLANAR_V));
-    } else if (clip_t & NLM_CLIP_REF_CHROMA) {
-        env->BitBlt(dst->GetWritePtr(PLANAR_Y), dst->GetPitch(PLANAR_Y), src->GetReadPtr(PLANAR_Y),
-            src->GetPitch(PLANAR_Y), src->GetRowSize(PLANAR_Y), src->GetHeight(PLANAR_Y));
-    } else if (clip_t & NLM_CLIP_REF_RGB) {
-        const uint8_t* srcp = src->GetReadPtr();
-        uint8_t* dstp = dst->GetWritePtr();
-        for (int y = 0; y < src->GetHeight(); y++) {
-            for (int x = 0; x < src->GetRowSize(); x += 4) {
-                *(dstp + x + 3) = *(srcp + x + 3);
-            }
-        }
-        srcp += src->GetPitch();
-        dstp += dst->GetPitch();
-    }
-
     // Set-up buffers
     cl_int ret = CL_SUCCESS;
     ret |= clEnqueueFillBuffer(command_queue, mem_U[memU0], &pattern_u0, sizeof(cl_float), 0, size_u0, 0, NULL, NULL);
@@ -794,7 +773,31 @@ PVideoFrame __stdcall _NLMAvisynth::GetFrame(int n, IScriptEnvironment* env) {
             break;
     }
 
-    // Finish
+    // Issues all queued OpenCL commands
+    ret |= clFlush(command_queue);
+
+    // Copy other data   
+    if (!vi.IsY8() && (clip_t & NLM_CLIP_REF_LUMA)) {
+        env->BitBlt(dst->GetWritePtr(PLANAR_U), dst->GetPitch(PLANAR_U), src->GetReadPtr(PLANAR_U),
+            src->GetPitch(PLANAR_U), src->GetRowSize(PLANAR_U), src->GetHeight(PLANAR_U));
+        env->BitBlt(dst->GetWritePtr(PLANAR_V), dst->GetPitch(PLANAR_V), src->GetReadPtr(PLANAR_V),
+            src->GetPitch(PLANAR_V), src->GetRowSize(PLANAR_V), src->GetHeight(PLANAR_V));
+    } else if (clip_t & NLM_CLIP_REF_CHROMA) {
+        env->BitBlt(dst->GetWritePtr(PLANAR_Y), dst->GetPitch(PLANAR_Y), src->GetReadPtr(PLANAR_Y),
+            src->GetPitch(PLANAR_Y), src->GetRowSize(PLANAR_Y), src->GetHeight(PLANAR_Y));
+    } else if (clip_t & NLM_CLIP_REF_RGB) {
+        const uint8_t* srcp = src->GetReadPtr();
+        uint8_t* dstp = dst->GetWritePtr();
+        for (int y = 0; y < src->GetHeight(); y++) {
+            for (int x = 0; x < src->GetRowSize(); x += 4) {
+                *(dstp + x + 3) = *(srcp + x + 3);
+            }
+        }
+        srcp += src->GetPitch();
+        dstp += dst->GetPitch();
+    }
+
+    // Blocks until all queued OpenCL commands have completed
     ret |= clFinish(command_queue);
     if (ret != CL_SUCCESS) env->ThrowError("KNLMeansCL: fatal error!\n (AviSynthGetFrame)");
 
@@ -1101,6 +1104,9 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
                 return 0;
         }
 
+        // Issues all queued OpenCL commands
+        ret |= clFlush(d->command_queue);
+     
         // Finish
         ret |= clFinish(d->command_queue);
         if (ret != CL_SUCCESS) {

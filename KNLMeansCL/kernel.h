@@ -62,10 +62,10 @@
 #define DST_BLOCK_Y                 16
 #define HRZ_BLOCK_X                 32
 #define HRZ_BLOCK_Y                  8
-#define HRZ_RESULT                   4
+#define HRZ_RESULT                   3
 #define VRT_BLOCK_X                 32
 #define VRT_BLOCK_Y                  8
-#define VRT_RESULT                   4
+#define VRT_RESULT                   3
 
 //////////////////////////////////////////
 // Kernel Definition
