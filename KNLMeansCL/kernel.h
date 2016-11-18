@@ -34,14 +34,15 @@
 #define nlmUnpack                  0x7
 #define NLM_KERNELS                0x8
 
-#define memU0                      0x0
-#define memU1a                     0x1
-#define memU1b                     0x2
-#define memU1z                     0x3
-#define memU2                      0x4
-#define memU4a                     0x5
-#define memU4b                     0x6
-#define NLM_MEMORY                 0x7
+#define memU1a                     0x0
+#define memU1b                     0x1
+#define memU1z                     0x2
+#define memU2                      0x3
+#define memU4a                     0x4
+#define memU4b                     0x5
+#define memU5a                     0x6
+#define memU5b                     0x7
+#define NLM_MEMORY                 0x8
 
 #define NLM_CLIP_EXTRA_FALSE      (1 << 0)
 #define NLM_CLIP_EXTRA_TRUE       (1 << 1)
@@ -259,8 +260,8 @@ static const char* kernel_source_code =
 "}                                                                                                                \n" \
 "                                                                                                                 \n" \
 "__kernel                                                                                                         \n" \
-"void nlmAccumulation(__global float* U0, __read_only image2d_array_t U1, __global void* U2,                      \n" \
-"__read_only image2d_array_t U4, const int2 dim, const int4 q) {                                                  \n" \
+"void nlmAccumulation(__read_only image2d_array_t U1, __global void* U2, __read_only image2d_array_t U4,          \n" \
+"__read_only image2d_t U5_in, __write_only image2d_t U5_out, const int2 dim, const int4 q) {                      \n" \
 "                                                                                                                 \n" \
 "   int x = get_global_id(0);                                                                                     \n" \
 "   int y = get_global_id(1);                                                                                     \n" \
@@ -268,11 +269,14 @@ static const char* kernel_source_code =
 "                                                                                                                 \n" \
 "   const sampler_t smp = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP | CLK_FILTER_NEAREST;                   \n" \
 "   int4 p = (int4) (x, y, NLM_D, 0);                                                                             \n" \
+"   int2 s = (int2) (x, y);                                                                                       \n" \
 "   int gidx = mad24(y, dim.x, x);                                                                                \n" \
 "                                                                                                                 \n" \
-"   float u4    = read_imagef(U4, smp, p    ).x;                                                                  \n" \
-"   float u4_mq = read_imagef(U4, smp, p - q).x;                                                                  \n" \
-"   U0[gidx] = fmax(U0[gidx], fmax(u4, u4_mq));                                                                   \n" \
+"   float u4    = read_imagef(U4,    smp, p    ).x;                                                               \n" \
+"   float u4_mq = read_imagef(U4,    smp, p - q).x;                                                               \n" \
+"   float u5    = read_imagef(U5_in, smp, s    ).x;                                                               \n" \
+"   float val = fmax(u5, fmax(u4, u4_mq));                                                                        \n" \
+"   write_imagef(U5_out, s, (float4) (val, 0.0f, 0.0f, 0.0f));                                                    \n" \
 "                                                                                                                 \n" \
 "   if (CHECK_FLAG(NLM_CLIP_REF_LUMA)) {                                                                          \n" \
 "                                                                                                                 \n" \
@@ -319,8 +323,8 @@ static const char* kernel_source_code =
 "}                                                                                                                \n" \
 "                                                                                                                 \n" \
 "__kernel                                                                                                         \n" \
-"void nlmFinish(__global float* U0, __read_only image2d_array_t U1_in, __write_only image2d_t U1_out,             \n" \
-" __global void* U2, const int2 dim) {                                                                            \n" \
+"void nlmFinish(__read_only image2d_array_t U1_in, __write_only image2d_t U1_out, __global void* U2,              \n" \
+"__read_only image2d_t U5, const int2 dim) {                                                                      \n" \
 "                                                                                                                 \n" \
 "   int x = get_global_id(0);                                                                                     \n" \
 "   int y = get_global_id(1);                                                                                     \n" \
@@ -330,7 +334,7 @@ static const char* kernel_source_code =
 "   int4 p = (int4) (x, y, NLM_D, 0);                                                                             \n" \
 "   int2 s = (int2) (x, y);                                                                                       \n" \
 "   int gidx = mad24(y, dim.x, x);                                                                                \n" \
-"   float wM = NLM_WREF * U0[gidx];                                                                               \n" \
+"   float wM = NLM_WREF * read_imagef(U5, smp, s).x;                                                              \n" \
 "                                                                                                                 \n" \
 "   if (CHECK_FLAG(NLM_CLIP_REF_LUMA)) {                                                                          \n" \
 "                                                                                                                 \n" \
