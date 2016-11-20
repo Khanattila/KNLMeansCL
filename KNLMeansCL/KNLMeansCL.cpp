@@ -269,19 +269,15 @@ _NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _
         -D NLM_CLIP_TYPE_UNORM=%u -D NLM_CLIP_TYPE_UNSIGNED=%u -D NLM_CLIP_TYPE_STACKED=%u \
         -D NLM_CLIP_REF_LUMA=%u -D NLM_CLIP_REF_CHROMA=%u -D NLM_CLIP_REF_YUV=%u -D NLM_CLIP_REF_RGB=%u \
         -D NLM_WMODE_CAUCHY=%u -D NLM_WMODE_WELSCH=%u -D NLM_WMODE_BISQUARE=%u -D NLM_WMODE_MOD_BISQUARE=%u \
-        -D DST_BLOCK_X=%u -D DST_BLOCK_Y=%u \
-        -D HRZ_BLOCK_X=%u -D HRZ_BLOCK_Y=%u -D HRZ_RESULT=%u \
-        -D VRT_BLOCK_X=%u -D VRT_BLOCK_Y=%u -D VRT_RESULT=%u \
-        -D NLM_TCLIP=%u -D NLM_D=%i -D NLM_S=%i -D NLM_WMODE=%i -D NLM_WREF=%.17f \
-        -D NLM_H2_INV_NORM=%.17f -D NLM_UNORM_MAX=%f",
+        -D VI_WIDTH=%u -D VI_HEIGHT=%u -D DST_BLOCK_X=%u -D DST_BLOCK_Y=%u \
+        -D HRZ_BLOCK_X=%u -D HRZ_BLOCK_Y=%u -D HRZ_RESULT=%u -D VRT_BLOCK_X=%u -D VRT_BLOCK_Y=%u -D VRT_RESULT=%u \
+        -D NLM_TCLIP=%u -D NLM_D=%i -D NLM_S=%i -D NLM_WMODE=%i -D NLM_WREF=%f -D NLM_H=%f",
         NLM_CLIP_TYPE_UNORM, NLM_CLIP_TYPE_UNSIGNED, NLM_CLIP_TYPE_STACKED,
         NLM_CLIP_REF_LUMA, NLM_CLIP_REF_CHROMA, NLM_CLIP_REF_YUV, NLM_CLIP_REF_RGB,
         NLM_WMODE_CAUCHY, NLM_WMODE_WELSCH, NLM_WMODE_BISQUARE, NLM_WMODE_MOD_BISQUARE,
-        DST_BLOCK_X, DST_BLOCK_Y, 
-        HRZ_BLOCK_X, HRZ_BLOCK_Y, HRZ_RESULT, 
-        VRT_BLOCK_X, VRT_BLOCK_Y, VRT_RESULT, 
-        clip_t, d, s, wmode, wref, 
-        65025.0 / (3 * h * h * (2 * s + 1)*(2 * s + 1)), (double) maxvalue(8));
+        idmn[0], idmn[1], DST_BLOCK_X, DST_BLOCK_Y, 
+        HRZ_BLOCK_X, HRZ_BLOCK_Y, HRZ_RESULT, VRT_BLOCK_X, VRT_BLOCK_Y, VRT_RESULT, 
+        clip_t, d, s, wmode, wref, h);
     ret = clBuildProgram(program, 1, &deviceID, options, NULL, NULL);
     if (ret != CL_SUCCESS) {
         oclUtilsDebugInfo(platformID, deviceID, program);
@@ -312,9 +308,7 @@ _NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _
     ret = clSetKernelArg(kernel[nlmDistance], 1, sizeof(cl_mem), &mem_U[memU4a]);
     oclErrorCheck("clSetKernelArg(nlmDistance[1])", ret, env);
     // kernel[nlmDistance] -> 2 is set by AviSynthPluginGetFrame
-    ret = clSetKernelArg(kernel[nlmDistance], 3, 2 * sizeof(cl_uint), &idmn);
-    oclErrorCheck("clSetKernelArg(nlmDistance[3])", ret, env);
-    // kernel[nlmDistance] -> 4 is set by AviSynthPluginGetFrame
+    // kernel[nlmDistance] -> 3 is set by AviSynthPluginGetFrame
 
     // nlmHorizontal
     ret = clSetKernelArg(kernel[nlmHorizontal], 0, sizeof(cl_mem), &mem_U[memU4a]);
@@ -322,8 +316,6 @@ _NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _
     ret = clSetKernelArg(kernel[nlmHorizontal], 1, sizeof(cl_mem), &mem_U[memU4b]);
     oclErrorCheck("clSetKernelArg(nlmHorizontal[1])", ret, env);
     // kernel[nlmHorizontal] -> 2 is set by AviSynthPluginGetFrame
-    ret = clSetKernelArg(kernel[nlmHorizontal], 3, 2 * sizeof(cl_uint), &idmn);
-    oclErrorCheck("clSetKernelArg(nlmHorizontal[3])", ret, env);
 
     // nlmVertical
     ret = clSetKernelArg(kernel[nlmVertical], 0, sizeof(cl_mem), &mem_U[memU4b]);
@@ -331,8 +323,6 @@ _NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _
     ret = clSetKernelArg(kernel[nlmVertical], 1, sizeof(cl_mem), &mem_U[memU4a]);
     oclErrorCheck("clSetKernelArg(nlmVertical[1])", ret, env);
     // kernel[nlmVertical] -> 2 is set by AviSynthPluginGetFrame
-    ret = clSetKernelArg(kernel[nlmVertical], 3, 2 * sizeof(cl_uint), &idmn);
-    oclErrorCheck("clSetKernelArg(nlmVertical[3])", ret, env);
 
     // nlmAccumulation
     ret = clSetKernelArg(kernel[nlmAccumulation], 0, sizeof(cl_mem), &mem_U[memU1a]);
@@ -343,9 +333,7 @@ _NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _
     oclErrorCheck("clSetKernelArg(nlmAccumulation[2])", ret, env);
     // kernel[nlmAccumulation] -> 3 is set by AviSynthPluginGetFrame
     // kernel[nlmAccumulation] -> 4 is set by AviSynthPluginGetFrame
-    ret = clSetKernelArg(kernel[nlmAccumulation], 5, 2 * sizeof(cl_uint), &idmn);
-    oclErrorCheck("clSetKernelArg(nlmAccumulation[5])", ret, env);
-    // kernel[nlmAccumulation] -> 6 is set by AviSynthPluginGetFrame
+    // kernel[nlmAccumulation] -> 5 is set by AviSynthPluginGetFrame
 
     // nlmFinish
     ret = clSetKernelArg(kernel[nlmFinish], 0, sizeof(cl_mem), &mem_U[memU1a]);
@@ -355,8 +343,6 @@ _NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _
     ret = clSetKernelArg(kernel[nlmFinish], 2, sizeof(cl_mem), &mem_U[memU2]);
     oclErrorCheck("clSetKernelArg(nlmFinish[2])", ret, env);
     // kernel[nlmFinish] -> 3 is set by AviSynthPluginGetFrame
-    ret = clSetKernelArg(kernel[nlmFinish], 4, 2 * sizeof(cl_uint), &idmn);
-    oclErrorCheck("clSetKernelArg(nlmFinish[4])", ret, env);
 
     // nlmPack
     ret = clSetKernelArg(kernel[nlmPack], 0, sizeof(cl_mem), &mem_P[0]);
@@ -373,8 +359,6 @@ _NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _
     oclErrorCheck("clSetKernelArg(nlmPack[5])", ret, env);
     // kernel[nlmPack] -> 6 is set by AviSynthPluginGetFrame 
     // kernel[nlmPack] -> 7 is set by AviSynthPluginGetFrame 
-    ret = clSetKernelArg(kernel[nlmPack], 8, 2 * sizeof(cl_uint), &idmn);
-    oclErrorCheck("clSetKernelArg(nlmPack[8])", ret, env);
 
     // nlmUnpack
     ret = clSetKernelArg(kernel[nlmUnpack], 0, sizeof(cl_mem), &mem_P[0]);
@@ -391,8 +375,6 @@ _NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _
     oclErrorCheck("clSetKernelArg(nlmUnpack[5])", ret, env);
     ret = clSetKernelArg(kernel[nlmUnpack], 6, sizeof(cl_mem), &mem_U[memU1z]);
     oclErrorCheck("clSetKernelArg(nlmUnpack[6])", ret, env);
-    ret = clSetKernelArg(kernel[nlmUnpack], 7, 2 * sizeof(cl_uint), &idmn);
-    oclErrorCheck("clSetKernelArg(nlmUnpack[7])", ret, env);
 
 }
 #endif //__AVISYNTH_6_H__
@@ -415,7 +397,10 @@ PVideoFrame __stdcall _NLMAvisynth::GetFrame(int n, IScriptEnvironment* env) {
     // Variables
     PVideoFrame src, ref;
     PVideoFrame dst = env->NewVideoFrame(vi);
-    int maxframe = vi.num_frames - 1;
+    int k_start = -min(d, n);
+    int k_end = min(d, vi.num_frames - 1 - n);
+    int spt_side = 2 * a + 1;
+    int spt_area = spt_side * spt_side;
     size_t size_u2 = sizeof(cl_float) * idmn[0] * idmn[1] * channel_num;
     const cl_int t = d;
     const cl_float pattern_u2 = 0.0f;
@@ -441,9 +426,9 @@ PVideoFrame __stdcall _NLMAvisynth::GetFrame(int n, IScriptEnvironment* env) {
     ret |= clEnqueueFillImage(command_queue, mem_U[memU5a], color_u5, origin, region, 0, NULL, NULL);
 
     // Write image
-    for (int k = -d; k <= d; k++) {
-        src = child->GetFrame(clamp(n + k, 0, maxframe), env);
-        ref = (baby) ? baby->GetFrame(clamp(n + k, 0, maxframe), env) : nullptr;
+    for (int k = k_start; k <= k_end; k++) {
+        src = child->GetFrame(n + k, env);
+        ref = (baby) ? baby->GetFrame(n + k, env) : nullptr;
         const cl_int t_pk = t + k;
         const size_t origin_in[3] = { 0, 0, (size_t) t_pk };
         switch (clip_t) {
@@ -655,13 +640,13 @@ PVideoFrame __stdcall _NLMAvisynth::GetFrame(int n, IScriptEnvironment* env) {
 
     // Spatio-temporal processing
     bool itr = true;
-    for (int k = -d; k <= 0; k++) {
+    for (int k = k_start; k <= 0; k++) {
         for (int j = -a; j <= a; j++) {
             for (int i = -a; i <= a; i++) {
-                if (k * (2 * a + 1) * (2 * a + 1) + j * (2 * a + 1) + i < 0) {
+                if (k * spt_area + j * spt_side + i < 0) {
                     const cl_int q[4] = { i, j, k, 0 };
                     ret |= clSetKernelArg(kernel[nlmDistance], 2, sizeof(cl_int), &t);
-                    ret |= clSetKernelArg(kernel[nlmDistance], 4, 4 * sizeof(cl_int), &q);
+                    ret |= clSetKernelArg(kernel[nlmDistance], 3, 4 * sizeof(cl_int), &q);
                     ret |= clEnqueueNDRangeKernel(command_queue, kernel[nlmDistance],
                         2, NULL, global_work, local_work_dst, 0, NULL, NULL);
                     ret |= clSetKernelArg(kernel[nlmHorizontal], 2, sizeof(cl_int), &t);
@@ -673,7 +658,7 @@ PVideoFrame __stdcall _NLMAvisynth::GetFrame(int n, IScriptEnvironment* env) {
                     if (k) {
                         const cl_int t_mq = t - k;
                         ret |= clSetKernelArg(kernel[nlmDistance], 2, sizeof(cl_int), &t_mq);
-                        ret |= clSetKernelArg(kernel[nlmDistance], 4, 4 * sizeof(cl_int), &q);
+                        ret |= clSetKernelArg(kernel[nlmDistance], 3, 4 * sizeof(cl_int), &q);
                         ret |= clEnqueueNDRangeKernel(command_queue, kernel[nlmDistance],
                             2, NULL, global_work, local_work_dst, 0, NULL, NULL);
                         ret |= clSetKernelArg(kernel[nlmHorizontal], 2, sizeof(cl_int), &t_mq);
@@ -685,7 +670,7 @@ PVideoFrame __stdcall _NLMAvisynth::GetFrame(int n, IScriptEnvironment* env) {
                     }
                     ret |= clSetKernelArg(kernel[nlmAccumulation], 3, sizeof(cl_mem), &mem_U[itr ? memU5a : memU5b]);
                     ret |= clSetKernelArg(kernel[nlmAccumulation], 4, sizeof(cl_mem), &mem_U[itr ? memU5b : memU5a]);
-                    ret |= clSetKernelArg(kernel[nlmAccumulation], 6, 4 * sizeof(cl_int), &q);
+                    ret |= clSetKernelArg(kernel[nlmAccumulation], 5, 4 * sizeof(cl_int), &q);
                     ret |= clEnqueueNDRangeKernel(command_queue, kernel[nlmAccumulation],
                         2, NULL, global_work, NULL, 0, NULL, NULL);
                     itr = !itr;
@@ -851,21 +836,24 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
     void **frameData, VSFrameContext *frameCtx, VSCore *core, const VSAPI *vsapi) {
 
     NLMVapoursynth *d = (NLMVapoursynth*) * instanceData;
-    const int maxframe = d->vi->numFrames - 1;
+    int k_start = -min(int64ToIntS(d->d), n);
+    int k_end = min(int64ToIntS(d->d), d->vi->numFrames - 1 - n);
     if (activationReason == arInitial) {
         for (int k = int64ToIntS(-d->d); k <= d->d; k++) {
-            vsapi->requestFrameFilter(clamp(n + k, 0, maxframe), d->node, frameCtx);
-            if (d->knot) vsapi->requestFrameFilter(clamp(n + k, 0, maxframe), d->knot, frameCtx);
+            vsapi->requestFrameFilter(n + k, d->node, frameCtx);
+            if (d->knot) vsapi->requestFrameFilter(n + k, d->knot, frameCtx);
         }
     } else if (activationReason == arAllFramesReady) {
         // Variables
         const VSFrameRef *src = vsapi->getFrameFilter(n, d->node, frameCtx), *ref;
         const VSFormat *fi = d->vi->format;
         VSFrameRef *dst;
+        int spt_side = 2 * int64ToIntS(d->a) + 1;
+        int spt_area = spt_side * spt_side;
+        size_t size_u2 = sizeof(cl_float) * d->idmn[0] * d->idmn[1] * d->channel_num;
         const cl_int t = int64ToIntS(d->d);
         const cl_float pattern_u2 = 0.0f;
         const cl_float color_u5[4] = { CL_FLT_EPSILON, 0.0f, 0.0f ,0.0f };
-        const size_t size_u2 = sizeof(cl_float) * d->idmn[0] * d->idmn[1] * d->channel_num;
         const size_t origin[3] = { 0, 0, 0 };
         const size_t region[3] = { d->idmn[0], d->idmn[1], 1 };
         const size_t global_work[2] = { mrounds(d->idmn[0], DST_BLOCK_X), mrounds(d->idmn[1], DST_BLOCK_Y) };
@@ -901,9 +889,9 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
         ret |= clEnqueueFillImage(d->command_queue, d->mem_U[memU5a], color_u5, origin, region, 0, NULL, NULL);
 
         // Read image
-        for (int k = int64ToIntS(-d->d); k <= d->d; k++) {
-            src = vsapi->getFrameFilter(clamp(n + k, 0, maxframe), d->node, frameCtx);
-            ref = (d->knot) ? vsapi->getFrameFilter(clamp(n + k, 0, maxframe), d->knot, frameCtx) : nullptr;
+        for (int k = k_start; k <= k_end; k++) {
+            src = vsapi->getFrameFilter(n + k, d->node, frameCtx);
+            ref = (d->knot) ? vsapi->getFrameFilter(n + k, d->knot, frameCtx) : nullptr;
             const cl_int t_pk = t + k;
             const size_t origin_in[3] = { 0, 0, (size_t) t_pk };
             switch (d->clip_t) {
@@ -997,15 +985,13 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
 
         // Spatio-temporal processing
         bool itr = true;
-        for (int k = int64ToIntS(-d->d); k <= 0; k++) {
+        for (int k = k_start; k <= 0; k++) {
             for (int j = int64ToIntS(-d->a); j <= d->a; j++) {
                 for (int i = int64ToIntS(-d->a); i <= d->a; i++) {
-                    if (k * (2 * int64ToIntS(d->a) + 1) * (2 * int64ToIntS(d->a) + 1) +
-                        j * (2 * int64ToIntS(d->a) + 1) + i < 0) {
-
+                    if (k * spt_area + j * spt_side + i < 0) {
                         const cl_int q[4] = { i, j, k, 0 };
                         ret |= clSetKernelArg(d->kernel[nlmDistance], 2, sizeof(cl_int), &t);
-                        ret |= clSetKernelArg(d->kernel[nlmDistance], 4, 4 * sizeof(cl_int), &q);
+                        ret |= clSetKernelArg(d->kernel[nlmDistance], 3, 4 * sizeof(cl_int), &q);
                         ret |= clEnqueueNDRangeKernel(d->command_queue, d->kernel[nlmDistance],
                             2, NULL, global_work, local_work_dst, 0, NULL, NULL);
                         ret |= clSetKernelArg(d->kernel[nlmHorizontal], 2, sizeof(cl_int), &t);
@@ -1017,7 +1003,7 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
                         if (k) {
                             const cl_int t_mq = t - k;
                             ret |= clSetKernelArg(d->kernel[nlmDistance], 2, sizeof(cl_int), &t_mq);
-                            ret |= clSetKernelArg(d->kernel[nlmDistance], 4, 4 * sizeof(cl_int), &q);
+                            ret |= clSetKernelArg(d->kernel[nlmDistance], 3, 4 * sizeof(cl_int), &q);
                             ret |= clEnqueueNDRangeKernel(d->command_queue, d->kernel[nlmDistance],
                                 2, NULL, global_work, local_work_dst, 0, NULL, NULL);
                             ret |= clSetKernelArg(d->kernel[nlmHorizontal], 2, sizeof(cl_int), &t_mq);
@@ -1029,7 +1015,7 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
                         }
                         ret |= clSetKernelArg(d->kernel[nlmAccumulation], 3, sizeof(cl_mem), &d->mem_U[itr ? memU5a : memU5b]);
                         ret |= clSetKernelArg(d->kernel[nlmAccumulation], 4, sizeof(cl_mem), &d->mem_U[itr ? memU5b : memU5a]);
-                        ret |= clSetKernelArg(d->kernel[nlmAccumulation], 6, 4 * sizeof(cl_int), &q);
+                        ret |= clSetKernelArg(d->kernel[nlmAccumulation], 5, 4 * sizeof(cl_int), &q);
                         ret |= clEnqueueNDRangeKernel(d->command_queue, d->kernel[nlmAccumulation],
                             2, NULL, global_work, NULL, 0, NULL, NULL);
                         itr = !itr;
@@ -1491,37 +1477,29 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
         -D NLM_CLIP_TYPE_UNORM=%u -D NLM_CLIP_TYPE_UNSIGNED=%u -D NLM_CLIP_TYPE_STACKED=%u \
         -D NLM_CLIP_REF_LUMA=%u -D NLM_CLIP_REF_CHROMA=%u -D NLM_CLIP_REF_YUV=%u -D NLM_CLIP_REF_RGB=%u \
         -D NLM_WMODE_CAUCHY=%u -D NLM_WMODE_WELSCH=%u -D NLM_WMODE_BISQUARE=%u -D NLM_WMODE_MOD_BISQUARE=%u \
-        -D DST_BLOCK_X=%u -D DST_BLOCK_Y=%u \
-        -D HRZ_BLOCK_X=%u -D HRZ_BLOCK_Y=%u -D HRZ_RESULT=%u \
-        -D VRT_BLOCK_X=%u -D VRT_BLOCK_Y=%u -D VRT_RESULT=%u \
-        -D NLM_TCLIP=%u -D NLM_D=%i -D NLM_S=%i -D NLM_WMODE=%i \
-        -D NLM_WREF=%.17ff -D NLM_H2_INV_NORM=%.17ff -D NLM_UNORM_MAX=%ff",
+        -D VI_WIDTH=%u -D VI_HEIGHT=%u -D DST_BLOCK_X=%u -D DST_BLOCK_Y=%u \
+        -D HRZ_BLOCK_X=%u -D HRZ_BLOCK_Y=%u -D HRZ_RESULT=%u -D VRT_BLOCK_X=%u -D VRT_BLOCK_Y=%u -D VRT_RESULT=%u \
+        -D NLM_TCLIP=%u -D NLM_D=%i -D NLM_S=%i -D NLM_WMODE=%i -D NLM_WREF=%ff -D NLM_H=%ff",
         NLM_CLIP_TYPE_UNORM, NLM_CLIP_TYPE_UNSIGNED, NLM_CLIP_TYPE_STACKED,
         NLM_CLIP_REF_LUMA, NLM_CLIP_REF_CHROMA, NLM_CLIP_REF_YUV, NLM_CLIP_REF_RGB,
         NLM_WMODE_CAUCHY, NLM_WMODE_WELSCH, NLM_WMODE_BISQUARE, NLM_WMODE_MOD_BISQUARE,
-        DST_BLOCK_X, DST_BLOCK_Y, 
-        HRZ_BLOCK_X, HRZ_BLOCK_Y, HRZ_RESULT, 
-        VRT_BLOCK_X, VRT_BLOCK_Y, VRT_RESULT, 
-        d.clip_t, int64ToIntS(d.d), int64ToIntS(d.s), int64ToIntS(d.wmode), d.wref,
-        65025.0 / (3 * d.h * d.h * (2 * d.s + 1)*(2 * d.s + 1)), (double) maxvalue(d.vi->format->bitsPerSample));
+        d.idmn[0], d.idmn[1], DST_BLOCK_X, DST_BLOCK_Y, 
+        HRZ_BLOCK_X, HRZ_BLOCK_Y, HRZ_RESULT, VRT_BLOCK_X, VRT_BLOCK_Y, VRT_RESULT, 
+        d.clip_t, int64ToIntS(d.d), int64ToIntS(d.s), int64ToIntS(d.wmode), d.wref, d.h);
 #    else
     snprintf(options, 2048, "-cl-single-precision-constant -cl-denorms-are-zero -cl-fast-relaxed-math -Werror \
         -D NLM_CLIP_TYPE_UNORM=%u -D NLM_CLIP_TYPE_UNSIGNED=%u -D NLM_CLIP_TYPE_STACKED=%u \
         -D NLM_CLIP_REF_LUMA=%u -D NLM_CLIP_REF_CHROMA=%u -D NLM_CLIP_REF_YUV=%u -D NLM_CLIP_REF_RGB=%u \
         -D NLM_WMODE_CAUCHY=%u -D NLM_WMODE_WELSCH=%u -D NLM_WMODE_BISQUARE=%u -D NLM_WMODE_MOD_BISQUARE=%u \
-        -D DST_BLOCK_X=%u -D DST_BLOCK_Y=%u \
-        -D HRZ_BLOCK_X=%u -D HRZ_BLOCK_Y=%u -D HRZ_RESULT=%u \
-        -D VRT_BLOCK_X=%u -D VRT_BLOCK_Y=%u -D VRT_RESULT=%u \
-        -D NLM_TCLIP=%u -D NLM_D=%i -D NLM_S=%i -D NLM_WMODE=%i -D NLM_WREF=%.17f \
-        -D NLM_H2_INV_NORM=%.17f -D NLM_UNORM_MAX=%f",
+        -D VI_WIDTH=%u -D VI_HEIGHT=%u -D DST_BLOCK_X=%u -D DST_BLOCK_Y=%u \
+        -D HRZ_BLOCK_X=%u -D HRZ_BLOCK_Y=%u -D HRZ_RESULT=%u -D VRT_BLOCK_X=%u -D VRT_BLOCK_Y=%u -D VRT_RESULT=%u \
+        -D NLM_TCLIP=%u -D NLM_D=%i -D NLM_S=%i -D NLM_WMODE=%i -D NLM_WREF=%f -D NLM_H=%f",
         NLM_CLIP_TYPE_UNORM, NLM_CLIP_TYPE_UNSIGNED, NLM_CLIP_TYPE_STACKED,
         NLM_CLIP_REF_LUMA, NLM_CLIP_REF_CHROMA, NLM_CLIP_REF_YUV, NLM_CLIP_REF_RGB,
         NLM_WMODE_CAUCHY, NLM_WMODE_WELSCH, NLM_WMODE_BISQUARE, NLM_WMODE_MOD_BISQUARE,
-        DST_BLOCK_X, DST_BLOCK_Y, 
-        HRZ_BLOCK_X, HRZ_BLOCK_Y, HRZ_RESULT,
-        VRT_BLOCK_X, VRT_BLOCK_Y, VRT_RESULT, 
-        d.clip_t, int64ToIntS(d.d), int64ToIntS(d.s), int64ToIntS(d.wmode), d.wref,
-        65025.0 / (3 * d.h * d.h * (2 * d.s + 1)*(2 * d.s + 1)), (double) maxvalue(d.vi->format->bitsPerSample));
+        d.idmn[0], d.idmn[1], DST_BLOCK_X, DST_BLOCK_Y, 
+        HRZ_BLOCK_X, HRZ_BLOCK_Y, HRZ_RESULT, VRT_BLOCK_X, VRT_BLOCK_Y, VRT_RESULT, 
+        d.clip_t, int64ToIntS(d.d), int64ToIntS(d.s), int64ToIntS(d.wmode), d.wref, d.h);
 #    endif
     ret = clBuildProgram(d.program, 1, &d.deviceID, options, NULL, NULL);
     if (ret != CL_SUCCESS) {
@@ -1556,9 +1534,7 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
     ret = clSetKernelArg(d.kernel[nlmDistance], 1, sizeof(cl_mem), &d.mem_U[memU4a]);
     if (ret != CL_SUCCESS) { d.oclErrorCheck("clSetKernelArg(nlmDistance[1])", ret, out, vsapi); return; }
     // d.kernel[nlmDistance] -> 2 is set by VapourSynthPluginGetFrame
-    ret = clSetKernelArg(d.kernel[nlmDistance], 3, 2 * sizeof(cl_uint), &d.idmn);
-    if (ret != CL_SUCCESS) { d.oclErrorCheck("clSetKernelArg(nlmDistance[3])", ret, out, vsapi); return; }
-    // d.kernel[nlmDistance] -> 4 is set by VapourSynthPluginGetFrame
+    // d.kernel[nlmDistance] -> 3 is set by VapourSynthPluginGetFrame
 
     // nlmHorizontal
     ret = clSetKernelArg(d.kernel[nlmHorizontal], 0, sizeof(cl_mem), &d.mem_U[memU4a]);
@@ -1566,8 +1542,6 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
     ret = clSetKernelArg(d.kernel[nlmHorizontal], 1, sizeof(cl_mem), &d.mem_U[memU4b]);
     if (ret != CL_SUCCESS) { d.oclErrorCheck("clSetKernelArg(nlmHorizontal[1])", ret, out, vsapi); return; }
     // d.kernel[nlmHorizontal] -> 2 is set by VapourSynthPluginGetFrame
-    ret = clSetKernelArg(d.kernel[nlmHorizontal], 3, 2 * sizeof(cl_uint), &d.idmn);
-    if (ret != CL_SUCCESS) { d.oclErrorCheck("clSetKernelArg(nlmHorizontal[3])", ret, out, vsapi); return; }
 
     // nlmVertical
     ret = clSetKernelArg(d.kernel[nlmVertical], 0, sizeof(cl_mem), &d.mem_U[memU4b]);
@@ -1575,8 +1549,6 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
     ret = clSetKernelArg(d.kernel[nlmVertical], 1, sizeof(cl_mem), &d.mem_U[memU4a]);
     if (ret != CL_SUCCESS) { d.oclErrorCheck("clSetKernelArg(nlmVertical[1])", ret, out, vsapi); return; }
     // d.kernel[nlmVertical] -> 2 is set by VapourSynthPluginGetFrame
-    ret = clSetKernelArg(d.kernel[nlmVertical], 3, 2 * sizeof(cl_uint), &d.idmn);
-    if (ret != CL_SUCCESS) { d.oclErrorCheck("clSetKernelArg(nlmVertical[3])", ret, out, vsapi); return; }
 
     // nlmAccumulation
     ret = clSetKernelArg(d.kernel[nlmAccumulation], 0, sizeof(cl_mem), &d.mem_U[memU1a]);
@@ -1587,9 +1559,7 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
     if (ret != CL_SUCCESS) { d.oclErrorCheck("clSetKernelArg(nlmAccumulation[2])", ret, out, vsapi); return; }
     // d.kernel[nlmAccumulation] -> 3 is set by VapourSynthPluginGetFrame
     // d.kernel[nlmAccumulation] -> 4 is set by VapourSynthPluginGetFrame
-    ret = clSetKernelArg(d.kernel[nlmAccumulation], 5, 2 * sizeof(cl_uint), &d.idmn);
-    if (ret != CL_SUCCESS) { d.oclErrorCheck("clSetKernelArg(nlmAccumulation[5])", ret, out, vsapi); return; }
-    // d.kernel[nlmAccumulation] -> 6 is set by VapourSynthPluginGetFrame
+    // d.kernel[nlmAccumulation] -> 5 is set by VapourSynthPluginGetFrame
 
     // nlmFinish
     ret = clSetKernelArg(d.kernel[nlmFinish], 0, sizeof(cl_mem), &d.mem_U[memU1a]);
@@ -1599,8 +1569,6 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
     ret = clSetKernelArg(d.kernel[nlmFinish], 2, sizeof(cl_mem), &d.mem_U[memU2]);
     if (ret != CL_SUCCESS) { d.oclErrorCheck("clSetKernelArg(nlmFinish[3])", ret, out, vsapi); return; }
     // d.kernel[nlmFinish] -> 3 is set by VapourSynthPluginGetFrame
-    ret = clSetKernelArg(d.kernel[nlmFinish], 4, 2 * sizeof(cl_uint), &d.idmn);
-    if (ret != CL_SUCCESS) { d.oclErrorCheck("clSetKernelArg(nlmFinish[4])", ret, out, vsapi); return; }
 
     // nlmPack
     ret = clSetKernelArg(d.kernel[nlmPack], 0, sizeof(cl_mem), &d.mem_P[0]);
@@ -1617,8 +1585,6 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
     if (ret != CL_SUCCESS) { d.oclErrorCheck("clSetKernelArg(nlmPack[5])", ret, out, vsapi); return; }
     // d.kernel[nlmPack] -> 6 is set by VapourSynthPluginGetFrame
     // d.kernel[nlmPack] -> 7 is set by VapourSynthPluginGetFrame
-    ret = clSetKernelArg(d.kernel[nlmPack], 8, 2 * sizeof(cl_uint), &d.idmn);
-    if (ret != CL_SUCCESS) { d.oclErrorCheck("clSetKernelArg(nlmPack[8])", ret, out, vsapi); return; }
 
     // nlmUnpack
     ret = clSetKernelArg(d.kernel[nlmUnpack], 0, sizeof(cl_mem), &d.mem_P[0]);
@@ -1635,8 +1601,6 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
     if (ret != CL_SUCCESS) { d.oclErrorCheck("clSetKernelArg(nlmUnpack[5])", ret, out, vsapi); return; }
     ret = clSetKernelArg(d.kernel[nlmUnpack], 6, sizeof(cl_mem), &d.mem_U[memU1z]);
     if (ret != CL_SUCCESS) { d.oclErrorCheck("clSetKernelArg(nlmUnpack[6])", ret, out, vsapi); return; }
-    ret = clSetKernelArg(d.kernel[nlmUnpack], 7, 2 * sizeof(cl_uint), &d.idmn);
-    if (ret != CL_SUCCESS) { d.oclErrorCheck("clSetKernelArg(nlmUnpack[7])", ret, out, vsapi); return; }
 
     // Create a new filter and return a reference to it
     NLMVapoursynth *data = (NLMVapoursynth*) malloc(sizeof(d));

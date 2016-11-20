@@ -71,17 +71,19 @@
 // Kernel Definition
 static const char* kernel_source_code =
 "                                                                                                                 \n" \
+"#define NLM_NORM         ( 255.0f * 255.0f )                                                                     \n" \
+"#define NLM_S_SIZE       ( (2 * NLM_S + 1) * (2 * NLM_S + 1))                                                    \n" \
+"#define NLM_H2_INV_NORM  ( NLM_NORM / (NLM_H * NLM_H * NLM_S_SIZE) )                                             \n" \
 "#define NLM_16BIT_MSB    ( 256.0f / 65535.0f )                                                                   \n" \
 "#define NLM_16BIT_LSB    (   1.0f / 65535.0f )                                                                   \n" \
 "#define CHECK_FLAG(flag) ((NLM_TCLIP & (flag)) == (flag))                                                        \n" \
 "                                                                                                                 \n" \
 "__kernel __attribute__((reqd_work_group_size(DST_BLOCK_X, DST_BLOCK_Y, 1)))                                      \n" \
-"void nlmDistance(__read_only image2d_array_t U1, __write_only image2d_array_t U4, const int t,                   \n" \
-"const int2 dim, const int4 q) {                                                                                  \n" \
+"void nlmDistance(__read_only image2d_array_t U1, __write_only image2d_array_t U4, const int t, const int4 q) {   \n" \
 "                                                                                                                 \n" \
 "   int x = get_global_id(0);                                                                                     \n" \
 "   int y = get_global_id(1);                                                                                     \n" \
-"   if(x >= dim.x || y >= dim.y) return;                                                                          \n" \
+"   if (x >= VI_WIDTH || y >= VI_HEIGHT) return;                                                                  \n" \
 "                                                                                                                 \n" \
 "   const sampler_t smp = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP | CLK_FILTER_NEAREST;                   \n" \
 "   int4 p = (int4) (x, y, t, 0);                                                                                 \n" \
@@ -128,8 +130,7 @@ static const char* kernel_source_code =
 "}                                                                                                                \n" \
 "                                                                                                                 \n" \
 "__kernel __attribute__((reqd_work_group_size(HRZ_BLOCK_X, HRZ_BLOCK_Y, 1)))                                      \n" \
-"void nlmHorizontal(__read_only image2d_array_t U4_in, __write_only image2d_array_t U4_out,                       \n" \
-"const int t, const int2 dim) {                                                                                   \n" \
+"void nlmHorizontal(__read_only image2d_array_t U4_in, __write_only image2d_array_t U4_out, const int t) {        \n" \
 "                                                                                                                 \n" \
 "   __local float buffer[HRZ_BLOCK_Y][(HRZ_RESULT + 2) * HRZ_BLOCK_X];                                            \n" \
 "   int x = (get_group_id(0) * HRZ_RESULT - 1) * HRZ_BLOCK_X + get_local_id(0);                                   \n" \
@@ -150,7 +151,7 @@ static const char* kernel_source_code =
 "   barrier(CLK_LOCAL_MEM_FENCE);                                                                                 \n" \
 "                                                                                                                 \n" \
 "   for (int i = 1; i < 1 + HRZ_RESULT; i++) {                                                                    \n" \
-"       if ((x + i * HRZ_BLOCK_X) >= dim.x || y >= dim.y) return;                                                 \n" \
+"       if ((x + i * HRZ_BLOCK_X) >= VI_WIDTH || y >= VI_HEIGHT) return;                                          \n" \
 "       float sum = 0.0f;                                                                                         \n" \
 "       for (int j = -NLM_S; j <= NLM_S; j++)                                                                     \n" \
 "           sum += buffer[get_local_id(1)][get_local_id(0) + i * HRZ_BLOCK_X + j];                                \n" \
@@ -160,8 +161,7 @@ static const char* kernel_source_code =
 "}                                                                                                                \n" \
 "                                                                                                                 \n" \
 "__kernel __attribute__((reqd_work_group_size(VRT_BLOCK_X, VRT_BLOCK_Y, 1)))                                      \n" \
-"void nlmVertical(__read_only image2d_array_t U4_in, __write_only image2d_array_t U4_out,                         \n" \
-"const int t, const int2 dim) {                                                                                   \n" \
+"void nlmVertical(__read_only image2d_array_t U4_in, __write_only image2d_array_t U4_out, const int t) {          \n" \
 "                                                                                                                 \n" \
 "   __local float buffer[VRT_BLOCK_X][(VRT_RESULT + 2) * VRT_BLOCK_Y + 1];                                        \n" \
 "   int x = get_group_id(0) * VRT_BLOCK_X + get_local_id(0);                                                      \n" \
@@ -182,7 +182,7 @@ static const char* kernel_source_code =
 "   barrier(CLK_LOCAL_MEM_FENCE);                                                                                 \n" \
 "                                                                                                                 \n" \
 "   for (int i = 1; i < 1 + VRT_RESULT; i++) {                                                                    \n" \
-"       if (x >= dim.x || (y + i * VRT_BLOCK_Y) >= dim.y) return;                                                 \n" \
+"       if (x >= VI_WIDTH || (y + i * VRT_BLOCK_Y) >= VI_HEIGHT) return;                                          \n" \
 "       float sum = 0.0f;                                                                                         \n" \
 "       for (int j = -NLM_S; j <= NLM_S; j++)                                                                     \n" \
 "           sum += buffer[get_local_id(0)][get_local_id(1) + i * VRT_BLOCK_Y + j];                                \n" \
@@ -203,16 +203,16 @@ static const char* kernel_source_code =
 "                                                                                                                 \n" \
 "__kernel                                                                                                         \n" \
 "void nlmAccumulation(__read_only image2d_array_t U1, __global void* U2, __read_only image2d_array_t U4,          \n" \
-"__read_only image2d_t U5_in, __write_only image2d_t U5_out, const int2 dim, const int4 q) {                      \n" \
+"__read_only image2d_t U5_in, __write_only image2d_t U5_out, const int4 q) {                                      \n" \
 "                                                                                                                 \n" \
 "   int x = get_global_id(0);                                                                                     \n" \
 "   int y = get_global_id(1);                                                                                     \n" \
-"   if(x >= dim.x || y >= dim.y) return;                                                                          \n" \
+"   if (x >= VI_WIDTH || y >= VI_HEIGHT) return;                                                                  \n" \
 "                                                                                                                 \n" \
 "   const sampler_t smp = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP | CLK_FILTER_NEAREST;                   \n" \
 "   int4 p = (int4) (x, y, NLM_D, 0);                                                                             \n" \
 "   int2 s = (int2) (x, y);                                                                                       \n" \
-"   int gidx = mad24(y, dim.x, x);                                                                                \n" \
+"   int gidx = mad24(y, VI_WIDTH, x);                                                                             \n" \
 "                                                                                                                 \n" \
 "   float u4    = read_imagef(U4,    smp, p    ).x;                                                               \n" \
 "   float u4_mq = read_imagef(U4,    smp, p - q).x;                                                               \n" \
@@ -266,16 +266,16 @@ static const char* kernel_source_code =
 "                                                                                                                 \n" \
 "__kernel                                                                                                         \n" \
 "void nlmFinish(__read_only image2d_array_t U1_in, __write_only image2d_t U1_out, __global void* U2,              \n" \
-"__read_only image2d_t U5, const int2 dim) {                                                                      \n" \
+"__read_only image2d_t U5) {                                                                                      \n" \
 "                                                                                                                 \n" \
 "   int x = get_global_id(0);                                                                                     \n" \
 "   int y = get_global_id(1);                                                                                     \n" \
-"   if(x >= dim.x || y >= dim.y) return;                                                                          \n" \
+"   if (x >= VI_WIDTH || y >= VI_HEIGHT) return;                                                                  \n" \
 "                                                                                                                 \n" \
 "   const sampler_t smp = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_NONE | CLK_FILTER_NEAREST;                    \n" \
 "   int4 p = (int4) (x, y, NLM_D, 0);                                                                             \n" \
 "   int2 s = (int2) (x, y);                                                                                       \n" \
-"   int gidx = mad24(y, dim.x, x);                                                                                \n" \
+"   int gidx = mad24(y, VI_WIDTH, x);                                                                             \n" \
 "   float wM = NLM_WREF * read_imagef(U5, smp, s).x;                                                              \n" \
 "                                                                                                                 \n" \
 "   if (CHECK_FLAG(NLM_CLIP_REF_LUMA)) {                                                                          \n" \
@@ -330,15 +330,15 @@ static const char* kernel_source_code =
 "__kernel                                                                                                         \n" \
 "void nlmPack(__read_only image2d_t R, __read_only image2d_t G, __read_only image2d_t B,                          \n" \
 "__read_only image2d_t R_lsb, __read_only image2d_t G_lsb, __read_only image2d_t B_lsb,                           \n" \
-"__write_only image2d_array_t U1, const int t, const int2 dim) {                                                  \n" \
+"__write_only image2d_array_t U1, const int t) {                                                                  \n" \
 "                                                                                                                 \n" \
-"   const int x = get_global_id(0);                                                                               \n" \
-"   const int y = get_global_id(1);                                                                               \n" \
-"   if(x >= dim.x || y >= dim.y) return;                                                                          \n" \
+"   int x = get_global_id(0);                                                                                     \n" \
+"   int y = get_global_id(1);                                                                                     \n" \
+"   if (x >= VI_WIDTH || y >= VI_HEIGHT) return;                                                                  \n" \
 "                                                                                                                 \n" \
 "   const sampler_t smp = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_NONE | CLK_FILTER_NEAREST;                    \n" \
-"   const int4 p = (int4) (x, y, t, 0);                                                                           \n" \
-"   const int2 s = (int2) (x, y);                                                                                 \n" \
+"   int4 p = (int4) (x, y, t, 0);                                                                                 \n" \
+"   int2 s = (int2) (x, y);                                                                                       \n" \
 "                                                                                                                 \n" \
 "   if (CHECK_FLAG(NLM_CLIP_TYPE_STACKED | NLM_CLIP_REF_LUMA)) {                                                  \n" \
 "       float y_msb = convert_float(read_imageui(R,     smp, s).x);                                               \n" \
@@ -394,11 +394,11 @@ static const char* kernel_source_code =
 "__kernel                                                                                                         \n" \
 "void nlmUnpack(__write_only image2d_t R, __write_only image2d_t G, __write_only image2d_t B,                     \n" \
 "__write_only image2d_t R_lsb, __write_only image2d_t G_lsb, __write_only image2d_t B_lsb,                        \n" \
-"__read_only image2d_t U1, const int2 dim) {                                                                      \n" \
+"__read_only image2d_t U1) {                                                                                      \n" \
 "                                                                                                                 \n" \
 "   int x = get_global_id(0);                                                                                     \n" \
 "   int y = get_global_id(1);                                                                                     \n" \
-"   if(x >= dim.x || y >= dim.y) return;                                                                          \n" \
+"   if (x >= VI_WIDTH || y >= VI_HEIGHT) return;                                                                  \n" \
 "                                                                                                                 \n" \
 "   const sampler_t smp = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_NONE | CLK_FILTER_NEAREST;                    \n" \
 "   int2 s = (int2) (x, y);                                                                                       \n" \

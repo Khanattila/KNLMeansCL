@@ -34,20 +34,12 @@
 
 //////////////////////////////////////////
 // Common
-inline int maxvalue(const int digits) {
-    return (1 << digits) - 1;
-}
-
 inline size_t mrounds(const size_t number, const size_t multiple) {
     return ((number + multiple - 1) / multiple) * multiple;
 }
 
-template <typename T>T inline clamp(const T& value, const T& low, const T& high) {
-    return value < low ? low : (value > high ? high : value);
-}
-
-template <typename T>T inline max(const T& a, const T& b) {
-    return (a < b) ? b : a;
+template<class T> const T& min(const T& a, const T& b) {
+    return (b < a) ? b : a;
 }
 
 //////////////////////////////////////////
