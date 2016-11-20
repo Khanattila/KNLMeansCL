@@ -242,7 +242,7 @@ _NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _
     oclErrorCheck("clCreateImage(mem_U[NLM_MEM_U4b])", ret, env);
     mem_U[memU5a] = clCreateImage(context, CL_MEM_READ_WRITE | CL_MEM_HOST_WRITE_ONLY, &format_u4, &desc_u1z, NULL, &ret);
     oclErrorCheck("clCreateBuffer(mem_U[NLM_MEM_U0a])", ret, env);
-    mem_U[memU5b] = clCreateImage(context, CL_MEM_READ_WRITE | CL_MEM_HOST_WRITE_ONLY, &format_u4, &desc_u1z, NULL, &ret);
+    mem_U[memU5b] = clCreateImage(context, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, &format_u4, &desc_u1z, NULL, &ret);
     oclErrorCheck("clCreateBuffer(mem_U[NLM_MEM_U0b])", ret, env);
 
     // Create mem_P[]
@@ -290,10 +290,8 @@ _NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _
     setlocale(LC_ALL, "");
 
     // Create kernel objects
-    kernel[nlmDistanceLeft] = clCreateKernel(program, "nlmDistanceLeft", &ret);
-    oclErrorCheck("clCreateKernel(nlmDistanceLeft)", ret, env);
-    kernel[nlmDistanceRight] = clCreateKernel(program, "nlmDistanceRight", &ret);
-    oclErrorCheck("clCreateKernel(nlmDistanceRight)", ret, env);
+    kernel[nlmDistance] = clCreateKernel(program, "nlmDistance", &ret);
+    oclErrorCheck("clCreateKernel(nlmDistance)", ret, env);
     kernel[nlmHorizontal] = clCreateKernel(program, "nlmHorizontal", &ret);
     oclErrorCheck("clCreateKernel(nlmHorizontal)", ret, env);
     kernel[nlmVertical] = clCreateKernel(program, "nlmVertical", &ret);
@@ -309,22 +307,14 @@ _NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _
 
     // Set kernel arguments - nlmDistanceLeft
     int index_u1 = (clip_t & NLM_CLIP_EXTRA_FALSE) ? memU1a : memU1b;
-    ret = clSetKernelArg(kernel[nlmDistanceLeft], 0, sizeof(cl_mem), &mem_U[index_u1]);
-    oclErrorCheck("clSetKernelArg(nlmDistanceLeft[0])", ret, env);
-    ret = clSetKernelArg(kernel[nlmDistanceLeft], 1, sizeof(cl_mem), &mem_U[memU4a]);
-    oclErrorCheck("clSetKernelArg(nlmDistanceLeft[1])", ret, env);
-    ret = clSetKernelArg(kernel[nlmDistanceLeft], 2, 2 * sizeof(cl_uint), &idmn);
-    oclErrorCheck("clSetKernelArg(nlmDistanceLeft[2])", ret, env);
-    // kernel[nlmDistanceLeft] -> 3 is set by AviSynthPluginGetFrame
-
-    // nlmDistanceRight
-    ret = clSetKernelArg(kernel[nlmDistanceRight], 0, sizeof(cl_mem), &mem_U[index_u1]);
-    oclErrorCheck("clSetKernelArg(nlmDistanceRight[0])", ret, env);
-    ret = clSetKernelArg(kernel[nlmDistanceRight], 1, sizeof(cl_mem), &mem_U[memU4a]);
-    oclErrorCheck("clSetKernelArg(nlmDistanceRight[1])", ret, env);
-    ret = clSetKernelArg(kernel[nlmDistanceRight], 2, 2 * sizeof(cl_uint), &idmn);
-    oclErrorCheck("clSetKernelArg(nlmDistanceRight[2])", ret, env);
-    // kernel[nlmDistanceRight] -> 3 is set by AviSynthPluginGetFrame
+    ret = clSetKernelArg(kernel[nlmDistance], 0, sizeof(cl_mem), &mem_U[index_u1]);
+    oclErrorCheck("clSetKernelArg(nlmDistance[0])", ret, env);
+    ret = clSetKernelArg(kernel[nlmDistance], 1, sizeof(cl_mem), &mem_U[memU4a]);
+    oclErrorCheck("clSetKernelArg(nlmDistance[1])", ret, env);
+    // kernel[nlmDistance] -> 2 is set by AviSynthPluginGetFrame
+    ret = clSetKernelArg(kernel[nlmDistance], 3, 2 * sizeof(cl_uint), &idmn);
+    oclErrorCheck("clSetKernelArg(nlmDistance[3])", ret, env);
+    // kernel[nlmDistance] -> 4 is set by AviSynthPluginGetFrame
 
     // nlmHorizontal
     ret = clSetKernelArg(kernel[nlmHorizontal], 0, sizeof(cl_mem), &mem_U[memU4a]);
@@ -670,8 +660,9 @@ PVideoFrame __stdcall _NLMAvisynth::GetFrame(int n, IScriptEnvironment* env) {
             for (int i = -a; i <= a; i++) {
                 if (k * (2 * a + 1) * (2 * a + 1) + j * (2 * a + 1) + i < 0) {
                     const cl_int q[4] = { i, j, k, 0 };
-                    ret |= clSetKernelArg(kernel[nlmDistanceLeft], 3, 4 * sizeof(cl_int), &q);
-                    ret |= clEnqueueNDRangeKernel(command_queue, kernel[nlmDistanceLeft],
+                    ret |= clSetKernelArg(kernel[nlmDistance], 2, sizeof(cl_int), &t);
+                    ret |= clSetKernelArg(kernel[nlmDistance], 4, 4 * sizeof(cl_int), &q);
+                    ret |= clEnqueueNDRangeKernel(command_queue, kernel[nlmDistance],
                         2, NULL, global_work, local_work_dst, 0, NULL, NULL);
                     ret |= clSetKernelArg(kernel[nlmHorizontal], 2, sizeof(cl_int), &t);
                     ret |= clEnqueueNDRangeKernel(command_queue, kernel[nlmHorizontal],
@@ -681,8 +672,9 @@ PVideoFrame __stdcall _NLMAvisynth::GetFrame(int n, IScriptEnvironment* env) {
                         2, NULL, global_work_vrt, local_work_vrt, 0, NULL, NULL);
                     if (k) {
                         const cl_int t_mq = t - k;
-                        ret |= clSetKernelArg(kernel[nlmDistanceRight], 3, 4 * sizeof(cl_int), &q);
-                        ret |= clEnqueueNDRangeKernel(command_queue, kernel[nlmDistanceRight],
+                        ret |= clSetKernelArg(kernel[nlmDistance], 2, sizeof(cl_int), &t_mq);
+                        ret |= clSetKernelArg(kernel[nlmDistance], 4, 4 * sizeof(cl_int), &q);
+                        ret |= clEnqueueNDRangeKernel(command_queue, kernel[nlmDistance],
                             2, NULL, global_work, local_work_dst, 0, NULL, NULL);
                         ret |= clSetKernelArg(kernel[nlmHorizontal], 2, sizeof(cl_int), &t_mq);
                         ret |= clEnqueueNDRangeKernel(command_queue, kernel[nlmHorizontal],
@@ -1012,8 +1004,9 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
                         j * (2 * int64ToIntS(d->a) + 1) + i < 0) {
 
                         const cl_int q[4] = { i, j, k, 0 };
-                        ret |= clSetKernelArg(d->kernel[nlmDistanceLeft], 3, 4 * sizeof(cl_int), &q);
-                        ret |= clEnqueueNDRangeKernel(d->command_queue, d->kernel[nlmDistanceLeft],
+                        ret |= clSetKernelArg(d->kernel[nlmDistance], 2, sizeof(cl_int), &t);
+                        ret |= clSetKernelArg(d->kernel[nlmDistance], 4, 4 * sizeof(cl_int), &q);
+                        ret |= clEnqueueNDRangeKernel(d->command_queue, d->kernel[nlmDistance],
                             2, NULL, global_work, local_work_dst, 0, NULL, NULL);
                         ret |= clSetKernelArg(d->kernel[nlmHorizontal], 2, sizeof(cl_int), &t);
                         ret |= clEnqueueNDRangeKernel(d->command_queue, d->kernel[nlmHorizontal],
@@ -1023,8 +1016,9 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
                             2, NULL, global_work_vrt, local_work_vrt, 0, NULL, NULL);
                         if (k) {
                             const cl_int t_mq = t - k;
-                            ret |= clSetKernelArg(d->kernel[nlmDistanceRight], 3, 4 * sizeof(cl_int), &q);
-                            ret |= clEnqueueNDRangeKernel(d->command_queue, d->kernel[nlmDistanceRight],
+                            ret |= clSetKernelArg(d->kernel[nlmDistance], 2, sizeof(cl_int), &t_mq);
+                            ret |= clSetKernelArg(d->kernel[nlmDistance], 4, 4 * sizeof(cl_int), &q);
+                            ret |= clEnqueueNDRangeKernel(d->command_queue, d->kernel[nlmDistance],
                                 2, NULL, global_work, local_work_dst, 0, NULL, NULL);
                             ret |= clSetKernelArg(d->kernel[nlmHorizontal], 2, sizeof(cl_int), &t_mq);
                             ret |= clEnqueueNDRangeKernel(d->command_queue, d->kernel[nlmHorizontal],
@@ -1170,8 +1164,7 @@ _NLMAvisynth::~_NLMAvisynth() {
     clReleaseKernel(kernel[nlmAccumulation]);
     clReleaseKernel(kernel[nlmVertical]);
     clReleaseKernel(kernel[nlmHorizontal]);
-    clReleaseKernel(kernel[nlmDistanceRight]);
-    clReleaseKernel(kernel[nlmDistanceLeft]);
+    clReleaseKernel(kernel[nlmDistance]);
     clReleaseProgram(program);
     clReleaseCommandQueue(command_queue);
     clReleaseContext(context);
@@ -1206,8 +1199,7 @@ static void VS_CC VapourSynthPluginFree(void *instanceData, VSCore *core, const 
     clReleaseKernel(d->kernel[nlmAccumulation]);
     clReleaseKernel(d->kernel[nlmVertical]);
     clReleaseKernel(d->kernel[nlmHorizontal]);
-    clReleaseKernel(d->kernel[nlmDistanceRight]);
-    clReleaseKernel(d->kernel[nlmDistanceLeft]);
+    clReleaseKernel(d->kernel[nlmDistance]);
     clReleaseProgram(d->program);
     clReleaseCommandQueue(d->command_queue);
     clReleaseContext(d->context);
@@ -1474,7 +1466,7 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
     if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateImage(d.mem_P[memU4b])", ret, out, vsapi); return; }
     d.mem_U[memU5a] = clCreateImage(d.context, CL_MEM_READ_WRITE | CL_MEM_HOST_WRITE_ONLY, &format_u4, &desc_u1z, NULL, &ret);
     if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateImage(d.mem_P[memU0])", ret, out, vsapi); return; }
-    d.mem_U[memU5b] = clCreateImage(d.context, CL_MEM_READ_WRITE | CL_MEM_HOST_WRITE_ONLY, &format_u4, &desc_u1z, NULL, &ret);
+    d.mem_U[memU5b] = clCreateImage(d.context, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, &format_u4, &desc_u1z, NULL, &ret);
     if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateImage(d.mem_P[memU0])", ret, out, vsapi); return; }
 
     // Create mem_P[]
@@ -1542,10 +1534,8 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
     setlocale(LC_ALL, "");
 
     // Create kernel objects
-    d.kernel[nlmDistanceLeft] = clCreateKernel(d.program, "nlmDistanceLeft", &ret);
-    if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateKernel(nlmDistanceLeft)", ret, out, vsapi); return; }
-    d.kernel[nlmDistanceRight] = clCreateKernel(d.program, "nlmDistanceRight", &ret);
-    if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateKernel(nlmDistanceRight)", ret, out, vsapi); return; }
+    d.kernel[nlmDistance] = clCreateKernel(d.program, "nlmDistance", &ret);
+    if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateKernel(nlmDistance)", ret, out, vsapi); return; }
     d.kernel[nlmHorizontal] = clCreateKernel(d.program, "nlmHorizontal", &ret);
     if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateKernel(nlmHorizontal)", ret, out, vsapi); return; }
     d.kernel[nlmVertical] = clCreateKernel(d.program, "nlmVertical", &ret);
@@ -1561,22 +1551,14 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
 
     // Set kernel arguments - nlmDistanceLeft
     int index_u1 = (d.clip_t & NLM_CLIP_EXTRA_FALSE) ? memU1a : memU1b;
-    ret = clSetKernelArg(d.kernel[nlmDistanceLeft], 0, sizeof(cl_mem), &d.mem_U[index_u1]);
-    if (ret != CL_SUCCESS) { d.oclErrorCheck("clSetKernelArg(nlmDistanceLeft[0])", ret, out, vsapi); return; }
-    ret = clSetKernelArg(d.kernel[nlmDistanceLeft], 1, sizeof(cl_mem), &d.mem_U[memU4a]);
-    if (ret != CL_SUCCESS) { d.oclErrorCheck("clSetKernelArg(nlmDistanceLeft[1])", ret, out, vsapi); return; }
-    ret = clSetKernelArg(d.kernel[nlmDistanceLeft], 2, 2 * sizeof(cl_uint), &d.idmn);
-    if (ret != CL_SUCCESS) { d.oclErrorCheck("clSetKernelArg(nlmDistanceLeft[2])", ret, out, vsapi); return; }
-    // d.kernel[nlmDistanceLeft] -> 3 is set by VapourSynthPluginGetFrame
-
-    // nlmDistanceRight
-    ret = clSetKernelArg(d.kernel[nlmDistanceRight], 0, sizeof(cl_mem), &d.mem_U[index_u1]);
-    if (ret != CL_SUCCESS) { d.oclErrorCheck("clSetKernelArg(nlmDistanceRight[0])", ret, out, vsapi); return; }
-    ret = clSetKernelArg(d.kernel[nlmDistanceRight], 1, sizeof(cl_mem), &d.mem_U[memU4a]);
-    if (ret != CL_SUCCESS) { d.oclErrorCheck("clSetKernelArg(nlmDistanceRight[1])", ret, out, vsapi); return; }
-    ret = clSetKernelArg(d.kernel[nlmDistanceRight], 2, 2 * sizeof(cl_uint), &d.idmn);
-    if (ret != CL_SUCCESS) { d.oclErrorCheck("clSetKernelArg(nlmDistanceRight[2])", ret, out, vsapi); return; }
-    // d.kernel[nlmDistanceRight] -> 3 is set by VapourSynthPluginGetFrame
+    ret = clSetKernelArg(d.kernel[nlmDistance], 0, sizeof(cl_mem), &d.mem_U[index_u1]);
+    if (ret != CL_SUCCESS) { d.oclErrorCheck("clSetKernelArg(nlmDistance[0])", ret, out, vsapi); return; }
+    ret = clSetKernelArg(d.kernel[nlmDistance], 1, sizeof(cl_mem), &d.mem_U[memU4a]);
+    if (ret != CL_SUCCESS) { d.oclErrorCheck("clSetKernelArg(nlmDistance[1])", ret, out, vsapi); return; }
+    // d.kernel[nlmDistance] -> 2 is set by VapourSynthPluginGetFrame
+    ret = clSetKernelArg(d.kernel[nlmDistance], 3, 2 * sizeof(cl_uint), &d.idmn);
+    if (ret != CL_SUCCESS) { d.oclErrorCheck("clSetKernelArg(nlmDistance[3])", ret, out, vsapi); return; }
+    // d.kernel[nlmDistance] -> 4 is set by VapourSynthPluginGetFrame
 
     // nlmHorizontal
     ret = clSetKernelArg(d.kernel[nlmHorizontal], 0, sizeof(cl_mem), &d.mem_U[memU4a]);

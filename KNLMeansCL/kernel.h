@@ -24,15 +24,14 @@
 //////////////////////////////////////////
 // Type Definition
 
-#define nlmDistanceLeft            0x0
-#define nlmDistanceRight           0x1
-#define nlmHorizontal              0x2
-#define nlmVertical                0x3
-#define nlmAccumulation            0x4
-#define nlmFinish                  0x5
-#define nlmPack                    0x6
-#define nlmUnpack                  0x7
-#define NLM_KERNELS                0x8
+#define nlmDistance                0x0
+#define nlmHorizontal              0x1
+#define nlmVertical                0x2
+#define nlmAccumulation            0x3
+#define nlmFinish                  0x4
+#define nlmPack                    0x5
+#define nlmUnpack                  0x6
+#define NLM_KERNELS                0x7
 
 #define memU1a                     0x0
 #define memU1b                     0x1
@@ -77,15 +76,15 @@ static const char* kernel_source_code =
 "#define CHECK_FLAG(flag) ((NLM_TCLIP & (flag)) == (flag))                                                        \n" \
 "                                                                                                                 \n" \
 "__kernel __attribute__((reqd_work_group_size(DST_BLOCK_X, DST_BLOCK_Y, 1)))                                      \n" \
-"void nlmDistanceLeft(__read_only image2d_array_t U1, __write_only image2d_array_t U4, const int2 dim,            \n" \
-"const int4 q) {                                                                                                  \n" \
+"void nlmDistance(__read_only image2d_array_t U1, __write_only image2d_array_t U4, const int t,                   \n" \
+"const int2 dim, const int4 q) {                                                                                  \n" \
 "                                                                                                                 \n" \
 "   int x = get_global_id(0);                                                                                     \n" \
 "   int y = get_global_id(1);                                                                                     \n" \
 "   if(x >= dim.x || y >= dim.y) return;                                                                          \n" \
 "                                                                                                                 \n" \
 "   const sampler_t smp = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP | CLK_FILTER_NEAREST;                   \n" \
-"   int4 p = (int4) (x, y, NLM_D, 0);                                                                             \n" \
+"   int4 p = (int4) (x, y, t, 0);                                                                                 \n" \
 "                                                                                                                 \n" \
 "   if (CHECK_FLAG(NLM_CLIP_REF_LUMA)) {                                                                          \n" \
 "                                                                                                                 \n" \
@@ -124,58 +123,6 @@ static const char* kernel_source_code =
 "       float  dst_b = (     1.0f - m_red) * (u1.z - u1_pq.z) * (u1.z - u1_pq.z);                                 \n" \
 "       float  val   = dst_r + dst_g + dst_b;                                                                     \n" \
 "       write_imagef(U4, p, (float4) (val, 0.0f, 0.0f, 0.0f));                                                    \n" \
-"                                                                                                                 \n" \
-"   }                                                                                                             \n" \
-"}                                                                                                                \n" \
-"                                                                                                                 \n" \
-"__kernel __attribute__((reqd_work_group_size(DST_BLOCK_X, DST_BLOCK_Y, 1)))                                      \n" \
-"void nlmDistanceRight(__read_only image2d_array_t U1, __write_only image2d_array_t U4, const int2 dim,           \n" \
-"const int4 q) {                                                                                                  \n" \
-"                                                                                                                 \n" \
-"   int x = get_global_id(0);                                                                                     \n" \
-"   int y = get_global_id(1);                                                                                     \n" \
-"   if((x - q.x) < 0 || (x - q.x) >= dim.x || (y - q.y) < 0 || (y - q.y) >= dim.y) return;                        \n" \
-"                                                                                                                 \n" \
-"   const sampler_t smp = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP | CLK_FILTER_NEAREST;                   \n" \
-"   int4 p = (int4) (x, y, NLM_D, 0);                                                                             \n" \
-"                                                                                                                 \n" \
-"   if (CHECK_FLAG(NLM_CLIP_REF_LUMA)) {                                                                          \n" \
-"                                                                                                                 \n" \
-"       float  u1    = read_imagef(U1, smp, p    ).x;                                                             \n" \
-"       float  u1_mq = read_imagef(U1, smp, p - q).x;                                                             \n" \
-"       float  dst   = (u1 - u1_mq) * (u1 - u1_mq);                                                               \n" \
-"       float  val   = 3.0f * dst;                                                                                \n" \
-"       write_imagef(U4, p - q, (float4) (val, 0.0f, 0.0f, 0.0f));                                                \n" \
-"                                                                                                                 \n" \
-"   } else if (CHECK_FLAG(NLM_CLIP_REF_CHROMA)) {                                                                 \n" \
-"                                                                                                                 \n" \
-"       float2 u1    = read_imagef(U1, smp, p    ).xy;                                                            \n" \
-"       float2 u1_mq = read_imagef(U1, smp, p - q).xy;                                                            \n" \
-"       float  dst_u = (u1.x - u1_mq.x) * (u1.x - u1_mq.x);                                                       \n" \
-"       float  dst_v = (u1.y - u1_mq.y) * (u1.y - u1_mq.y);                                                       \n" \
-"       float  val   = 1.5f * (dst_u + dst_v);                                                                    \n" \
-"       write_imagef(U4, p - q, (float4) (val, 0.0f, 0.0f, 0.0f));                                                \n" \
-"                                                                                                                 \n" \
-"   } else if (CHECK_FLAG(NLM_CLIP_REF_YUV)) {                                                                    \n" \
-"                                                                                                                 \n" \
-"       float3 u1    = read_imagef(U1, smp, p    ).xyz;                                                           \n" \
-"       float3 u1_mq = read_imagef(U1, smp, p - q).xyz;                                                           \n" \
-"       float  dst_y  = (u1.x - u1_mq.x) * (u1.x - u1_mq.x);                                                      \n" \
-"       float  dst_u  = (u1.y - u1_mq.y) * (u1.y - u1_mq.y);                                                      \n" \
-"       float  dst_v  = (u1.z - u1_mq.z) * (u1.z - u1_mq.z);                                                      \n" \
-"       float  val    = dst_y + dst_u + dst_v;                                                                    \n" \
-"       write_imagef(U4, p - q, (float4) (val, 0.0f, 0.0f, 0.0f));                                                \n" \
-"                                                                                                                 \n" \
-"   } else if (CHECK_FLAG(NLM_CLIP_REF_RGB)) {                                                                    \n" \
-"                                                                                                                 \n" \
-"       float3 u1    = read_imagef(U1, smp, p    ).xyz;                                                           \n" \
-"       float3 u1_mq = read_imagef(U1, smp, p - q).xyz;                                                           \n" \
-"       float  m_red = native_divide(u1.x + u1_mq.x, 6.0f);                                                       \n" \
-"       float  dst_r = (2.0f/3.0f + m_red) * (u1.x - u1_mq.x) * (u1.x - u1_mq.x);                                 \n" \
-"       float  dst_g = (4.0f/3.0f        ) * (u1.y - u1_mq.y) * (u1.y - u1_mq.y);                                 \n" \
-"       float  dst_b = (     1.0f - m_red) * (u1.z - u1_mq.z) * (u1.z - u1_mq.z);                                 \n" \
-"       float  val    = dst_r + dst_g + dst_b;                                                                    \n" \
-"       write_imagef(U4, p - q, (float4) (val, 0.0f, 0.0f, 0.0f));                                                \n" \
 "                                                                                                                 \n" \
 "   }                                                                                                             \n" \
 "}                                                                                                                \n" \
