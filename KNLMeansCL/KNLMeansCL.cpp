@@ -1452,7 +1452,7 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
         d.hrz_block_y = d.vrt_block_y = 8;
     } else {
         d.dst_block_x = d.dst_block_y = 32;
-        d.hrz_block_x = d.vrt_block_x = 64;
+        d.hrz_block_x = d.vrt_block_x = 128;
         d.hrz_block_y = d.vrt_block_y = 8;
     }
 
