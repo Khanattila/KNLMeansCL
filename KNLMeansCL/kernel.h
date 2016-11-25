@@ -39,9 +39,8 @@
 #define memU2                      0x3
 #define memU4a                     0x4
 #define memU4b                     0x5
-#define memU5a                     0x6
-#define memU5b                     0x7
-#define NLM_MEMORY                 0x8
+#define memU5                      0x6
+#define NLM_MEMORY                 0x7
 
 #define NLM_CLIP_EXTRA_FALSE      (1 << 0)
 #define NLM_CLIP_EXTRA_TRUE       (1 << 1)
@@ -58,13 +57,7 @@
 #define NLM_WMODE_BISQUARE         0x2
 #define NLM_WMODE_MOD_BISQUARE     0x3
 
-#define DST_BLOCK_X                 16
-#define DST_BLOCK_Y                 16
-#define HRZ_BLOCK_X                 32
-#define HRZ_BLOCK_Y                  8
 #define HRZ_RESULT                   3
-#define VRT_BLOCK_X                 32
-#define VRT_BLOCK_Y                  8
 #define VRT_RESULT                   3
 
 //////////////////////////////////////////
@@ -72,7 +65,7 @@
 static const char* kernel_source_code =
 "                                                                                                                 \n" \
 "#define NLM_NORM         ( 255.0f * 255.0f )                                                                     \n" \
-"#define NLM_S_SIZE       ( (2 * NLM_S + 1) * (2 * NLM_S + 1))                                                    \n" \
+"#define NLM_S_SIZE       ( (2 * NLM_S + 1) * (2 * NLM_S + 1) )                                                   \n" \
 "#define NLM_H2_INV_NORM  ( NLM_NORM / (NLM_H * NLM_H * NLM_S_SIZE) )                                             \n" \
 "#define NLM_16BIT_MSB    ( 256.0f / 65535.0f )                                                                   \n" \
 "#define NLM_16BIT_LSB    (   1.0f / 65535.0f )                                                                   \n" \
@@ -203,7 +196,7 @@ static const char* kernel_source_code =
 "                                                                                                                 \n" \
 "__kernel                                                                                                         \n" \
 "void nlmAccumulation(__read_only image2d_array_t U1, __global void* U2, __read_only image2d_array_t U4,          \n" \
-"__read_only image2d_t U5_in, __write_only image2d_t U5_out, const int4 q) {                                      \n" \
+"__global float* U5, const int4 q) {                                                                              \n" \
 "                                                                                                                 \n" \
 "   int x = get_global_id(0);                                                                                     \n" \
 "   int y = get_global_id(1);                                                                                     \n" \
@@ -216,9 +209,7 @@ static const char* kernel_source_code =
 "                                                                                                                 \n" \
 "   float u4    = read_imagef(U4,    smp, p    ).x;                                                               \n" \
 "   float u4_mq = read_imagef(U4,    smp, p - q).x;                                                               \n" \
-"   float u5    = read_imagef(U5_in, smp, s    ).x;                                                               \n" \
-"   float val = fmax(u5, fmax(u4, u4_mq));                                                                        \n" \
-"   write_imagef(U5_out, s, (float4) (val, 0.0f, 0.0f, 0.0f));                                                    \n" \
+"   U5[gidx]    = fmax(U5[gidx], fmax(u4, u4_mq));                                                                \n" \
 "                                                                                                                 \n" \
 "   if (CHECK_FLAG(NLM_CLIP_REF_LUMA)) {                                                                          \n" \
 "                                                                                                                 \n" \
@@ -266,7 +257,7 @@ static const char* kernel_source_code =
 "                                                                                                                 \n" \
 "__kernel                                                                                                         \n" \
 "void nlmFinish(__read_only image2d_array_t U1_in, __write_only image2d_t U1_out, __global void* U2,              \n" \
-"__read_only image2d_t U5) {                                                                                      \n" \
+"__global float* U5) {                                                                                            \n" \
 "                                                                                                                 \n" \
 "   int x = get_global_id(0);                                                                                     \n" \
 "   int y = get_global_id(1);                                                                                     \n" \
@@ -276,7 +267,7 @@ static const char* kernel_source_code =
 "   int4 p = (int4) (x, y, NLM_D, 0);                                                                             \n" \
 "   int2 s = (int2) (x, y);                                                                                       \n" \
 "   int gidx = mad24(y, VI_WIDTH, x);                                                                             \n" \
-"   float wM = NLM_WREF * read_imagef(U5, smp, s).x;                                                              \n" \
+"   float wM = NLM_WREF * U5[gidx];                                                                               \n" \
 "                                                                                                                 \n" \
 "   if (CHECK_FLAG(NLM_CLIP_REF_LUMA)) {                                                                          \n" \
 "                                                                                                                 \n" \

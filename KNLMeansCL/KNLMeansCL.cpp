@@ -207,6 +207,28 @@ _NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _
     cl_int ret = oclUtilsGetPlaformDeviceIDs(ocl_device_type, (cl_uint) ocl_id, &platformID, &deviceID);
     oclErrorCheck("oclUtilsGetPlaformDeviceIDs", ret, env);
 
+    // Get maximum number of work-items
+    size_t max_work_group_size;
+    ret = clGetDeviceInfo(deviceID, CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(size_t), &max_work_group_size, NULL);
+    oclErrorCheck("clGetDeviceInfo", ret, env);
+    if (max_work_group_size < 255) {
+        dst_block_x = dst_block_y = 8;
+        hrz_block_x = vrt_block_x = 16;
+        hrz_block_y = vrt_block_y = 8;
+    } else if (max_work_group_size < 511) { // 256 Ellesmere
+        dst_block_x = dst_block_y = 16;
+        hrz_block_x = vrt_block_x = 32;
+        hrz_block_y = vrt_block_y = 8;
+    } else if (max_work_group_size < 1023) { // 512 Haswell(GT2)
+        dst_block_x = dst_block_y = 16;
+        hrz_block_x = vrt_block_x = 64;
+        hrz_block_y = vrt_block_y = 8;
+    } else {
+        dst_block_x = dst_block_y = 32;
+        hrz_block_x = vrt_block_x = 128;
+        hrz_block_y = vrt_block_y = 8;
+    }
+
     // Create an OpenCL context
     context = clCreateContext(NULL, 1, &deviceID, NULL, NULL, &ret);
     oclErrorCheck("clCreateContext", ret, env);
@@ -216,6 +238,7 @@ _NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _
 
     // Create mem_U[]
     size_t size_u2 = sizeof(cl_float) * idmn[0] * idmn[1] * channel_num;
+    size_t size_u5 = sizeof(cl_float) * idmn[0] * idmn[1];
     cl_mem_flags flags_u1ab, flags_u1z;
     if (!(clip_t & NLM_CLIP_REF_CHROMA) && !(clip_t & NLM_CLIP_REF_YUV) && !lsb) {
         flags_u1ab = CL_MEM_READ_ONLY | CL_MEM_HOST_WRITE_ONLY;
@@ -240,10 +263,8 @@ _NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _
     oclErrorCheck("clCreateImage(mem_U[NLM_MEM_U4a])", ret, env);
     mem_U[memU4b] = clCreateImage(context, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, &format_u4, &desc_u, NULL, &ret);
     oclErrorCheck("clCreateImage(mem_U[NLM_MEM_U4b])", ret, env);
-    mem_U[memU5a] = clCreateImage(context, CL_MEM_READ_WRITE | CL_MEM_HOST_WRITE_ONLY, &format_u4, &desc_u1z, NULL, &ret);
+    mem_U[memU5] = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_HOST_WRITE_ONLY, size_u5, NULL, &ret);
     oclErrorCheck("clCreateBuffer(mem_U[NLM_MEM_U0a])", ret, env);
-    mem_U[memU5b] = clCreateImage(context, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, &format_u4, &desc_u1z, NULL, &ret);
-    oclErrorCheck("clCreateBuffer(mem_U[NLM_MEM_U0b])", ret, env);
 
     // Create mem_P[]
     const cl_image_format format_p = { CL_R, channel_type_p };
@@ -269,14 +290,14 @@ _NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _
         -D NLM_CLIP_TYPE_UNORM=%u -D NLM_CLIP_TYPE_UNSIGNED=%u -D NLM_CLIP_TYPE_STACKED=%u \
         -D NLM_CLIP_REF_LUMA=%u -D NLM_CLIP_REF_CHROMA=%u -D NLM_CLIP_REF_YUV=%u -D NLM_CLIP_REF_RGB=%u \
         -D NLM_WMODE_CAUCHY=%u -D NLM_WMODE_WELSCH=%u -D NLM_WMODE_BISQUARE=%u -D NLM_WMODE_MOD_BISQUARE=%u \
-        -D VI_WIDTH=%u -D VI_HEIGHT=%u -D DST_BLOCK_X=%u -D DST_BLOCK_Y=%u \
-        -D HRZ_BLOCK_X=%u -D HRZ_BLOCK_Y=%u -D HRZ_RESULT=%u -D VRT_BLOCK_X=%u -D VRT_BLOCK_Y=%u -D VRT_RESULT=%u \
+        -D VI_WIDTH=%u -D VI_HEIGHT=%u -D DST_BLOCK_X=%zu -D DST_BLOCK_Y=%zu \
+        -D HRZ_BLOCK_X=%zu -D HRZ_BLOCK_Y=%zu -D HRZ_RESULT=%u -D VRT_BLOCK_X=%zu -D VRT_BLOCK_Y=%zu -D VRT_RESULT=%u \
         -D NLM_TCLIP=%u -D NLM_D=%i -D NLM_S=%i -D NLM_WMODE=%i -D NLM_WREF=%f -D NLM_H=%f",
         NLM_CLIP_TYPE_UNORM, NLM_CLIP_TYPE_UNSIGNED, NLM_CLIP_TYPE_STACKED,
         NLM_CLIP_REF_LUMA, NLM_CLIP_REF_CHROMA, NLM_CLIP_REF_YUV, NLM_CLIP_REF_RGB,
         NLM_WMODE_CAUCHY, NLM_WMODE_WELSCH, NLM_WMODE_BISQUARE, NLM_WMODE_MOD_BISQUARE,
-        idmn[0], idmn[1], DST_BLOCK_X, DST_BLOCK_Y, 
-        HRZ_BLOCK_X, HRZ_BLOCK_Y, HRZ_RESULT, VRT_BLOCK_X, VRT_BLOCK_Y, VRT_RESULT, 
+        idmn[0], idmn[1], dst_block_x, dst_block_y,
+        hrz_block_x, hrz_block_y, HRZ_RESULT, vrt_block_x, vrt_block_y, VRT_RESULT,
         clip_t, d, s, wmode, wref, h);
     ret = clBuildProgram(program, 1, &deviceID, options, NULL, NULL);
     if (ret != CL_SUCCESS) {
@@ -299,7 +320,7 @@ _NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _
     kernel[nlmPack] = clCreateKernel(program, "nlmPack", &ret);
     oclErrorCheck("clCreateKernel(nlmPack)", ret, env);
     kernel[nlmUnpack] = clCreateKernel(program, "nlmUnpack", &ret);
-    oclErrorCheck("clCreateKernel(nlmUnpack)", ret, env);
+    oclErrorCheck("clCreateKernel(nlmUnpack)", ret, env); 
 
     // Set kernel arguments - nlmDistanceLeft
     int index_u1 = (clip_t & NLM_CLIP_EXTRA_FALSE) ? memU1a : memU1b;
@@ -331,9 +352,9 @@ _NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _
     oclErrorCheck("clSetKernelArg(nlmAccumulation[1])", ret, env);
     ret = clSetKernelArg(kernel[nlmAccumulation], 2, sizeof(cl_mem), &mem_U[memU4a]);
     oclErrorCheck("clSetKernelArg(nlmAccumulation[2])", ret, env);
-    // kernel[nlmAccumulation] -> 3 is set by AviSynthPluginGetFrame
+    ret = clSetKernelArg(kernel[nlmAccumulation], 3, sizeof(cl_mem), &mem_U[memU5]);
+    oclErrorCheck("clSetKernelArg(nlmAccumulation[3])", ret, env);
     // kernel[nlmAccumulation] -> 4 is set by AviSynthPluginGetFrame
-    // kernel[nlmAccumulation] -> 5 is set by AviSynthPluginGetFrame
 
     // nlmFinish
     ret = clSetKernelArg(kernel[nlmFinish], 0, sizeof(cl_mem), &mem_U[memU1a]);
@@ -342,7 +363,8 @@ _NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _
     oclErrorCheck("clSetKernelArg(nlmFinish[1])", ret, env);
     ret = clSetKernelArg(kernel[nlmFinish], 2, sizeof(cl_mem), &mem_U[memU2]);
     oclErrorCheck("clSetKernelArg(nlmFinish[2])", ret, env);
-    // kernel[nlmFinish] -> 3 is set by AviSynthPluginGetFrame
+    ret = clSetKernelArg(kernel[nlmFinish], 3, sizeof(cl_mem), &mem_U[memU5]);
+    oclErrorCheck("clSetKernelArg(nlmFinish[3])", ret, env);
 
     // nlmPack
     ret = clSetKernelArg(kernel[nlmPack], 0, sizeof(cl_mem), &mem_P[0]);
@@ -402,28 +424,32 @@ PVideoFrame __stdcall _NLMAvisynth::GetFrame(int n, IScriptEnvironment* env) {
     int spt_side = 2 * a + 1;
     int spt_area = spt_side * spt_side;
     size_t size_u2 = sizeof(cl_float) * idmn[0] * idmn[1] * channel_num;
+    size_t size_u5 = sizeof(cl_float) * idmn[0] * idmn[1];
     const cl_int t = d;
     const cl_float pattern_u2 = 0.0f;
-    const cl_float color_u5[4] = { CL_FLT_EPSILON, 0.0f, 0.0f, 0.0f };
+    const cl_float pattern_u5 = CL_FLT_EPSILON;
     const size_t origin[3] = { 0, 0, 0 };
     const size_t region[3] = { idmn[0], idmn[1], 1 };
-    const size_t global_work[2] = { mrounds(idmn[0], DST_BLOCK_X), mrounds(idmn[1], DST_BLOCK_Y) };
+    const size_t global_work[2] = { 
+        mrounds(idmn[0], dst_block_x),
+        mrounds(idmn[1], dst_block_y) 
+    };
     const size_t global_work_hrz[2] = {
-        mrounds(idmn[0], HRZ_RESULT * HRZ_BLOCK_X) / HRZ_RESULT,
-        mrounds(idmn[1], HRZ_BLOCK_Y)
+        mrounds(idmn[0], HRZ_RESULT * hrz_block_x) / HRZ_RESULT,
+        mrounds(idmn[1], hrz_block_y)
     };
     const size_t global_work_vrt[2] = {
-        mrounds(idmn[0], VRT_BLOCK_X),
-        mrounds(idmn[1], VRT_RESULT * VRT_BLOCK_X) / VRT_RESULT
+        mrounds(idmn[0], vrt_block_x),
+        mrounds(idmn[1], VRT_RESULT * vrt_block_y) / VRT_RESULT
     };
-    const size_t local_work_dst[2] = { DST_BLOCK_X, DST_BLOCK_Y };
-    const size_t local_work_hrz[2] = { HRZ_BLOCK_X, HRZ_BLOCK_Y };
-    const size_t local_work_vrt[2] = { VRT_BLOCK_X, VRT_BLOCK_Y };
+    const size_t local_work_dst[2] = { dst_block_x, dst_block_y };
+    const size_t local_work_hrz[2] = { hrz_block_x, hrz_block_y };
+    const size_t local_work_vrt[2] = { vrt_block_x, vrt_block_y };
 
     // Set-up buffers   
     cl_int ret = CL_SUCCESS;
     ret |= clEnqueueFillBuffer(command_queue, mem_U[memU2], &pattern_u2, sizeof(cl_float), 0, size_u2, 0, NULL, NULL);
-    ret |= clEnqueueFillImage(command_queue, mem_U[memU5a], color_u5, origin, region, 0, NULL, NULL);
+    ret |= clEnqueueFillBuffer(command_queue, mem_U[memU5], &pattern_u2, sizeof(cl_float), 0, size_u5, 0, NULL, NULL);
 
     // Write image
     for (int k = k_start; k <= k_end; k++) {
@@ -639,7 +665,6 @@ PVideoFrame __stdcall _NLMAvisynth::GetFrame(int n, IScriptEnvironment* env) {
     }
 
     // Spatio-temporal processing
-    bool itr = true;
     for (int k = k_start; k <= 0; k++) {
         for (int j = -a; j <= a; j++) {
             for (int i = -a; i <= a; i++) {
@@ -668,17 +693,13 @@ PVideoFrame __stdcall _NLMAvisynth::GetFrame(int n, IScriptEnvironment* env) {
                         ret |= clEnqueueNDRangeKernel(command_queue, kernel[nlmVertical],
                             2, NULL, global_work_vrt, local_work_vrt, 0, NULL, NULL);
                     }
-                    ret |= clSetKernelArg(kernel[nlmAccumulation], 3, sizeof(cl_mem), &mem_U[itr ? memU5a : memU5b]);
-                    ret |= clSetKernelArg(kernel[nlmAccumulation], 4, sizeof(cl_mem), &mem_U[itr ? memU5b : memU5a]);
-                    ret |= clSetKernelArg(kernel[nlmAccumulation], 5, 4 * sizeof(cl_int), &q);
+                    ret |= clSetKernelArg(kernel[nlmAccumulation], 4, 4 * sizeof(cl_int), &q);
                     ret |= clEnqueueNDRangeKernel(command_queue, kernel[nlmAccumulation],
-                        2, NULL, global_work, NULL, 0, NULL, NULL);
-                    itr = !itr;
+                        2, NULL, global_work, local_work_dst, 0, NULL, NULL);
                 }
             }
         }
     }
-    ret |= clSetKernelArg(kernel[nlmFinish], 3, sizeof(cl_mem), &mem_U[itr ? memU5a : memU5b]);
     ret |= clEnqueueNDRangeKernel(command_queue, kernel[nlmFinish], 2, NULL, global_work, NULL, 0, NULL, NULL);
 
     // Read image
@@ -851,23 +872,27 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
         int spt_side = 2 * int64ToIntS(d->a) + 1;
         int spt_area = spt_side * spt_side;
         size_t size_u2 = sizeof(cl_float) * d->idmn[0] * d->idmn[1] * d->channel_num;
+        size_t size_u5 = sizeof(cl_float) * d->idmn[0] * d->idmn[1];
         const cl_int t = int64ToIntS(d->d);
         const cl_float pattern_u2 = 0.0f;
-        const cl_float color_u5[4] = { CL_FLT_EPSILON, 0.0f, 0.0f ,0.0f };
+        const cl_float pattern_u5 = CL_FLT_EPSILON;
         const size_t origin[3] = { 0, 0, 0 };
         const size_t region[3] = { d->idmn[0], d->idmn[1], 1 };
-        const size_t global_work[2] = { mrounds(d->idmn[0], DST_BLOCK_X), mrounds(d->idmn[1], DST_BLOCK_Y) };
+        const size_t global_work[2] = { 
+            mrounds(d->idmn[0], d->dst_block_x), 
+            mrounds(d->idmn[1], d->dst_block_y) 
+        };
         const size_t global_work_hrz[2] = {
-            mrounds(d->idmn[0], HRZ_RESULT * HRZ_BLOCK_X) / HRZ_RESULT,
-            mrounds(d->idmn[1], HRZ_BLOCK_Y)
+            mrounds(d->idmn[0], HRZ_RESULT * d->hrz_block_x) / HRZ_RESULT,
+            mrounds(d->idmn[1], d->hrz_block_y)
         };
         const size_t global_work_vrt[2] = {
-            mrounds(d->idmn[0], VRT_BLOCK_X),
-            mrounds(d->idmn[1], VRT_RESULT * VRT_BLOCK_X) / VRT_RESULT
+            mrounds(d->idmn[0], d->vrt_block_x),
+            mrounds(d->idmn[1], VRT_RESULT * d->vrt_block_y) / VRT_RESULT
         };
-        const size_t local_work_dst[2] = { DST_BLOCK_X, DST_BLOCK_Y };
-        const size_t local_work_hrz[2] = { HRZ_BLOCK_X, HRZ_BLOCK_Y };
-        const size_t local_work_vrt[2] = { VRT_BLOCK_X, VRT_BLOCK_Y };
+        const size_t local_work_dst[2] = { d->dst_block_x, d->dst_block_y };
+        const size_t local_work_hrz[2] = { d->hrz_block_x, d->hrz_block_y };
+        const size_t local_work_vrt[2] = { d->vrt_block_x, d->vrt_block_y };
 
         // Copy other 
         if (fi->colorFamily != cmGray && (d->clip_t & NLM_CLIP_REF_LUMA)) {
@@ -886,7 +911,7 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
         // Set-up buffers
         cl_int ret = CL_SUCCESS;
         ret |= clEnqueueFillBuffer(d->command_queue, d->mem_U[memU2], &pattern_u2, sizeof(cl_float), 0, size_u2, 0, NULL, NULL);
-        ret |= clEnqueueFillImage(d->command_queue, d->mem_U[memU5a], color_u5, origin, region, 0, NULL, NULL);
+        ret |= clEnqueueFillBuffer(d->command_queue, d->mem_U[memU5], &pattern_u5, sizeof(cl_float), 0, size_u5, 0, NULL, NULL);
 
         // Read image
         for (int k = k_start; k <= k_end; k++) {
@@ -984,7 +1009,6 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
         }
 
         // Spatio-temporal processing
-        bool itr = true;
         for (int k = k_start; k <= 0; k++) {
             for (int j = int64ToIntS(-d->a); j <= d->a; j++) {
                 for (int i = int64ToIntS(-d->a); i <= d->a; i++) {
@@ -1013,17 +1037,13 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
                             ret |= clEnqueueNDRangeKernel(d->command_queue, d->kernel[nlmVertical],
                                 2, NULL, global_work_vrt, local_work_vrt, 0, NULL, NULL);
                         }
-                        ret |= clSetKernelArg(d->kernel[nlmAccumulation], 3, sizeof(cl_mem), &d->mem_U[itr ? memU5a : memU5b]);
-                        ret |= clSetKernelArg(d->kernel[nlmAccumulation], 4, sizeof(cl_mem), &d->mem_U[itr ? memU5b : memU5a]);
-                        ret |= clSetKernelArg(d->kernel[nlmAccumulation], 5, 4 * sizeof(cl_int), &q);
+                        ret |= clSetKernelArg(d->kernel[nlmAccumulation], 4, 4 * sizeof(cl_int), &q);
                         ret |= clEnqueueNDRangeKernel(d->command_queue, d->kernel[nlmAccumulation],
                             2, NULL, global_work, NULL, 0, NULL, NULL);
-                        itr = !itr;
                     }
                 }
             }
         }
-        ret |= clSetKernelArg(d->kernel[nlmFinish], 3, sizeof(cl_mem), &d->mem_U[itr ? memU5a : memU5b]);
         ret |= clEnqueueNDRangeKernel(d->command_queue, d->kernel[nlmFinish], 2, NULL, global_work, NULL, 0, NULL, NULL);
 
         // Write image
@@ -1136,8 +1156,7 @@ _NLMAvisynth::~_NLMAvisynth() {
     clReleaseMemObject(mem_P[2]);
     clReleaseMemObject(mem_P[1]);
     clReleaseMemObject(mem_P[0]);
-    clReleaseMemObject(mem_U[memU5b]);
-    clReleaseMemObject(mem_U[memU5a]);
+    clReleaseMemObject(mem_U[memU5]);
     clReleaseMemObject(mem_U[memU4b]);
     clReleaseMemObject(mem_U[memU4a]);
     clReleaseMemObject(mem_U[memU2]);
@@ -1171,8 +1190,7 @@ static void VS_CC VapourSynthPluginFree(void *instanceData, VSCore *core, const 
     clReleaseMemObject(d->mem_P[2]);
     clReleaseMemObject(d->mem_P[1]);
     clReleaseMemObject(d->mem_P[0]);
-    clReleaseMemObject(d->mem_U[memU5b]);
-    clReleaseMemObject(d->mem_U[memU5a]);
+    clReleaseMemObject(d->mem_U[memU5]);
     clReleaseMemObject(d->mem_U[memU4b]);
     clReleaseMemObject(d->mem_U[memU4a]);
     clReleaseMemObject(d->mem_U[memU2]);
@@ -1416,6 +1434,28 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
     cl_int ret = oclUtilsGetPlaformDeviceIDs(ocl_device_type, (cl_uint) d.ocl_id, &d.platformID, &d.deviceID);
     if (ret != CL_SUCCESS) { d.oclErrorCheck("oclUtilsGetPlaformDeviceIDs", ret, out, vsapi); return; }
 
+    // Get maximum number of work-items
+    size_t max_work_group_size;
+    ret = clGetDeviceInfo(d.deviceID, CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(size_t), &max_work_group_size, NULL);
+    if (ret != CL_SUCCESS) { d.oclErrorCheck("clGetDeviceInfo", ret, out, vsapi); return; }
+    if (max_work_group_size < 255) {
+        d.dst_block_x = d.dst_block_y = 8;
+        d.hrz_block_x = d.vrt_block_x = 16;
+        d.hrz_block_y = d.vrt_block_y = 8;
+    } else if (max_work_group_size < 511) { // 256 Ellesmere
+        d.dst_block_x = d.dst_block_y = 16;
+        d.hrz_block_x = d.vrt_block_x = 32;
+        d.hrz_block_y = d.vrt_block_y = 8;
+    } else if (max_work_group_size < 1023) { // 512 Haswell(GT2)
+        d.dst_block_x = d.dst_block_y = 16;
+        d.hrz_block_x = d.vrt_block_x = 64;
+        d.hrz_block_y = d.vrt_block_y = 8;
+    } else {
+        d.dst_block_x = d.dst_block_y = 32;
+        d.hrz_block_x = d.vrt_block_x = 64;
+        d.hrz_block_y = d.vrt_block_y = 8;
+    }
+
     // Create an OpenCL context
     d.context = clCreateContext(NULL, 1, &d.deviceID, NULL, NULL, &ret);
     if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateContext", ret, out, vsapi); return; }
@@ -1426,6 +1466,7 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
 
     // Create mem_in[] and mem_out
     size_t size_u2 = sizeof(cl_float) * d.idmn[0] * d.idmn[1] * d.channel_num;
+    size_t size_u5 = sizeof(cl_float) * d.idmn[0] * d.idmn[1];
     cl_mem_flags flags_u1ab, flags_u1z;
     if (d.clip_t & NLM_CLIP_REF_LUMA) {
         flags_u1ab = CL_MEM_READ_ONLY | CL_MEM_HOST_WRITE_ONLY;
@@ -1450,9 +1491,7 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
     if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateImage(d.mem_P[memU4a])", ret, out, vsapi); return; }
     d.mem_U[memU4b] = clCreateImage(d.context, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, &format_u4, &desc_u, NULL, &ret);
     if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateImage(d.mem_P[memU4b])", ret, out, vsapi); return; }
-    d.mem_U[memU5a] = clCreateImage(d.context, CL_MEM_READ_WRITE | CL_MEM_HOST_WRITE_ONLY, &format_u4, &desc_u1z, NULL, &ret);
-    if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateImage(d.mem_P[memU0])", ret, out, vsapi); return; }
-    d.mem_U[memU5b] = clCreateImage(d.context, CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, &format_u4, &desc_u1z, NULL, &ret);
+    d.mem_U[memU5] = clCreateBuffer(d.context, CL_MEM_READ_WRITE | CL_MEM_HOST_WRITE_ONLY, size_u5, NULL, &ret);
     if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateImage(d.mem_P[memU0])", ret, out, vsapi); return; }
 
     // Create mem_P[]
@@ -1477,8 +1516,8 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
         -D NLM_CLIP_TYPE_UNORM=%u -D NLM_CLIP_TYPE_UNSIGNED=%u -D NLM_CLIP_TYPE_STACKED=%u \
         -D NLM_CLIP_REF_LUMA=%u -D NLM_CLIP_REF_CHROMA=%u -D NLM_CLIP_REF_YUV=%u -D NLM_CLIP_REF_RGB=%u \
         -D NLM_WMODE_CAUCHY=%u -D NLM_WMODE_WELSCH=%u -D NLM_WMODE_BISQUARE=%u -D NLM_WMODE_MOD_BISQUARE=%u \
-        -D VI_WIDTH=%u -D VI_HEIGHT=%u -D DST_BLOCK_X=%u -D DST_BLOCK_Y=%u \
-        -D HRZ_BLOCK_X=%u -D HRZ_BLOCK_Y=%u -D HRZ_RESULT=%u -D VRT_BLOCK_X=%u -D VRT_BLOCK_Y=%u -D VRT_RESULT=%u \
+        -D VI_WIDTH=%u -D VI_HEIGHT=%u -D DST_BLOCK_X=%zu -D DST_BLOCK_Y=%zu \
+        -D HRZ_BLOCK_X=%zu -D HRZ_BLOCK_Y=%zu -D HRZ_RESULT=%u -D VRT_BLOCK_X=%zu -D VRT_BLOCK_Y=%zu -D VRT_RESULT=%u \
         -D NLM_TCLIP=%u -D NLM_D=%i -D NLM_S=%i -D NLM_WMODE=%i -D NLM_WREF=%ff -D NLM_H=%ff",
         NLM_CLIP_TYPE_UNORM, NLM_CLIP_TYPE_UNSIGNED, NLM_CLIP_TYPE_STACKED,
         NLM_CLIP_REF_LUMA, NLM_CLIP_REF_CHROMA, NLM_CLIP_REF_YUV, NLM_CLIP_REF_RGB,
@@ -1491,14 +1530,14 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
         -D NLM_CLIP_TYPE_UNORM=%u -D NLM_CLIP_TYPE_UNSIGNED=%u -D NLM_CLIP_TYPE_STACKED=%u \
         -D NLM_CLIP_REF_LUMA=%u -D NLM_CLIP_REF_CHROMA=%u -D NLM_CLIP_REF_YUV=%u -D NLM_CLIP_REF_RGB=%u \
         -D NLM_WMODE_CAUCHY=%u -D NLM_WMODE_WELSCH=%u -D NLM_WMODE_BISQUARE=%u -D NLM_WMODE_MOD_BISQUARE=%u \
-        -D VI_WIDTH=%u -D VI_HEIGHT=%u -D DST_BLOCK_X=%u -D DST_BLOCK_Y=%u \
-        -D HRZ_BLOCK_X=%u -D HRZ_BLOCK_Y=%u -D HRZ_RESULT=%u -D VRT_BLOCK_X=%u -D VRT_BLOCK_Y=%u -D VRT_RESULT=%u \
+        -D VI_WIDTH=%u -D VI_HEIGHT=%u -D DST_BLOCK_X=%zu -D DST_BLOCK_Y=%zu \
+        -D HRZ_BLOCK_X=%zu -D HRZ_BLOCK_Y=%zu -D HRZ_RESULT=%u -D VRT_BLOCK_X=%zu -D VRT_BLOCK_Y=%zu -D VRT_RESULT=%u \
         -D NLM_TCLIP=%u -D NLM_D=%i -D NLM_S=%i -D NLM_WMODE=%i -D NLM_WREF=%f -D NLM_H=%f",
         NLM_CLIP_TYPE_UNORM, NLM_CLIP_TYPE_UNSIGNED, NLM_CLIP_TYPE_STACKED,
         NLM_CLIP_REF_LUMA, NLM_CLIP_REF_CHROMA, NLM_CLIP_REF_YUV, NLM_CLIP_REF_RGB,
         NLM_WMODE_CAUCHY, NLM_WMODE_WELSCH, NLM_WMODE_BISQUARE, NLM_WMODE_MOD_BISQUARE,
-        d.idmn[0], d.idmn[1], DST_BLOCK_X, DST_BLOCK_Y, 
-        HRZ_BLOCK_X, HRZ_BLOCK_Y, HRZ_RESULT, VRT_BLOCK_X, VRT_BLOCK_Y, VRT_RESULT, 
+        d.idmn[0], d.idmn[1], d.dst_block_x, d.dst_block_y,
+        d.hrz_block_x, d.hrz_block_y, HRZ_RESULT, d.vrt_block_x, d.vrt_block_y, VRT_RESULT,
         d.clip_t, int64ToIntS(d.d), int64ToIntS(d.s), int64ToIntS(d.wmode), d.wref, d.h);
 #    endif
     ret = clBuildProgram(d.program, 1, &d.deviceID, options, NULL, NULL);
@@ -1557,18 +1596,19 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
     if (ret != CL_SUCCESS) { d.oclErrorCheck("clSetKernelArg(nlmAccumulation[1])", ret, out, vsapi); return; }
     ret = clSetKernelArg(d.kernel[nlmAccumulation], 2, sizeof(cl_mem), &d.mem_U[memU4a]);
     if (ret != CL_SUCCESS) { d.oclErrorCheck("clSetKernelArg(nlmAccumulation[2])", ret, out, vsapi); return; }
-    // d.kernel[nlmAccumulation] -> 3 is set by VapourSynthPluginGetFrame
+    ret = clSetKernelArg(d.kernel[nlmAccumulation], 3, sizeof(cl_mem), &d.mem_U[memU5]);
+    if (ret != CL_SUCCESS) { d.oclErrorCheck("clSetKernelArg(nlmAccumulation[3])", ret, out, vsapi); return; }
     // d.kernel[nlmAccumulation] -> 4 is set by VapourSynthPluginGetFrame
-    // d.kernel[nlmAccumulation] -> 5 is set by VapourSynthPluginGetFrame
 
     // nlmFinish
     ret = clSetKernelArg(d.kernel[nlmFinish], 0, sizeof(cl_mem), &d.mem_U[memU1a]);
-    if (ret != CL_SUCCESS) { d.oclErrorCheck("clSetKernelArg(nlmFinish[1])", ret, out, vsapi); return; }
+    if (ret != CL_SUCCESS) { d.oclErrorCheck("clSetKernelArg(nlmFinish[0])", ret, out, vsapi); return; }
     ret = clSetKernelArg(d.kernel[nlmFinish], 1, sizeof(cl_mem), &d.mem_U[memU1z]);
-    if (ret != CL_SUCCESS) { d.oclErrorCheck("clSetKernelArg(nlmFinish[2])", ret, out, vsapi); return; }
+    if (ret != CL_SUCCESS) { d.oclErrorCheck("clSetKernelArg(nlmFinish[1])", ret, out, vsapi); return; }
     ret = clSetKernelArg(d.kernel[nlmFinish], 2, sizeof(cl_mem), &d.mem_U[memU2]);
+    if (ret != CL_SUCCESS) { d.oclErrorCheck("clSetKernelArg(nlmFinish[2])", ret, out, vsapi); return; }
+    ret = clSetKernelArg(d.kernel[nlmFinish], 3, sizeof(cl_mem), &d.mem_U[memU5]);
     if (ret != CL_SUCCESS) { d.oclErrorCheck("clSetKernelArg(nlmFinish[3])", ret, out, vsapi); return; }
-    // d.kernel[nlmFinish] -> 3 is set by VapourSynthPluginGetFrame
 
     // nlmPack
     ret = clSetKernelArg(d.kernel[nlmPack], 0, sizeof(cl_mem), &d.mem_P[0]);

@@ -60,6 +60,7 @@ private:
     cl_program program;
     cl_kernel kernel[NLM_KERNELS];
     cl_mem mem_U[NLM_MEMORY], mem_P[6];
+    size_t dst_block_x, dst_block_y, hrz_block_x, hrz_block_y, vrt_block_x, vrt_block_y;
     bool equals(VideoInfo *v, VideoInfo *w);
     void oclErrorCheck(const char* function, cl_int errcode, IScriptEnvironment *env);
 public:
@@ -87,6 +88,7 @@ public:
     cl_program program;
     cl_kernel kernel[NLM_KERNELS];
     cl_mem mem_U[NLM_MEMORY], mem_P[3];
+    size_t dst_block_x, dst_block_y, hrz_block_x, hrz_block_y, vrt_block_x, vrt_block_y;
     bool equals(const VSVideoInfo *v, const VSVideoInfo *w);
     void oclErrorCheck(const char* function, cl_int errcode, VSMap *out, const VSAPI *vsapi);
 } NLMVapoursynth;
