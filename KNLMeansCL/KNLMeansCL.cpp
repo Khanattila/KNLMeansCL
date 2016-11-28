@@ -118,8 +118,8 @@ _NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _
         env->ThrowError("KNLMeansCL: 'd' must be greater than or equal to 0!");
     if (a < 1)
         env->ThrowError("KNLMeansCL: 'a' must be greater than or equal to 1!");
-    if (s < 0 || s > 4)
-        env->ThrowError("KNLMeansCL: 's' must be in range [0, 4]!");
+    if (s < 0 || s > 8)
+        env->ThrowError("KNLMeansCL: 's' must be in range [0, 8]!");
     if (h <= 0.0f)
         env->ThrowError("KNLMeansCL: 'h' must be greater than 0!");
     if (vi.IsY8() && strcasecmp(channels, "Y") && strcasecmp(channels, "auto"))
@@ -211,17 +211,13 @@ _NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _
     size_t max_work_group_size;
     ret = clGetDeviceInfo(deviceID, CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(size_t), &max_work_group_size, NULL);
     oclErrorCheck("clGetDeviceInfo", ret, env);
-    if (max_work_group_size < 255) {
+    if (max_work_group_size < 256) {
         dst_block_x = dst_block_y = 8;
-        hrz_block_x = vrt_block_x = 16;
+        hrz_block_x = vrt_block_x = 8;
         hrz_block_y = vrt_block_y = 8;
-    } else if (max_work_group_size < 511) { // 256 Ellesmere
+    } else if (max_work_group_size < 1024) {
         dst_block_x = dst_block_y = 16;
         hrz_block_x = vrt_block_x = 32;
-        hrz_block_y = vrt_block_y = 8;
-    } else if (max_work_group_size < 1023) { // 512 Haswell(GT2)
-        dst_block_x = dst_block_y = 16;
-        hrz_block_x = vrt_block_x = 64;
         hrz_block_y = vrt_block_y = 8;
     } else {
         dst_block_x = dst_block_y = 32;
@@ -289,13 +285,13 @@ _NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _
     snprintf(options, 2048, "-cl-single-precision-constant -cl-denorms-are-zero -cl-fast-relaxed-math -Werror \
         -D NLM_CLIP_TYPE_UNORM=%u -D NLM_CLIP_TYPE_UNSIGNED=%u -D NLM_CLIP_TYPE_STACKED=%u \
         -D NLM_CLIP_REF_LUMA=%u -D NLM_CLIP_REF_CHROMA=%u -D NLM_CLIP_REF_YUV=%u -D NLM_CLIP_REF_RGB=%u \
-        -D NLM_WMODE_CAUCHY=%u -D NLM_WMODE_WELSCH=%u -D NLM_WMODE_BISQUARE=%u -D NLM_WMODE_MOD_BISQUARE=%u \
+        -D NLM_WMODE_WELSCH=%u -D NLM_WMODE_BISQUARE1=%u -D NLM_WMODE_BISQUARE2=%u -D NLM_WMODE_BISQUARE8=%u \
         -D VI_WIDTH=%u -D VI_HEIGHT=%u -D DST_BLOCK_X=%zu -D DST_BLOCK_Y=%zu \
         -D HRZ_BLOCK_X=%zu -D HRZ_BLOCK_Y=%zu -D HRZ_RESULT=%u -D VRT_BLOCK_X=%zu -D VRT_BLOCK_Y=%zu -D VRT_RESULT=%u \
         -D NLM_TCLIP=%u -D NLM_D=%i -D NLM_S=%i -D NLM_WMODE=%i -D NLM_WREF=%f -D NLM_H=%f",
         NLM_CLIP_TYPE_UNORM, NLM_CLIP_TYPE_UNSIGNED, NLM_CLIP_TYPE_STACKED,
         NLM_CLIP_REF_LUMA, NLM_CLIP_REF_CHROMA, NLM_CLIP_REF_YUV, NLM_CLIP_REF_RGB,
-        NLM_WMODE_CAUCHY, NLM_WMODE_WELSCH, NLM_WMODE_BISQUARE, NLM_WMODE_MOD_BISQUARE,
+        NLM_WMODE_WELSCH, NLM_WMODE_BISQUARE1, NLM_WMODE_BISQUARE2, NLM_WMODE_BISQUARE8,
         idmn[0], idmn[1], dst_block_x, dst_block_y,
         hrz_block_x, hrz_block_y, HRZ_RESULT, vrt_block_x, vrt_block_y, VRT_RESULT,
         clip_t, d, s, wmode, wref, h);
@@ -449,7 +445,7 @@ PVideoFrame __stdcall _NLMAvisynth::GetFrame(int n, IScriptEnvironment* env) {
     // Set-up buffers   
     cl_int ret = CL_SUCCESS;
     ret |= clEnqueueFillBuffer(command_queue, mem_U[memU2], &pattern_u2, sizeof(cl_float), 0, size_u2, 0, NULL, NULL);
-    ret |= clEnqueueFillBuffer(command_queue, mem_U[memU5], &pattern_u2, sizeof(cl_float), 0, size_u5, 0, NULL, NULL);
+    ret |= clEnqueueFillBuffer(command_queue, mem_U[memU5], &pattern_u5, sizeof(cl_float), 0, size_u5, 0, NULL, NULL);
 
     // Write image
     for (int k = k_start; k <= k_end; k++) {
@@ -1280,7 +1276,7 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
         return;
     }
     if (d.s < 0 || d.s > 4) {
-        vsapi->setError(out, "knlm.KNLMeansCL: 's' must be in range [0, 4]!");
+        vsapi->setError(out, "knlm.KNLMeansCL: 's' must be in range [0, 8]!");
         vsapi->freeNode(d.node);
         vsapi->freeNode(d.knot);
         return;
@@ -1438,17 +1434,13 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
     size_t max_work_group_size;
     ret = clGetDeviceInfo(d.deviceID, CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(size_t), &max_work_group_size, NULL);
     if (ret != CL_SUCCESS) { d.oclErrorCheck("clGetDeviceInfo", ret, out, vsapi); return; }
-    if (max_work_group_size < 255) {
+    if (max_work_group_size < 256) {
         d.dst_block_x = d.dst_block_y = 8;
-        d.hrz_block_x = d.vrt_block_x = 16;
+        d.hrz_block_x = d.vrt_block_x = 8;
         d.hrz_block_y = d.vrt_block_y = 8;
-    } else if (max_work_group_size < 511) { // 256 Ellesmere
+    } else if (max_work_group_size < 1024) {
         d.dst_block_x = d.dst_block_y = 16;
         d.hrz_block_x = d.vrt_block_x = 32;
-        d.hrz_block_y = d.vrt_block_y = 8;
-    } else if (max_work_group_size < 1023) { // 512 Haswell(GT2)
-        d.dst_block_x = d.dst_block_y = 16;
-        d.hrz_block_x = d.vrt_block_x = 64;
         d.hrz_block_y = d.vrt_block_y = 8;
     } else {
         d.dst_block_x = d.dst_block_y = 32;
@@ -1529,13 +1521,13 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
     snprintf(options, 2048, "-cl-single-precision-constant -cl-denorms-are-zero -cl-fast-relaxed-math -Werror \
         -D NLM_CLIP_TYPE_UNORM=%u -D NLM_CLIP_TYPE_UNSIGNED=%u -D NLM_CLIP_TYPE_STACKED=%u \
         -D NLM_CLIP_REF_LUMA=%u -D NLM_CLIP_REF_CHROMA=%u -D NLM_CLIP_REF_YUV=%u -D NLM_CLIP_REF_RGB=%u \
-        -D NLM_WMODE_CAUCHY=%u -D NLM_WMODE_WELSCH=%u -D NLM_WMODE_BISQUARE=%u -D NLM_WMODE_MOD_BISQUARE=%u \
+        -D NLM_WMODE_WELSCH=%u -D NLM_WMODE_BISQUARE1=%u -D NLM_WMODE_BISQUARE2=%u -D NLM_WMODE_BISQUARE8=%u \
         -D VI_WIDTH=%u -D VI_HEIGHT=%u -D DST_BLOCK_X=%zu -D DST_BLOCK_Y=%zu \
         -D HRZ_BLOCK_X=%zu -D HRZ_BLOCK_Y=%zu -D HRZ_RESULT=%u -D VRT_BLOCK_X=%zu -D VRT_BLOCK_Y=%zu -D VRT_RESULT=%u \
         -D NLM_TCLIP=%u -D NLM_D=%i -D NLM_S=%i -D NLM_WMODE=%i -D NLM_WREF=%f -D NLM_H=%f",
         NLM_CLIP_TYPE_UNORM, NLM_CLIP_TYPE_UNSIGNED, NLM_CLIP_TYPE_STACKED,
         NLM_CLIP_REF_LUMA, NLM_CLIP_REF_CHROMA, NLM_CLIP_REF_YUV, NLM_CLIP_REF_RGB,
-        NLM_WMODE_CAUCHY, NLM_WMODE_WELSCH, NLM_WMODE_BISQUARE, NLM_WMODE_MOD_BISQUARE,
+        NLM_WMODE_WELSCH, NLM_WMODE_BISQUARE1, NLM_WMODE_BISQUARE2, NLM_WMODE_BISQUARE8,
         d.idmn[0], d.idmn[1], d.dst_block_x, d.dst_block_y,
         d.hrz_block_x, d.hrz_block_y, HRZ_RESULT, d.vrt_block_x, d.vrt_block_y, VRT_RESULT,
         d.clip_t, int64ToIntS(d.d), int64ToIntS(d.s), int64ToIntS(d.wmode), d.wref, d.h);

@@ -52,10 +52,10 @@
 #define NLM_CLIP_REF_YUV          (1 << 7)
 #define NLM_CLIP_REF_RGB          (1 << 8)
 
-#define NLM_WMODE_CAUCHY           0x0
-#define NLM_WMODE_WELSCH           0x1
-#define NLM_WMODE_BISQUARE         0x2
-#define NLM_WMODE_MOD_BISQUARE     0x3
+#define NLM_WMODE_WELSCH           0x0
+#define NLM_WMODE_BISQUARE1        0x1
+#define NLM_WMODE_BISQUARE2        0x2
+#define NLM_WMODE_BISQUARE8        0x3
 
 #define HRZ_RESULT                   3
 #define VRT_RESULT                   3
@@ -181,13 +181,13 @@ static const char* kernel_source_code =
 "           sum += buffer[get_local_id(0)][get_local_id(1) + i * VRT_BLOCK_Y + j];                                \n" \
 "                                                                                                                 \n" \
 "       float val = 0.0f;                                                                                         \n" \
-"       if (NLM_WMODE == NLM_WMODE_CAUCHY) {                                                                      \n" \
-"           val = native_recip(1.0f + sum * NLM_H2_INV_NORM);                                                     \n" \
-"       } else if (NLM_WMODE == NLM_WMODE_WELSCH) {                                                               \n" \
+"       if (NLM_WMODE == NLM_WMODE_WELSCH) {                                                                      \n" \
 "           val = native_exp(- sum * NLM_H2_INV_NORM);                                                            \n" \
-"       } else if (NLM_WMODE == NLM_WMODE_BISQUARE) {                                                             \n" \
+"       } else if (NLM_WMODE == NLM_WMODE_BISQUARE1) {                                                            \n" \
+"           val = fdim(1.0f, sum * NLM_H2_INV_NORM);                                                              \n" \
+"       } else if (NLM_WMODE == NLM_WMODE_BISQUARE2) {                                                            \n" \
 "           val = pown(fdim(1.0f, sum * NLM_H2_INV_NORM), 2);                                                     \n" \
-"       } else if (NLM_WMODE == NLM_WMODE_MOD_BISQUARE) {                                                         \n" \
+"       } else if (NLM_WMODE == NLM_WMODE_BISQUARE8) {                                                            \n" \
 "           val = pown(fdim(1.0f, sum * NLM_H2_INV_NORM), 8);                                                     \n" \
 "       }                                                                                                         \n" \
 "       write_imagef(U4_out, (int4) (x, y + i * VRT_BLOCK_Y, t, 0), (float4) (val, 0.0f, 0.0f, 0.0f));            \n" \
