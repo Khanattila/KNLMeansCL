@@ -64,35 +64,37 @@
 // Kernel Definition
 static const char* kernel_source_code =
 "                                                                                                                 \n" \
-"#define NLM_NORM         ( 255.0f * 255.0f )                                                                     \n" \
-"#define NLM_S_SIZE       ( (2 * NLM_S + 1) * (2 * NLM_S + 1) )                                                   \n" \
-"#define NLM_H2_INV_NORM  ( NLM_NORM / (NLM_H * NLM_H * NLM_S_SIZE) )                                             \n" \
-"#define NLM_16BIT_MSB    ( 256.0f / 65535.0f )                                                                   \n" \
-"#define NLM_16BIT_LSB    (   1.0f / 65535.0f )                                                                   \n" \
-"#define CHECK_FLAG(flag) ((NLM_TCLIP & (flag)) == (flag))                                                        \n" \
+"#define NLM_NORM            ( 255.0f * 255.0f )                                                                  \n" \
+"#define NLM_S_SIZE          ( (2 * NLM_S + 1) * (2 * NLM_S + 1) )                                                \n" \
+"#define NLM_H2_INV_NORM     ( NLM_NORM / (NLM_H * NLM_H * NLM_S_SIZE) )                                          \n" \
+"#define NLM_16BIT_MSB       ( 256.0f / (257.0f * 255.0f) )                                                       \n" \
+"#define NLM_16BIT_LSB       (   1.0f / (257.0f * 255.0f) )                                                       \n" \
+"#define CHECK_FLAG(flag)    ( (NLM_TCLIP & (flag)) == (flag) )                                                   \n" \
 "                                                                                                                 \n" \
 "__kernel __attribute__((reqd_work_group_size(DST_BLOCK_X, DST_BLOCK_Y, 1)))                                      \n" \
 "void nlmDistance(__read_only image2d_array_t U1, __write_only image2d_array_t U4, const int t, const int4 q) {   \n" \
 "                                                                                                                 \n" \
 "   int x = get_global_id(0);                                                                                     \n" \
 "   int y = get_global_id(1);                                                                                     \n" \
-"   if (x >= VI_WIDTH || y >= VI_HEIGHT) return;                                                                  \n" \
+"   if (x >= VI_DIM_X || y >= VI_DIM_Y) return;                                                                   \n" \
 "                                                                                                                 \n" \
-"   const sampler_t smp = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP | CLK_FILTER_NEAREST;                   \n" \
-"   int4 p = (int4) (x, y, t, 0);                                                                                 \n" \
+"   const sampler_t smp = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_NONE | CLK_FILTER_NEAREST;                    \n" \
+"   int4 p     = (int4) (x, y, t, 0);                                                                             \n" \
+"   int  x_pq = VI_DIM_X - abs_diff(x + q.x, VI_DIM_X - 1);                                                       \n" \
+"   int  y_pq = VI_DIM_Y - abs_diff(y + q.y, VI_DIM_Y - 1);                                                       \n" \
+"   int4 p_pq  = (int4) (x_pq, y_pq, t + q.z, 0);                                                                 \n" \
 "                                                                                                                 \n" \
 "   if (CHECK_FLAG(NLM_CLIP_REF_LUMA)) {                                                                          \n" \
 "                                                                                                                 \n" \
-"       float  u1    = read_imagef(U1, smp, p    ).x;                                                             \n" \
-"       float  u1_pq = read_imagef(U1, smp, p + q).x;                                                             \n" \
-"       float  dst   = (u1 - u1_pq) * (u1 - u1_pq);                                                               \n" \
-"       float  val   = 3.0f * dst;                                                                                \n" \
+"       float  u1    = read_imagef(U1, smp, p   ).x;                                                              \n" \
+"       float  u1_pq = read_imagef(U1, smp, p_pq).x;                                                              \n" \
+"       float  val   = 3.0f * (u1 - u1_pq) * (u1 - u1_pq);                                                        \n" \
 "       write_imagef(U4, p, (float4) (val, 0.0f, 0.0f, 0.0f));                                                    \n" \
 "                                                                                                                 \n" \
 "   } else if (CHECK_FLAG(NLM_CLIP_REF_CHROMA)) {                                                                 \n" \
 "                                                                                                                 \n" \
-"       float2 u1    = read_imagef(U1, smp, p    ).xy;                                                            \n" \
-"       float2 u1_pq = read_imagef(U1, smp, p + q).xy;                                                            \n" \
+"       float2 u1    = read_imagef(U1, smp, p   ).xy;                                                             \n" \
+"       float2 u1_pq = read_imagef(U1, smp, p_pq).xy;                                                             \n" \
 "       float  dst_u = (u1.x - u1_pq.x) * (u1.x - u1_pq.x);                                                       \n" \
 "       float  dst_v = (u1.y - u1_pq.y) * (u1.y - u1_pq.y);                                                       \n" \
 "       float  val   = 1.5f * (dst_u + dst_v);                                                                    \n" \
@@ -100,8 +102,8 @@ static const char* kernel_source_code =
 "                                                                                                                 \n" \
 "   } else if (CHECK_FLAG(NLM_CLIP_REF_YUV)) {                                                                    \n" \
 "                                                                                                                 \n" \
-"       float3 u1    = read_imagef(U1, smp, p    ).xyz;                                                           \n" \
-"       float3 u1_pq = read_imagef(U1, smp, p + q).xyz;                                                           \n" \
+"       float3 u1    = read_imagef(U1, smp, p   ).xyz;                                                            \n" \
+"       float3 u1_pq = read_imagef(U1, smp, p_pq).xyz;                                                            \n" \
 "       float  dst_y = (u1.x - u1_pq.x) * (u1.x - u1_pq.x);                                                       \n" \
 "       float  dst_u = (u1.y - u1_pq.y) * (u1.y - u1_pq.y);                                                       \n" \
 "       float  dst_v = (u1.z - u1_pq.z) * (u1.z - u1_pq.z);                                                       \n" \
@@ -110,8 +112,8 @@ static const char* kernel_source_code =
 "                                                                                                                 \n" \
 "   } else if (CHECK_FLAG(NLM_CLIP_REF_RGB)) {                                                                    \n" \
 "                                                                                                                 \n" \
-"       float3 u1    = read_imagef(U1, smp, p    ).xyz;                                                           \n" \
-"       float3 u1_pq = read_imagef(U1, smp, p + q).xyz;                                                           \n" \
+"       float3 u1    = read_imagef(U1, smp, p   ).xyz;                                                            \n" \
+"       float3 u1_pq = read_imagef(U1, smp, p_pq).xyz;                                                            \n" \
 "       float  m_red = native_divide(u1.x + u1_pq.x, 6.0f);                                                       \n" \
 "       float  dst_r = (2.0f/3.0f + m_red) * (u1.x - u1_pq.x) * (u1.x - u1_pq.x);                                 \n" \
 "       float  dst_g = (4.0f/3.0f        ) * (u1.y - u1_pq.y) * (u1.y - u1_pq.y);                                 \n" \
@@ -144,7 +146,7 @@ static const char* kernel_source_code =
 "   barrier(CLK_LOCAL_MEM_FENCE);                                                                                 \n" \
 "                                                                                                                 \n" \
 "   for (int i = 1; i < 1 + HRZ_RESULT; i++) {                                                                    \n" \
-"       if ((x + i * HRZ_BLOCK_X) >= VI_WIDTH || y >= VI_HEIGHT) return;                                          \n" \
+"       if ((x + i * HRZ_BLOCK_X) >= VI_DIM_X || y >= VI_DIM_Y) return;                                           \n" \
 "       float sum = 0.0f;                                                                                         \n" \
 "       for (int j = -NLM_S; j <= NLM_S; j++)                                                                     \n" \
 "           sum += buffer[get_local_id(1)][get_local_id(0) + i * HRZ_BLOCK_X + j];                                \n" \
@@ -175,7 +177,7 @@ static const char* kernel_source_code =
 "   barrier(CLK_LOCAL_MEM_FENCE);                                                                                 \n" \
 "                                                                                                                 \n" \
 "   for (int i = 1; i < 1 + VRT_RESULT; i++) {                                                                    \n" \
-"       if (x >= VI_WIDTH || (y + i * VRT_BLOCK_Y) >= VI_HEIGHT) return;                                          \n" \
+"       if (x >= VI_DIM_X || (y + i * VRT_BLOCK_Y) >= VI_DIM_Y) return;                                           \n" \
 "       float sum = 0.0f;                                                                                         \n" \
 "       for (int j = -NLM_S; j <= NLM_S; j++)                                                                     \n" \
 "           sum += buffer[get_local_id(0)][get_local_id(1) + i * VRT_BLOCK_Y + j];                                \n" \
@@ -195,62 +197,67 @@ static const char* kernel_source_code =
 "}                                                                                                                \n" \
 "                                                                                                                 \n" \
 "__kernel                                                                                                         \n" \
-"void nlmAccumulation(__read_only image2d_array_t U1, __global void* U2, __read_only image2d_array_t U4,          \n" \
+"void nlmAccumulation(__read_only image2d_array_t U1, __global float* U2, __read_only image2d_array_t U4,         \n" \
 "__global float* U5, const int4 q) {                                                                              \n" \
 "                                                                                                                 \n" \
 "   int x = get_global_id(0);                                                                                     \n" \
 "   int y = get_global_id(1);                                                                                     \n" \
-"   if (x >= VI_WIDTH || y >= VI_HEIGHT) return;                                                                  \n" \
+"   if (x >= VI_DIM_X || y >= VI_DIM_Y) return;                                                                   \n" \
 "                                                                                                                 \n" \
 "   const sampler_t smp = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP | CLK_FILTER_NEAREST;                   \n" \
 "   int4 p = (int4) (x, y, NLM_D, 0);                                                                             \n" \
 "   int2 s = (int2) (x, y);                                                                                       \n" \
-"   int gidx = mad24(y, VI_WIDTH, x);                                                                             \n" \
+"   int gidx = mad24(y, VI_DIM_X, x);                                                                             \n" \
 "                                                                                                                 \n" \
-"   float u4    = read_imagef(U4,    smp, p    ).x;                                                               \n" \
-"   float u4_mq = read_imagef(U4,    smp, p - q).x;                                                               \n" \
+"   float u4    = read_imagef(U4, smp, p    ).x;                                                                  \n" \
+"   float u4_mq = read_imagef(U4, smp, p - q).x;                                                                  \n" \
 "   U5[gidx]    = fmax(U5[gidx], fmax(u4, u4_mq));                                                                \n" \
 "                                                                                                                 \n" \
 "   if (CHECK_FLAG(NLM_CLIP_REF_LUMA)) {                                                                          \n" \
 "                                                                                                                 \n" \
-"       __global float2* U2c = (__global float2*) U2;                                                             \n" \
 "       float  u1_pq = read_imagef(U1, smp, p + q).x;                                                             \n" \
 "       float  u1_mq = read_imagef(U1, smp, p - q).x;                                                             \n" \
-"       float  acc   = (u4 * u1_pq) + (u4_mq * u1_mq);                                                            \n" \
-"       float  sum   = (u4 + u4_mq);                                                                              \n" \
-"       U2c[gidx] += (float2) (acc, sum);                                                                         \n" \
+"       int    x_idx = mad24(y, 2 * VI_DIM_X, mul24(2, x));                                                       \n" \
+"       int    w_idx = x_idx + 1;                                                                                 \n" \
+"       U2[x_idx]   += (u4 * u1_pq) + (u4_mq * u1_mq);                                                            \n" \
+"       U2[w_idx]   += (u4 + u4_mq);                                                                              \n" \
 "                                                                                                                 \n" \
 "   } else if (CHECK_FLAG(NLM_CLIP_REF_CHROMA)) {                                                                 \n" \
 "                                                                                                                 \n" \
-"       __global float4* U2c = (__global float4*) U2;                                                             \n" \
 "       float2 u1_pq = read_imagef(U1, smp, p + q).xy;                                                            \n" \
 "       float2 u1_mq = read_imagef(U1, smp, p - q).xy;                                                            \n" \
-"       float  acc_u = (u4 * u1_pq.x) + (u4_mq * u1_mq.x);                                                        \n" \
-"       float  acc_v = (u4 * u1_pq.y) + (u4_mq * u1_mq.y);                                                        \n" \
-"       float  sum   = (u4 + u4_mq);                                                                              \n" \
-"       U2c[gidx] += (float4) (acc_u, acc_v, sum, 0.0f);                                                          \n" \
+"       int    x_idx = mad24(y, 4 * VI_DIM_X, mul24(4, x));                                                       \n" \
+"       int    y_idx = x_idx + 1;                                                                                 \n" \
+"       int    w_idx = x_idx + 2;                                                                                 \n" \
+"       U2[x_idx]   += (u4 * u1_pq.x) + (u4_mq * u1_mq.x);                                                        \n" \
+"       U2[y_idx]   += (u4 * u1_pq.y) + (u4_mq * u1_mq.y);                                                        \n" \
+"       U2[w_idx]   += (u4 + u4_mq);                                                                              \n" \
 "                                                                                                                 \n" \
 "   } else if (CHECK_FLAG(NLM_CLIP_REF_YUV)) {                                                                    \n" \
 "                                                                                                                 \n" \
-"       __global float4* U2c = (__global float4*) U2;                                                             \n" \
 "       float3 u1_pq = read_imagef(U1, smp, p + q).xyz;                                                           \n" \
 "       float3 u1_mq = read_imagef(U1, smp, p - q).xyz;                                                           \n" \
-"       float  acc_y = (u4 * u1_pq.x) + (u4_mq * u1_mq.x);                                                        \n" \
-"       float  acc_u = (u4 * u1_pq.y) + (u4_mq * u1_mq.y);                                                        \n" \
-"       float  acc_v = (u4 * u1_pq.z) + (u4_mq * u1_mq.z);                                                        \n" \
-"       float  sum   = (u4 + u4_mq);                                                                              \n" \
-"       U2c[gidx] += (float4) (acc_y, acc_u, acc_v, sum);                                                         \n" \
+"       int    x_idx = mad24(y, 4 * VI_DIM_X,  mul24(4, x));                                                      \n" \
+"       int    y_idx = x_idx + 1;                                                                                 \n" \
+"       int    z_idx = x_idx + 2;                                                                                 \n" \
+"       int    w_idx = x_idx + 3;                                                                                 \n" \
+"       U2[x_idx]   += (u4 * u1_pq.x) + (u4_mq * u1_mq.x);                                                        \n" \
+"       U2[y_idx]   += (u4 * u1_pq.y) + (u4_mq * u1_mq.y);                                                        \n" \
+"       U2[z_idx]   += (u4 * u1_pq.z) + (u4_mq * u1_mq.z);                                                        \n" \
+"       U2[w_idx]   += (u4 + u4_mq);                                                                              \n" \
 "                                                                                                                 \n" \
 "   } else if (CHECK_FLAG(NLM_CLIP_REF_RGB)) {                                                                    \n" \
 "                                                                                                                 \n" \
-"       __global float4* U2c = (__global float4*) U2;                                                             \n" \
 "       float3 u1_pq = read_imagef(U1, smp, p + q).xyz;                                                           \n" \
 "       float3 u1_mq = read_imagef(U1, smp, p - q).xyz;                                                           \n" \
-"       float  acc_r = (u4 * u1_pq.x) + (u4_mq * u1_mq.x);                                                        \n" \
-"       float  acc_g = (u4 * u1_pq.y) + (u4_mq * u1_mq.y);                                                        \n" \
-"       float  acc_b = (u4 * u1_pq.z) + (u4_mq * u1_mq.z);                                                        \n" \
-"       float  sum   = (u4 + u4_mq);                                                                              \n" \
-"       U2c[gidx] += (float4) (acc_r, acc_g, acc_b, sum);                                                         \n" \
+"       int    x_idx = mad24(y, 4 * VI_DIM_X, mul24(4, x));                                                       \n" \
+"       int    y_idx = x_idx + 1;                                                                                 \n" \
+"       int    z_idx = x_idx + 2;                                                                                 \n" \
+"       int    w_idx = x_idx + 3;                                                                                 \n" \
+"       U2[x_idx]   += (u4 * u1_pq.x) + (u4_mq * u1_mq.x);                                                        \n" \
+"       U2[y_idx]   += (u4 * u1_pq.y) + (u4_mq * u1_mq.y);                                                        \n" \
+"       U2[z_idx]   += (u4 * u1_pq.z) + (u4_mq * u1_mq.z);                                                        \n" \
+"       U2[w_idx]   += (u4 + u4_mq);                                                                              \n" \
 "                                                                                                                 \n" \
 "   }                                                                                                             \n" \
 "}                                                                                                                \n" \
@@ -261,12 +268,12 @@ static const char* kernel_source_code =
 "                                                                                                                 \n" \
 "   int x = get_global_id(0);                                                                                     \n" \
 "   int y = get_global_id(1);                                                                                     \n" \
-"   if (x >= VI_WIDTH || y >= VI_HEIGHT) return;                                                                  \n" \
+"   if (x >= VI_DIM_X || y >= VI_DIM_Y) return;                                                                   \n" \
 "                                                                                                                 \n" \
 "   const sampler_t smp = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_NONE | CLK_FILTER_NEAREST;                    \n" \
 "   int4 p = (int4) (x, y, NLM_D, 0);                                                                             \n" \
 "   int2 s = (int2) (x, y);                                                                                       \n" \
-"   int gidx = mad24(y, VI_WIDTH, x);                                                                             \n" \
+"   int gidx = mad24(y, VI_DIM_X, x);                                                                             \n" \
 "   float wM = NLM_WREF * U5[gidx];                                                                               \n" \
 "                                                                                                                 \n" \
 "   if (CHECK_FLAG(NLM_CLIP_REF_LUMA)) {                                                                          \n" \
@@ -325,7 +332,7 @@ static const char* kernel_source_code =
 "                                                                                                                 \n" \
 "   int x = get_global_id(0);                                                                                     \n" \
 "   int y = get_global_id(1);                                                                                     \n" \
-"   if (x >= VI_WIDTH || y >= VI_HEIGHT) return;                                                                  \n" \
+"   if (x >= VI_DIM_X || y >= VI_DIM_Y) return;                                                                   \n" \
 "                                                                                                                 \n" \
 "   const sampler_t smp = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_NONE | CLK_FILTER_NEAREST;                    \n" \
 "   int4 p = (int4) (x, y, t, 0);                                                                                 \n" \
@@ -389,7 +396,7 @@ static const char* kernel_source_code =
 "                                                                                                                 \n" \
 "   int x = get_global_id(0);                                                                                     \n" \
 "   int y = get_global_id(1);                                                                                     \n" \
-"   if (x >= VI_WIDTH || y >= VI_HEIGHT) return;                                                                  \n" \
+"   if (x >= VI_DIM_X || y >= VI_DIM_Y) return;                                                                   \n" \
 "                                                                                                                 \n" \
 "   const sampler_t smp = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_NONE | CLK_FILTER_NEAREST;                    \n" \
 "   int2 s = (int2) (x, y);                                                                                       \n" \

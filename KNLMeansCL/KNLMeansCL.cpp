@@ -286,7 +286,7 @@ _NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _
         -D NLM_CLIP_TYPE_UNORM=%u -D NLM_CLIP_TYPE_UNSIGNED=%u -D NLM_CLIP_TYPE_STACKED=%u \
         -D NLM_CLIP_REF_LUMA=%u -D NLM_CLIP_REF_CHROMA=%u -D NLM_CLIP_REF_YUV=%u -D NLM_CLIP_REF_RGB=%u \
         -D NLM_WMODE_WELSCH=%u -D NLM_WMODE_BISQUARE1=%u -D NLM_WMODE_BISQUARE2=%u -D NLM_WMODE_BISQUARE8=%u \
-        -D VI_WIDTH=%u -D VI_HEIGHT=%u -D DST_BLOCK_X=%zu -D DST_BLOCK_Y=%zu \
+        -D VI_DIM_X=%u -D VI_DIM_Y=%u -D DST_BLOCK_X=%zu -D DST_BLOCK_Y=%zu \
         -D HRZ_BLOCK_X=%zu -D HRZ_BLOCK_Y=%zu -D HRZ_RESULT=%u -D VRT_BLOCK_X=%zu -D VRT_BLOCK_Y=%zu -D VRT_RESULT=%u \
         -D NLM_TCLIP=%u -D NLM_D=%i -D NLM_S=%i -D NLM_WMODE=%i -D NLM_WREF=%f -D NLM_H=%f",
         NLM_CLIP_TYPE_UNORM, NLM_CLIP_TYPE_UNSIGNED, NLM_CLIP_TYPE_STACKED,
@@ -1508,7 +1508,7 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
         -D NLM_CLIP_TYPE_UNORM=%u -D NLM_CLIP_TYPE_UNSIGNED=%u -D NLM_CLIP_TYPE_STACKED=%u \
         -D NLM_CLIP_REF_LUMA=%u -D NLM_CLIP_REF_CHROMA=%u -D NLM_CLIP_REF_YUV=%u -D NLM_CLIP_REF_RGB=%u \
         -D NLM_WMODE_CAUCHY=%u -D NLM_WMODE_WELSCH=%u -D NLM_WMODE_BISQUARE=%u -D NLM_WMODE_MOD_BISQUARE=%u \
-        -D VI_WIDTH=%u -D VI_HEIGHT=%u -D DST_BLOCK_X=%zu -D DST_BLOCK_Y=%zu \
+        -D VI_DIM_X=%u -D VI_DIM_Y=%u -D DST_BLOCK_X=%zu -D DST_BLOCK_Y=%zu \
         -D HRZ_BLOCK_X=%zu -D HRZ_BLOCK_Y=%zu -D HRZ_RESULT=%u -D VRT_BLOCK_X=%zu -D VRT_BLOCK_Y=%zu -D VRT_RESULT=%u \
         -D NLM_TCLIP=%u -D NLM_D=%i -D NLM_S=%i -D NLM_WMODE=%i -D NLM_WREF=%ff -D NLM_H=%ff",
         NLM_CLIP_TYPE_UNORM, NLM_CLIP_TYPE_UNSIGNED, NLM_CLIP_TYPE_STACKED,
@@ -1522,7 +1522,7 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
         -D NLM_CLIP_TYPE_UNORM=%u -D NLM_CLIP_TYPE_UNSIGNED=%u -D NLM_CLIP_TYPE_STACKED=%u \
         -D NLM_CLIP_REF_LUMA=%u -D NLM_CLIP_REF_CHROMA=%u -D NLM_CLIP_REF_YUV=%u -D NLM_CLIP_REF_RGB=%u \
         -D NLM_WMODE_WELSCH=%u -D NLM_WMODE_BISQUARE1=%u -D NLM_WMODE_BISQUARE2=%u -D NLM_WMODE_BISQUARE8=%u \
-        -D VI_WIDTH=%u -D VI_HEIGHT=%u -D DST_BLOCK_X=%zu -D DST_BLOCK_Y=%zu \
+        -D VI_DIM_X=%u -D VI_DIM_Y=%u -D DST_BLOCK_X=%zu -D DST_BLOCK_Y=%zu \
         -D HRZ_BLOCK_X=%zu -D HRZ_BLOCK_Y=%zu -D HRZ_RESULT=%u -D VRT_BLOCK_X=%zu -D VRT_BLOCK_Y=%zu -D VRT_RESULT=%u \
         -D NLM_TCLIP=%u -D NLM_D=%i -D NLM_S=%i -D NLM_WMODE=%i -D NLM_WREF=%f -D NLM_H=%f",
         NLM_CLIP_TYPE_UNORM, NLM_CLIP_TYPE_UNSIGNED, NLM_CLIP_TYPE_STACKED,
