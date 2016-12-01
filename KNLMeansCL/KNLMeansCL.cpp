@@ -178,7 +178,7 @@ _NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _
     } else if (!strcasecmp(channels, "UV")) {
         clip_t |= NLM_CLIP_REF_CHROMA;
         channel_order = CL_RG;
-        channel_num = 4; /* 2 + padding + buffer */
+        channel_num = 3; /* 2 + buffer */
     } else if (!strcasecmp(channels, "RGB")) {
         clip_t |= NLM_CLIP_REF_RGB;
         channel_order = CL_RGBA;
@@ -1385,7 +1385,7 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
     } else if (!strcasecmp(d.channels, "UV")) {
         d.clip_t |= NLM_CLIP_REF_CHROMA;
         channel_order = CL_RG;
-        d.channel_num = 4; /* 2 + padding + buffer */
+        d.channel_num = 3; /* 2 + buffer */
     } else if (!strcasecmp(d.channels, "RGB")) {
         d.clip_t |= NLM_CLIP_REF_RGB;
         channel_order = CL_RGBA;

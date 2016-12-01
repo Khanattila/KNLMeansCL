@@ -79,9 +79,9 @@ static const char* kernel_source_code =
 "   if (x >= VI_DIM_X || y >= VI_DIM_Y) return;                                                                   \n" \
 "                                                                                                                 \n" \
 "   const sampler_t smp = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_NONE | CLK_FILTER_NEAREST;                    \n" \
-"   int4 p     = (int4) (x, y, t, 0);                                                                             \n" \
 "   int  x_pq = VI_DIM_X - abs_diff(x + q.x, VI_DIM_X - 1);                                                       \n" \
 "   int  y_pq = VI_DIM_Y - abs_diff(y + q.y, VI_DIM_Y - 1);                                                       \n" \
+"   int4 p     = (int4) (x, y, t, 0);                                                                             \n" \
 "   int4 p_pq  = (int4) (x_pq, y_pq, t + q.z, 0);                                                                 \n" \
 "                                                                                                                 \n" \
 "   if (CHECK_FLAG(NLM_CLIP_REF_LUMA)) {                                                                          \n" \
@@ -217,53 +217,48 @@ static const char* kernel_source_code =
 "                                                                                                                 \n" \
 "       float  u1_pq = read_imagef(U1, smp, p + q).x;                                                             \n" \
 "       float  u1_mq = read_imagef(U1, smp, p - q).x;                                                             \n" \
-"       int    x_idx = mad24(y, 2 * VI_DIM_X, mul24(2, x));                                                       \n" \
-"       int    w_idx = x_idx + 1;                                                                                 \n" \
-"       U2[x_idx]   += (u4 * u1_pq) + (u4_mq * u1_mq);                                                            \n" \
-"       U2[w_idx]   += (u4 + u4_mq);                                                                              \n" \
+"       float2 u2    = vload2(gidx, U2);                                                                          \n" \
+"              u2.x += (u4 * u1_pq) + (u4_mq * u1_mq);                                                            \n" \
+"              u2.y += (u4 + u4_mq);                                                                              \n" \
+"       vstore2(u2, gidx, U2);                                                                                    \n" \
 "                                                                                                                 \n" \
 "   } else if (CHECK_FLAG(NLM_CLIP_REF_CHROMA)) {                                                                 \n" \
 "                                                                                                                 \n" \
 "       float2 u1_pq = read_imagef(U1, smp, p + q).xy;                                                            \n" \
 "       float2 u1_mq = read_imagef(U1, smp, p - q).xy;                                                            \n" \
-"       int    x_idx = mad24(y, 4 * VI_DIM_X, mul24(4, x));                                                       \n" \
-"       int    y_idx = x_idx + 1;                                                                                 \n" \
-"       int    w_idx = x_idx + 2;                                                                                 \n" \
-"       U2[x_idx]   += (u4 * u1_pq.x) + (u4_mq * u1_mq.x);                                                        \n" \
-"       U2[y_idx]   += (u4 * u1_pq.y) + (u4_mq * u1_mq.y);                                                        \n" \
-"       U2[w_idx]   += (u4 + u4_mq);                                                                              \n" \
+"       float3 u2    = vload3(gidx, U2);                                                                          \n" \
+"              u2.x += (u4 * u1_pq.x) + (u4_mq * u1_mq.x);                                                        \n" \
+"              u2.y += (u4 * u1_pq.y) + (u4_mq * u1_mq.y);                                                        \n" \
+"              u2.z += (u4 + u4_mq);                                                                              \n" \
+"       vstore3(u2, gidx, U2);                                                                                    \n" \
 "                                                                                                                 \n" \
 "   } else if (CHECK_FLAG(NLM_CLIP_REF_YUV)) {                                                                    \n" \
 "                                                                                                                 \n" \
 "       float3 u1_pq = read_imagef(U1, smp, p + q).xyz;                                                           \n" \
 "       float3 u1_mq = read_imagef(U1, smp, p - q).xyz;                                                           \n" \
-"       int    x_idx = mad24(y, 4 * VI_DIM_X,  mul24(4, x));                                                      \n" \
-"       int    y_idx = x_idx + 1;                                                                                 \n" \
-"       int    z_idx = x_idx + 2;                                                                                 \n" \
-"       int    w_idx = x_idx + 3;                                                                                 \n" \
-"       U2[x_idx]   += (u4 * u1_pq.x) + (u4_mq * u1_mq.x);                                                        \n" \
-"       U2[y_idx]   += (u4 * u1_pq.y) + (u4_mq * u1_mq.y);                                                        \n" \
-"       U2[z_idx]   += (u4 * u1_pq.z) + (u4_mq * u1_mq.z);                                                        \n" \
-"       U2[w_idx]   += (u4 + u4_mq);                                                                              \n" \
+"       float4 u2    = vload4(gidx, U2);                                                                          \n" \
+"              u2.x += (u4 * u1_pq.x) + (u4_mq * u1_mq.x);                                                        \n" \
+"              u2.y += (u4 * u1_pq.y) + (u4_mq * u1_mq.y);                                                        \n" \
+"              u2.z += (u4 * u1_pq.z) + (u4_mq * u1_mq.z);                                                        \n" \
+"              u2.w += (u4 + u4_mq);                                                                              \n" \
+"       vstore4(u2, gidx, U2);                                                                                    \n" \
 "                                                                                                                 \n" \
 "   } else if (CHECK_FLAG(NLM_CLIP_REF_RGB)) {                                                                    \n" \
 "                                                                                                                 \n" \
 "       float3 u1_pq = read_imagef(U1, smp, p + q).xyz;                                                           \n" \
 "       float3 u1_mq = read_imagef(U1, smp, p - q).xyz;                                                           \n" \
-"       int    x_idx = mad24(y, 4 * VI_DIM_X, mul24(4, x));                                                       \n" \
-"       int    y_idx = x_idx + 1;                                                                                 \n" \
-"       int    z_idx = x_idx + 2;                                                                                 \n" \
-"       int    w_idx = x_idx + 3;                                                                                 \n" \
-"       U2[x_idx]   += (u4 * u1_pq.x) + (u4_mq * u1_mq.x);                                                        \n" \
-"       U2[y_idx]   += (u4 * u1_pq.y) + (u4_mq * u1_mq.y);                                                        \n" \
-"       U2[z_idx]   += (u4 * u1_pq.z) + (u4_mq * u1_mq.z);                                                        \n" \
-"       U2[w_idx]   += (u4 + u4_mq);                                                                              \n" \
+"       float4 u2    = vload4(gidx, U2);                                                                          \n" \
+"              u2.x += (u4 * u1_pq.x) + (u4_mq * u1_mq.x);                                                        \n" \
+"              u2.y += (u4 * u1_pq.y) + (u4_mq * u1_mq.y);                                                        \n" \
+"              u2.z += (u4 * u1_pq.z) + (u4_mq * u1_mq.z);                                                        \n" \
+"              u2.w += (u4 + u4_mq);                                                                              \n" \
+"       vstore4(u2, gidx, U2);                                                                                    \n" \
 "                                                                                                                 \n" \
 "   }                                                                                                             \n" \
 "}                                                                                                                \n" \
 "                                                                                                                 \n" \
 "__kernel                                                                                                         \n" \
-"void nlmFinish(__read_only image2d_array_t U1_in, __write_only image2d_t U1_out, __global void* U2,              \n" \
+"void nlmFinish(__read_only image2d_array_t U1_in, __write_only image2d_t U1_out, __global float* U2,             \n" \
 "__global float* U5) {                                                                                            \n" \
 "                                                                                                                 \n" \
 "   int x = get_global_id(0);                                                                                     \n" \
@@ -278,32 +273,32 @@ static const char* kernel_source_code =
 "                                                                                                                 \n" \
 "   if (CHECK_FLAG(NLM_CLIP_REF_LUMA)) {                                                                          \n" \
 "                                                                                                                 \n" \
-"       __global float2* U2c = (__global float2*) U2;                                                             \n" \
 "       float  u1    = read_imagef(U1_in, smp, p).x;                                                              \n" \
-"       float  num   = U2c[gidx].x + wM * u1;                                                                     \n" \
-"       float  den   = U2c[gidx].y + wM;                                                                          \n" \
+"       float2 u2    = vload2(gidx, U2);                                                                          \n" \
+"       float  num   = mad(u1, wM, u2.x);                                                                         \n" \
+"       float  den   = wM + u2.y;                                                                                 \n" \
 "       float  val   = native_divide(num, den);                                                                   \n" \
 "       write_imagef(U1_out, s, (float4) (val, 0.0f, 0.0f, 0.0f));                                                \n" \
 "                                                                                                                 \n" \
 "   } else if (CHECK_FLAG(NLM_CLIP_REF_CHROMA)) {                                                                 \n" \
 "                                                                                                                 \n" \
-"       __global float4* U2c = (__global float4*) U2;                                                             \n" \
 "       float2 u1    = read_imagef(U1_in, smp, p).xy;                                                             \n" \
-"       float  num_u = U2c[gidx].x + wM * u1.x;                                                                   \n" \
-"       float  num_v = U2c[gidx].y + wM * u1.y;                                                                   \n" \
-"       float  den   = U2c[gidx].z + wM;                                                                          \n" \
+"       float3 u2    = vload3(gidx, U2);                                                                          \n" \
+"       float  num_u = mad(u1.x, wM, u2.x);                                                                       \n" \
+"       float  num_v = mad(u1.y, wM, u2.y);                                                                       \n" \
+"       float  den   = wM + u2.z;                                                                                 \n" \
 "       float  val_u = native_divide(num_u, den);                                                                 \n" \
 "       float  val_v = native_divide(num_v, den);                                                                 \n" \
 "       write_imagef(U1_out, s,  (float4) (val_u, val_v, 0.0f, 0.0f));                                            \n" \
 "                                                                                                                 \n" \
 "   } else if (CHECK_FLAG(NLM_CLIP_REF_YUV)) {                                                                    \n" \
 "                                                                                                                 \n" \
-"       __global float4* U2c = (__global float4*) U2;                                                             \n" \
 "       float3 u1    = read_imagef(U1_in, smp, p).xyz;                                                            \n" \
-"       float  num_y = U2c[gidx].x + wM * u1.x;                                                                   \n" \
-"       float  num_u = U2c[gidx].y + wM * u1.y;                                                                   \n" \
-"       float  num_v = U2c[gidx].z + wM * u1.z;                                                                   \n" \
-"       float  den   = U2c[gidx].w + wM;                                                                          \n" \
+"       float4 u2    = vload4(gidx, U2);                                                                          \n" \
+"       float  num_y = mad(u1.x, wM, u2.x);                                                                       \n" \
+"       float  num_u = mad(u1.y, wM, u2.y);                                                                       \n" \
+"       float  num_v = mad(u1.z, wM, u2.z);                                                                       \n" \
+"       float  den   = wM + u2.w;                                                                                 \n" \
 "       float  val_y = native_divide(num_y, den);                                                                 \n" \
 "       float  val_u = native_divide(num_u, den);                                                                 \n" \
 "       float  val_v = native_divide(num_v, den);                                                                 \n" \
@@ -311,12 +306,12 @@ static const char* kernel_source_code =
 "                                                                                                                 \n" \
 "   } else if (CHECK_FLAG(NLM_CLIP_REF_RGB)) {                                                                    \n" \
 "                                                                                                                 \n" \
-"       __global float4* U2c = (__global float4*) U2;                                                             \n" \
 "       float3 u1    = read_imagef(U1_in, smp, p).xyz;                                                            \n" \
-"       float  num_r = U2c[gidx].x + wM * u1.x;                                                                   \n" \
-"       float  num_g = U2c[gidx].y + wM * u1.y;                                                                   \n" \
-"       float  num_b = U2c[gidx].z + wM * u1.z;                                                                   \n" \
-"       float  den   = U2c[gidx].w + wM;                                                                          \n" \
+"       float4 u2    = vload4(gidx, U2);                                                                          \n" \
+"       float  num_r = mad(u1.x, wM, u2.x);                                                                       \n" \
+"       float  num_g = mad(u1.y, wM, u2.y);                                                                       \n" \
+"       float  num_b = mad(u1.z, wM, u2.z);                                                                       \n" \
+"       float  den   = wM + u2.w;                                                                                 \n" \
 "       float  val_r = native_divide(num_r, den);                                                                 \n" \
 "       float  val_g = native_divide(num_g, den);                                                                 \n" \
 "       float  val_b = native_divide(num_b, den);                                                                 \n" \
