@@ -856,7 +856,7 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
     int k_start = -min(int64ToIntS(d->d), n);
     int k_end = min(int64ToIntS(d->d), d->vi->numFrames - 1 - n);
     if (activationReason == arInitial) {
-        for (int k = int64ToIntS(-d->d); k <= d->d; k++) {
+        for (int k = k_start; k <= k_end; k++) {
             vsapi->requestFrameFilter(n + k, d->node, frameCtx);
             if (d->knot) vsapi->requestFrameFilter(n + k, d->knot, frameCtx);
         }
@@ -996,7 +996,7 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
                         2, NULL, global_work, NULL, 0, NULL, NULL);
                     break;
                 default:
-                    vsapi->setFilterError("knlm.KNLMeansCL: fatal error!\n (VapourSynthGetFrame)", frameCtx);
+                    vsapi->setFilterError("knlm.KNLMeansCL: clip_t error!\n (VapourSynthGetFrame)", frameCtx);
                     vsapi->freeFrame(dst);
                     return 0;
             }
@@ -1076,7 +1076,7 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
                     (size_t) vsapi->getStride(dst, 2), 0, vsapi->getWritePtr(dst, 2), 0, NULL, NULL);
                 break;
             default:
-                vsapi->setFilterError("knlm.KNLMeansCL: fatal error!\n (VapourSynthGetFrame)", frameCtx);
+                vsapi->setFilterError("knlm.KNLMeansCL: clip_t error!\n (VapourSynthGetFrame)", frameCtx);
                 vsapi->freeFrame(dst);
                 return 0;
         }
@@ -1275,7 +1275,7 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
         vsapi->freeNode(d.knot);
         return;
     }
-    if (d.s < 0 || d.s > 4) {
+    if (d.s < 0 || d.s > 8) {
         vsapi->setError(out, "knlm.KNLMeansCL: 's' must be in range [0, 8]!");
         vsapi->freeNode(d.node);
         vsapi->freeNode(d.knot);
