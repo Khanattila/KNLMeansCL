@@ -60,12 +60,12 @@ private:
     cl_program program;
     cl_kernel kernel[NLM_KERNELS];
     cl_mem mem_U[NLM_MEMORY], mem_P[6];
-    size_t dst_block_x, dst_block_y, hrz_block_x, hrz_block_y, vrt_block_x, vrt_block_y;
+    size_t hrz_result, vrt_result, hrz_block_x, hrz_block_y, vrt_block_x, vrt_block_y;
     bool equals(VideoInfo *v, VideoInfo *w);
     void oclErrorCheck(const char* function, cl_int errcode, IScriptEnvironment *env);
 public:
     _NLMAvisynth(PClip _child, const int _d, const int _a, const int _s, const double _h, const char* _channels, const int _wmode,
-        const double _wref, PClip _baby, const char* _ocl_device, const int _ocl_id, const bool _lsb, const bool _info, 
+        const double _wref, PClip _baby, const char* _ocl_device, const int _ocl_id, const bool _lsb, const bool _info,
         IScriptEnvironment *env);
     ~_NLMAvisynth();
     PVideoFrame __stdcall GetFrame(int n, IScriptEnvironment *env);
@@ -88,7 +88,7 @@ public:
     cl_program program;
     cl_kernel kernel[NLM_KERNELS];
     cl_mem mem_U[NLM_MEMORY], mem_P[3];
-    size_t dst_block_x, dst_block_y, hrz_block_x, hrz_block_y, vrt_block_x, vrt_block_y;
+    size_t hrz_result, vrt_result, hrz_block_x, hrz_block_y, vrt_block_x, vrt_block_y;
     bool equals(const VSVideoInfo *v, const VSVideoInfo *w);
     void oclErrorCheck(const char* function, cl_int errcode, VSMap *out, const VSAPI *vsapi);
 } NLMVapoursynth;

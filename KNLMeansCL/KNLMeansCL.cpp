@@ -210,19 +210,33 @@ _NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _
     // Get maximum number of work-items
     size_t max_work_group_size;
     ret = clGetDeviceInfo(deviceID, CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(size_t), &max_work_group_size, NULL);
-    oclErrorCheck("clGetDeviceInfo", ret, env);
-    if (max_work_group_size < 256) {
-        dst_block_x = dst_block_y = 8;
-        hrz_block_x = vrt_block_x = 8;
-        hrz_block_y = vrt_block_y = 8;
-    } else if (max_work_group_size < 1024) {
-        dst_block_x = dst_block_y = 16;
-        hrz_block_x = vrt_block_x = 32;
-        hrz_block_y = vrt_block_y = 8;
-    } else {
-        dst_block_x = dst_block_y = 32;
-        hrz_block_x = vrt_block_x = 128;
-        hrz_block_y = vrt_block_y = 8;
+    oclErrorCheck("clGetDeviceInfo", ret, env);    
+    switch (max_work_group_size) {
+        case 256: // AMD
+            hrz_result = vrt_result = 1;
+            hrz_block_x = vrt_block_x = 32;
+            hrz_block_y = vrt_block_y = 8;
+            break;
+        case 512: // INTEL GPU
+            hrz_result = vrt_result = 3;
+            hrz_block_x = vrt_block_x = 32;
+            hrz_block_y = vrt_block_y = 8;
+            break;
+        case 1024: // NVIDIA
+            hrz_result = vrt_result = 3;
+            hrz_block_x = vrt_block_x = 16;
+            hrz_block_y = vrt_block_y = 8;
+            break;
+        case 8192: // INTEL CPU
+            hrz_result = vrt_result = 5;
+            hrz_block_x = vrt_block_x = 64;
+            hrz_block_y = vrt_block_y = 8;
+            break;
+        default:
+            hrz_result = vrt_result = 1;
+            hrz_block_x = vrt_block_x = 8;
+            hrz_block_y = vrt_block_y = 8;
+            break;
     }
 
     // Create an OpenCL context
@@ -286,14 +300,14 @@ _NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _
         -D NLM_CLIP_TYPE_UNORM=%u -D NLM_CLIP_TYPE_UNSIGNED=%u -D NLM_CLIP_TYPE_STACKED=%u \
         -D NLM_CLIP_REF_LUMA=%u -D NLM_CLIP_REF_CHROMA=%u -D NLM_CLIP_REF_YUV=%u -D NLM_CLIP_REF_RGB=%u \
         -D NLM_WMODE_WELSCH=%u -D NLM_WMODE_BISQUARE1=%u -D NLM_WMODE_BISQUARE2=%u -D NLM_WMODE_BISQUARE8=%u \
-        -D VI_DIM_X=%u -D VI_DIM_Y=%u -D DST_BLOCK_X=%zu -D DST_BLOCK_Y=%zu \
-        -D HRZ_BLOCK_X=%zu -D HRZ_BLOCK_Y=%zu -D HRZ_RESULT=%u -D VRT_BLOCK_X=%zu -D VRT_BLOCK_Y=%zu -D VRT_RESULT=%u \
+        -D VI_DIM_X=%u -D VI_DIM_Y=%u -D HRZ_RESULT=%zu -D VRT_RESULT=%zu \
+        -D HRZ_BLOCK_X=%zu -D HRZ_BLOCK_Y=%zu  -D VRT_BLOCK_X=%zu -D VRT_BLOCK_Y=%zu \
         -D NLM_TCLIP=%u -D NLM_D=%i -D NLM_S=%i -D NLM_WMODE=%i -D NLM_WREF=%f -D NLM_H=%f",
         NLM_CLIP_TYPE_UNORM, NLM_CLIP_TYPE_UNSIGNED, NLM_CLIP_TYPE_STACKED,
         NLM_CLIP_REF_LUMA, NLM_CLIP_REF_CHROMA, NLM_CLIP_REF_YUV, NLM_CLIP_REF_RGB,
         NLM_WMODE_WELSCH, NLM_WMODE_BISQUARE1, NLM_WMODE_BISQUARE2, NLM_WMODE_BISQUARE8,
-        idmn[0], idmn[1], dst_block_x, dst_block_y,
-        hrz_block_x, hrz_block_y, HRZ_RESULT, vrt_block_x, vrt_block_y, VRT_RESULT,
+        idmn[0], idmn[1], hrz_result, vrt_result,
+        hrz_block_x, hrz_block_y, vrt_block_x, vrt_block_y,
         clip_t, d, s, wmode, wref, h);
     ret = clBuildProgram(program, 1, &deviceID, options, NULL, NULL);
     if (ret != CL_SUCCESS) {
@@ -318,7 +332,7 @@ _NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _
     kernel[nlmUnpack] = clCreateKernel(program, "nlmUnpack", &ret);
     oclErrorCheck("clCreateKernel(nlmUnpack)", ret, env); 
 
-    // Set kernel arguments - nlmDistanceLeft
+    // Set kernel arguments - nlmDistance
     int index_u1 = (clip_t & NLM_CLIP_EXTRA_FALSE) ? memU1a : memU1b;
     ret = clSetKernelArg(kernel[nlmDistance], 0, sizeof(cl_mem), &mem_U[index_u1]);
     oclErrorCheck("clSetKernelArg(nlmDistance[0])", ret, env);
@@ -426,19 +440,15 @@ PVideoFrame __stdcall _NLMAvisynth::GetFrame(int n, IScriptEnvironment* env) {
     const cl_float pattern_u5 = CL_FLT_EPSILON;
     const size_t origin[3] = { 0, 0, 0 };
     const size_t region[3] = { idmn[0], idmn[1], 1 };
-    const size_t global_work[2] = { 
-        mrounds(idmn[0], dst_block_x),
-        mrounds(idmn[1], dst_block_y) 
-    };
+    const size_t global_work[2] = { mrounds(idmn[0], 16), mrounds(idmn[1], 8) };
     const size_t global_work_hrz[2] = {
-        mrounds(idmn[0], HRZ_RESULT * hrz_block_x) / HRZ_RESULT,
+        mrounds(idmn[0], hrz_result * hrz_block_x) / hrz_result,
         mrounds(idmn[1], hrz_block_y)
     };
     const size_t global_work_vrt[2] = {
         mrounds(idmn[0], vrt_block_x),
-        mrounds(idmn[1], VRT_RESULT * vrt_block_y) / VRT_RESULT
+        mrounds(idmn[1], vrt_result * vrt_block_y) / vrt_result
     };
-    const size_t local_work_dst[2] = { dst_block_x, dst_block_y };
     const size_t local_work_hrz[2] = { hrz_block_x, hrz_block_y };
     const size_t local_work_vrt[2] = { vrt_block_x, vrt_block_y };
 
@@ -669,7 +679,7 @@ PVideoFrame __stdcall _NLMAvisynth::GetFrame(int n, IScriptEnvironment* env) {
                     ret |= clSetKernelArg(kernel[nlmDistance], 2, sizeof(cl_int), &t);
                     ret |= clSetKernelArg(kernel[nlmDistance], 3, 4 * sizeof(cl_int), &q);
                     ret |= clEnqueueNDRangeKernel(command_queue, kernel[nlmDistance],
-                        2, NULL, global_work, local_work_dst, 0, NULL, NULL);
+                        2, NULL, global_work, NULL, 0, NULL, NULL);
                     ret |= clSetKernelArg(kernel[nlmHorizontal], 2, sizeof(cl_int), &t);
                     ret |= clEnqueueNDRangeKernel(command_queue, kernel[nlmHorizontal],
                         2, NULL, global_work_hrz, local_work_hrz, 0, NULL, NULL);
@@ -681,7 +691,7 @@ PVideoFrame __stdcall _NLMAvisynth::GetFrame(int n, IScriptEnvironment* env) {
                         ret |= clSetKernelArg(kernel[nlmDistance], 2, sizeof(cl_int), &t_mq);
                         ret |= clSetKernelArg(kernel[nlmDistance], 3, 4 * sizeof(cl_int), &q);
                         ret |= clEnqueueNDRangeKernel(command_queue, kernel[nlmDistance],
-                            2, NULL, global_work, local_work_dst, 0, NULL, NULL);
+                            2, NULL, global_work, NULL, 0, NULL, NULL);
                         ret |= clSetKernelArg(kernel[nlmHorizontal], 2, sizeof(cl_int), &t_mq);
                         ret |= clEnqueueNDRangeKernel(command_queue, kernel[nlmHorizontal],
                             2, NULL, global_work_hrz, local_work_hrz, 0, NULL, NULL);
@@ -691,7 +701,7 @@ PVideoFrame __stdcall _NLMAvisynth::GetFrame(int n, IScriptEnvironment* env) {
                     }
                     ret |= clSetKernelArg(kernel[nlmAccumulation], 4, 4 * sizeof(cl_int), &q);
                     ret |= clEnqueueNDRangeKernel(command_queue, kernel[nlmAccumulation],
-                        2, NULL, global_work, local_work_dst, 0, NULL, NULL);
+                        2, NULL, global_work, NULL, 0, NULL, NULL);
                 }
             }
         }
@@ -874,19 +884,15 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
         const cl_float pattern_u5 = CL_FLT_EPSILON;
         const size_t origin[3] = { 0, 0, 0 };
         const size_t region[3] = { d->idmn[0], d->idmn[1], 1 };
-        const size_t global_work[2] = { 
-            mrounds(d->idmn[0], d->dst_block_x), 
-            mrounds(d->idmn[1], d->dst_block_y) 
-        };
+        const size_t global_work[2] = { mrounds(d->idmn[0], 16), mrounds(d->idmn[1], 8) };
         const size_t global_work_hrz[2] = {
-            mrounds(d->idmn[0], HRZ_RESULT * d->hrz_block_x) / HRZ_RESULT,
+            mrounds(d->idmn[0], d->hrz_result * d->hrz_block_x) / d->hrz_result,
             mrounds(d->idmn[1], d->hrz_block_y)
         };
         const size_t global_work_vrt[2] = {
             mrounds(d->idmn[0], d->vrt_block_x),
-            mrounds(d->idmn[1], VRT_RESULT * d->vrt_block_y) / VRT_RESULT
+            mrounds(d->idmn[1], d->vrt_result * d->vrt_block_y) / d->vrt_result
         };
-        const size_t local_work_dst[2] = { d->dst_block_x, d->dst_block_y };
         const size_t local_work_hrz[2] = { d->hrz_block_x, d->hrz_block_y };
         const size_t local_work_vrt[2] = { d->vrt_block_x, d->vrt_block_y };
 
@@ -1013,7 +1019,7 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
                         ret |= clSetKernelArg(d->kernel[nlmDistance], 2, sizeof(cl_int), &t);
                         ret |= clSetKernelArg(d->kernel[nlmDistance], 3, 4 * sizeof(cl_int), &q);
                         ret |= clEnqueueNDRangeKernel(d->command_queue, d->kernel[nlmDistance],
-                            2, NULL, global_work, local_work_dst, 0, NULL, NULL);
+                            2, NULL, global_work, NULL, 0, NULL, NULL);
                         ret |= clSetKernelArg(d->kernel[nlmHorizontal], 2, sizeof(cl_int), &t);
                         ret |= clEnqueueNDRangeKernel(d->command_queue, d->kernel[nlmHorizontal],
                             2, NULL, global_work_hrz, local_work_hrz, 0, NULL, NULL);
@@ -1025,7 +1031,7 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
                             ret |= clSetKernelArg(d->kernel[nlmDistance], 2, sizeof(cl_int), &t_mq);
                             ret |= clSetKernelArg(d->kernel[nlmDistance], 3, 4 * sizeof(cl_int), &q);
                             ret |= clEnqueueNDRangeKernel(d->command_queue, d->kernel[nlmDistance],
-                                2, NULL, global_work, local_work_dst, 0, NULL, NULL);
+                                2, NULL, global_work, NULL, 0, NULL, NULL);
                             ret |= clSetKernelArg(d->kernel[nlmHorizontal], 2, sizeof(cl_int), &t_mq);
                             ret |= clEnqueueNDRangeKernel(d->command_queue, d->kernel[nlmHorizontal],
                                 2, NULL, global_work_hrz, local_work_hrz, 0, NULL, NULL);
@@ -1434,18 +1440,32 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
     size_t max_work_group_size;
     ret = clGetDeviceInfo(d.deviceID, CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(size_t), &max_work_group_size, NULL);
     if (ret != CL_SUCCESS) { d.oclErrorCheck("clGetDeviceInfo", ret, out, vsapi); return; }
-    if (max_work_group_size < 256) {
-        d.dst_block_x = d.dst_block_y = 8;
-        d.hrz_block_x = d.vrt_block_x = 8;
-        d.hrz_block_y = d.vrt_block_y = 8;
-    } else if (max_work_group_size < 1024) {
-        d.dst_block_x = d.dst_block_y = 16;
-        d.hrz_block_x = d.vrt_block_x = 32;
-        d.hrz_block_y = d.vrt_block_y = 8;
-    } else {
-        d.dst_block_x = d.dst_block_y = 32;
-        d.hrz_block_x = d.vrt_block_x = 128;
-        d.hrz_block_y = d.vrt_block_y = 8;
+    switch (max_work_group_size) {
+        case 256: // AMD
+            d.hrz_result = d.vrt_result = 1;
+            d.hrz_block_x = d.vrt_block_x = 32;
+            d.hrz_block_y = d.vrt_block_y = 8;
+            break;
+        case 512: // INTEL GPU
+            d.hrz_result = d.vrt_result = 3;
+            d.hrz_block_x = d.vrt_block_x = 32;
+            d.hrz_block_y = d.vrt_block_y = 8;
+            break;
+        case 1024: // NVIDIA
+            d.hrz_result = d.vrt_result = 3;
+            d.hrz_block_x = d.vrt_block_x = 16;
+            d.hrz_block_y = d.vrt_block_y = 8;
+            break;
+        case 8192: // INTEL
+            d.hrz_result = d.vrt_result = 5;
+            d.hrz_block_x = d.vrt_block_x = 64;
+            d.hrz_block_y = d.vrt_block_y = 8;
+            break;
+        default:
+            d.hrz_result = d.vrt_result = 1;
+            d.hrz_block_x = d.vrt_block_x = 8;
+            d.hrz_block_y = d.vrt_block_y = 8;
+            break;
     }
 
     // Create an OpenCL context
@@ -1509,27 +1529,27 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
         -D NLM_CLIP_REF_LUMA=%u -D NLM_CLIP_REF_CHROMA=%u -D NLM_CLIP_REF_YUV=%u -D NLM_CLIP_REF_RGB=%u \
         -D NLM_WMODE_CAUCHY=%u -D NLM_WMODE_WELSCH=%u -D NLM_WMODE_BISQUARE=%u -D NLM_WMODE_MOD_BISQUARE=%u \
         -D VI_DIM_X=%u -D VI_DIM_Y=%u -D DST_BLOCK_X=%zu -D DST_BLOCK_Y=%zu \
-        -D HRZ_BLOCK_X=%zu -D HRZ_BLOCK_Y=%zu -D HRZ_RESULT=%u -D VRT_BLOCK_X=%zu -D VRT_BLOCK_Y=%zu -D VRT_RESULT=%u \
+        -D HRZ_BLOCK_X=%zu -D HRZ_BLOCK_Y=%zu -D HRZ_RESULT=%zu -D VRT_BLOCK_X=%zu -D VRT_BLOCK_Y=%zu -D VRT_RESULT=%zu \
         -D NLM_TCLIP=%u -D NLM_D=%i -D NLM_S=%i -D NLM_WMODE=%i -D NLM_WREF=%ff -D NLM_H=%ff",
         NLM_CLIP_TYPE_UNORM, NLM_CLIP_TYPE_UNSIGNED, NLM_CLIP_TYPE_STACKED,
         NLM_CLIP_REF_LUMA, NLM_CLIP_REF_CHROMA, NLM_CLIP_REF_YUV, NLM_CLIP_REF_RGB,
         NLM_WMODE_CAUCHY, NLM_WMODE_WELSCH, NLM_WMODE_BISQUARE, NLM_WMODE_MOD_BISQUARE,
-        d.idmn[0], d.idmn[1], DST_BLOCK_X, DST_BLOCK_Y, 
-        HRZ_BLOCK_X, HRZ_BLOCK_Y, HRZ_RESULT, VRT_BLOCK_X, VRT_BLOCK_Y, VRT_RESULT, 
+        d.idmn[0], d.idmn[1], d.dst_block_x, d.dst_block_y,
+        d.hrz_block_x, d.hrz_block_y, d.hrz_result, d.vrt_block_x, d.vrt_block_y, d.vrt_result,
         d.clip_t, int64ToIntS(d.d), int64ToIntS(d.s), int64ToIntS(d.wmode), d.wref, d.h);
 #    else
     snprintf(options, 2048, "-cl-single-precision-constant -cl-denorms-are-zero -cl-fast-relaxed-math -Werror \
         -D NLM_CLIP_TYPE_UNORM=%u -D NLM_CLIP_TYPE_UNSIGNED=%u -D NLM_CLIP_TYPE_STACKED=%u \
         -D NLM_CLIP_REF_LUMA=%u -D NLM_CLIP_REF_CHROMA=%u -D NLM_CLIP_REF_YUV=%u -D NLM_CLIP_REF_RGB=%u \
         -D NLM_WMODE_WELSCH=%u -D NLM_WMODE_BISQUARE1=%u -D NLM_WMODE_BISQUARE2=%u -D NLM_WMODE_BISQUARE8=%u \
-        -D VI_DIM_X=%u -D VI_DIM_Y=%u -D DST_BLOCK_X=%zu -D DST_BLOCK_Y=%zu \
-        -D HRZ_BLOCK_X=%zu -D HRZ_BLOCK_Y=%zu -D HRZ_RESULT=%u -D VRT_BLOCK_X=%zu -D VRT_BLOCK_Y=%zu -D VRT_RESULT=%u \
+        -D VI_DIM_X=%u -D VI_DIM_Y=%u -D HRZ_RESULT=%zu -D VRT_RESULT=%zu \
+        -D HRZ_BLOCK_X=%zu -D HRZ_BLOCK_Y=%zu  -D VRT_BLOCK_X=%zu -D VRT_BLOCK_Y=%zu \
         -D NLM_TCLIP=%u -D NLM_D=%i -D NLM_S=%i -D NLM_WMODE=%i -D NLM_WREF=%f -D NLM_H=%f",
         NLM_CLIP_TYPE_UNORM, NLM_CLIP_TYPE_UNSIGNED, NLM_CLIP_TYPE_STACKED,
         NLM_CLIP_REF_LUMA, NLM_CLIP_REF_CHROMA, NLM_CLIP_REF_YUV, NLM_CLIP_REF_RGB,
         NLM_WMODE_WELSCH, NLM_WMODE_BISQUARE1, NLM_WMODE_BISQUARE2, NLM_WMODE_BISQUARE8,
-        d.idmn[0], d.idmn[1], d.dst_block_x, d.dst_block_y,
-        d.hrz_block_x, d.hrz_block_y, HRZ_RESULT, d.vrt_block_x, d.vrt_block_y, VRT_RESULT,
+        d.idmn[0], d.idmn[1], d.hrz_result, d.vrt_result,
+        d.hrz_block_x, d.hrz_block_y, d.vrt_block_x, d.vrt_block_y,
         d.clip_t, int64ToIntS(d.d), int64ToIntS(d.s), int64ToIntS(d.wmode), d.wref, d.h);
 #    endif
     ret = clBuildProgram(d.program, 1, &d.deviceID, options, NULL, NULL);

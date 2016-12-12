@@ -57,9 +57,6 @@
 #define NLM_WMODE_BISQUARE2        0x2
 #define NLM_WMODE_BISQUARE8        0x3
 
-#define HRZ_RESULT                   3
-#define VRT_RESULT                   3
-
 //////////////////////////////////////////
 // Kernel Definition
 static const char* kernel_source_code =
@@ -71,7 +68,7 @@ static const char* kernel_source_code =
 "#define NLM_16BIT_LSB       (   1.0f / (257.0f * 255.0f) )                                                       \n" \
 "#define CHECK_FLAG(flag)    ( (NLM_TCLIP & (flag)) == (flag) )                                                   \n" \
 "                                                                                                                 \n" \
-"__kernel __attribute__((reqd_work_group_size(DST_BLOCK_X, DST_BLOCK_Y, 1)))                                      \n" \
+"__kernel                                                                                                         \n" \
 "void nlmDistance(__read_only image2d_array_t U1, __write_only image2d_array_t U4, const int t, const int4 q) {   \n" \
 "                                                                                                                 \n" \
 "   int x = get_global_id(0);                                                                                     \n" \
@@ -79,10 +76,10 @@ static const char* kernel_source_code =
 "   if (x >= VI_DIM_X || y >= VI_DIM_Y) return;                                                                   \n" \
 "                                                                                                                 \n" \
 "   const sampler_t smp = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_NONE | CLK_FILTER_NEAREST;                    \n" \
-"   int  x_pq = VI_DIM_X - abs_diff(x + q.x, VI_DIM_X - 1);                                                       \n" \
-"   int  y_pq = VI_DIM_Y - abs_diff(y + q.y, VI_DIM_Y - 1);                                                       \n" \
-"   int4 p     = (int4) (x, y, t, 0);                                                                             \n" \
-"   int4 p_pq  = (int4) (x_pq, y_pq, t + q.z, 0);                                                                 \n" \
+"   int  x_pq = VI_DIM_X - 1 - abs(abs(x + q.x) - VI_DIM_X + 1);                                                  \n" \
+"   int  y_pq = VI_DIM_Y - 1 - abs(abs(y + q.y) - VI_DIM_Y + 1);                                                  \n" \
+"   int4 p    = (int4) (x, y, t, 0);                                                                              \n" \
+"   int4 p_pq = (int4) (x_pq, y_pq, t + q.z, 0);                                                                  \n" \
 "                                                                                                                 \n" \
 "   if (CHECK_FLAG(NLM_CLIP_REF_LUMA)) {                                                                          \n" \
 "                                                                                                                 \n" \
