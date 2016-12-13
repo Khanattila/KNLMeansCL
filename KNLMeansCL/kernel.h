@@ -75,23 +75,24 @@ static const char* kernel_source_code =
 "   int y = get_global_id(1);                                                                                     \n" \
 "   if (x >= VI_DIM_X || y >= VI_DIM_Y) return;                                                                   \n" \
 "                                                                                                                 \n" \
-"   const sampler_t smp = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_NONE | CLK_FILTER_NEAREST;                    \n" \
-"   int  x_pq = VI_DIM_X - 1 - abs(abs(x + q.x) - VI_DIM_X + 1);                                                  \n" \
-"   int  y_pq = VI_DIM_Y - 1 - abs(abs(y + q.y) - VI_DIM_Y + 1);                                                  \n" \
-"   int4 p    = (int4) (x, y, t, 0);                                                                              \n" \
-"   int4 p_pq = (int4) (x_pq, y_pq, t + q.z, 0);                                                                  \n" \
+"   const sampler_t smp_f = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_NONE | CLK_FILTER_NEAREST;                  \n" \
+"   const sampler_t smp_t = CLK_NORMALIZED_COORDS_TRUE | CLK_ADDRESS_REPEAT | CLK_FILTER_NEAREST;                 \n" \
+"   int4   p    = (int4) (x, y, t, 0);                                                                            \n" \
+"   float  x_pq = native_divide((float) (x + q.x), (float) (VI_DIM_X - 1));                                       \n" \
+"   float  y_pq = native_divide((float) (y + q.y), (float) (VI_DIM_Y - 1));                                       \n" \
+"   float4 p_pq = (float4) (x_pq, y_pq, t + q.z, 0);                                                              \n" \
 "                                                                                                                 \n" \
 "   if (CHECK_FLAG(NLM_CLIP_REF_LUMA)) {                                                                          \n" \
 "                                                                                                                 \n" \
-"       float  u1    = read_imagef(U1, smp, p   ).x;                                                              \n" \
-"       float  u1_pq = read_imagef(U1, smp, p_pq).x;                                                              \n" \
+"       float  u1    = read_imagef(U1, smp_f, p   ).x;                                                            \n" \
+"       float  u1_pq = read_imagef(U1, smp_t, p_pq).x;                                                            \n" \
 "       float  val   = 3.0f * (u1 - u1_pq) * (u1 - u1_pq);                                                        \n" \
 "       write_imagef(U4, p, (float4) (val, 0.0f, 0.0f, 0.0f));                                                    \n" \
 "                                                                                                                 \n" \
 "   } else if (CHECK_FLAG(NLM_CLIP_REF_CHROMA)) {                                                                 \n" \
 "                                                                                                                 \n" \
-"       float2 u1    = read_imagef(U1, smp, p   ).xy;                                                             \n" \
-"       float2 u1_pq = read_imagef(U1, smp, p_pq).xy;                                                             \n" \
+"       float2 u1    = read_imagef(U1, smp_f, p   ).xy;                                                           \n" \
+"       float2 u1_pq = read_imagef(U1, smp_t, p_pq).xy;                                                           \n" \
 "       float  dst_u = (u1.x - u1_pq.x) * (u1.x - u1_pq.x);                                                       \n" \
 "       float  dst_v = (u1.y - u1_pq.y) * (u1.y - u1_pq.y);                                                       \n" \
 "       float  val   = 1.5f * (dst_u + dst_v);                                                                    \n" \
@@ -99,8 +100,8 @@ static const char* kernel_source_code =
 "                                                                                                                 \n" \
 "   } else if (CHECK_FLAG(NLM_CLIP_REF_YUV)) {                                                                    \n" \
 "                                                                                                                 \n" \
-"       float3 u1    = read_imagef(U1, smp, p   ).xyz;                                                            \n" \
-"       float3 u1_pq = read_imagef(U1, smp, p_pq).xyz;                                                            \n" \
+"       float3 u1    = read_imagef(U1, smp_f, p   ).xyz;                                                          \n" \
+"       float3 u1_pq = read_imagef(U1, smp_t, p_pq).xyz;                                                          \n" \
 "       float  dst_y = (u1.x - u1_pq.x) * (u1.x - u1_pq.x);                                                       \n" \
 "       float  dst_u = (u1.y - u1_pq.y) * (u1.y - u1_pq.y);                                                       \n" \
 "       float  dst_v = (u1.z - u1_pq.z) * (u1.z - u1_pq.z);                                                       \n" \
@@ -109,8 +110,8 @@ static const char* kernel_source_code =
 "                                                                                                                 \n" \
 "   } else if (CHECK_FLAG(NLM_CLIP_REF_RGB)) {                                                                    \n" \
 "                                                                                                                 \n" \
-"       float3 u1    = read_imagef(U1, smp, p   ).xyz;                                                            \n" \
-"       float3 u1_pq = read_imagef(U1, smp, p_pq).xyz;                                                            \n" \
+"       float3 u1    = read_imagef(U1, smp_f, p   ).xyz;                                                          \n" \
+"       float3 u1_pq = read_imagef(U1, smp_t, p_pq).xyz;                                                          \n" \
 "       float  m_red = native_divide(u1.x + u1_pq.x, 6.0f);                                                       \n" \
 "       float  dst_r = (2.0f/3.0f + m_red) * (u1.x - u1_pq.x) * (u1.x - u1_pq.x);                                 \n" \
 "       float  dst_g = (4.0f/3.0f        ) * (u1.y - u1_pq.y) * (u1.y - u1_pq.y);                                 \n" \
