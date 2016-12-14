@@ -21,7 +21,7 @@
 #define DFT_s             4
 #define DFT_h             1.2f
 #define DFT_channels      "AUTO"
-#define DFT_wmode         1
+#define DFT_wmode         0
 #define DFT_wref          1.0f
 #define DFT_ocl_device    "AUTO"
 #define DFT_ocl_id        0
