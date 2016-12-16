@@ -32,6 +32,8 @@
 #define OCL_UTILS_OPENCL_1_1                  11
 #define OCL_UTILS_OPENCL_1_2                  12
 
+#define STR(code) case code: return #code
+
 //////////////////////////////////////////
 // Common
 inline size_t mrounds(const size_t number, const size_t multiple) {
@@ -43,8 +45,43 @@ template<class T> const T& min(const T& a, const T& b) {
 }
 
 //////////////////////////////////////////
+// Kernel specific
+const char* oclUtilsNlmClipTypeToString(cl_uint clip) {
+    if (clip & NLM_CLIP_TYPE_UNORM)
+        return "NLM_CLIP_TYPE_UNORM";
+    else if (clip & NLM_CLIP_TYPE_UNSIGNED)
+        return "NLM_CLIP_TYPE_UNSIGNED";
+    else if (clip & NLM_CLIP_TYPE_STACKED)
+        return "NLM_CLIP_TYPE_STACKED";
+    else
+        return "OCL_UTILS_CLIP_TYPE_ERROR";
+}
+
+const char* oclUtilsNlmClipRefToString(cl_uint clip) {
+    if (clip & NLM_CLIP_REF_LUMA)
+        return "NLM_CLIP_REF_LUMA";
+    else if (clip & NLM_CLIP_REF_CHROMA)
+        return "NLM_CLIP_REF_CHROMA";
+    else if (clip & NLM_CLIP_REF_YUV)
+        return "NLM_CLIP_REF_YUV";
+    else if (clip & NLM_CLIP_REF_RGB)
+        return "NLM_CLIP_REF_RGB";
+    else
+        return "OCL_UTILS_CLIP_REF_ERROR";
+}
+
+const char* oclUtilsNlmWmodeToString(cl_int wmode) {
+    switch (wmode) {
+        STR(NLM_WMODE_WELSCH);
+        STR(NLM_WMODE_BISQUARE1);
+        STR(NLM_WMODE_BISQUARE2);
+        STR(NLM_WMODE_BISQUARE8);
+        default: return "OCL_UTILS_WMODE_ERROR";
+    }
+}
+
+//////////////////////////////////////////
 // Functions
-#define STR(code) case code: return #code
 const char* oclUtilsErrorToString(cl_int err) {
     switch (err) {
         STR(OCL_UTILS_INVALID_VALUE);

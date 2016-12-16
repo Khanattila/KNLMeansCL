@@ -66,7 +66,6 @@ static const char* kernel_source_code =
 "#define NLM_H2_INV_NORM     ( NLM_NORM / (NLM_H * NLM_H * NLM_S_SIZE) )                                          \n" \
 "#define NLM_16BIT_MSB       ( 256.0f / (257.0f * 255.0f) )                                                       \n" \
 "#define NLM_16BIT_LSB       (   1.0f / (257.0f * 255.0f) )                                                       \n" \
-"#define CHECK_FLAG(flag)    ( (NLM_TCLIP & (flag)) == (flag) )                                                   \n" \
 "                                                                                                                 \n" \
 "__kernel                                                                                                         \n" \
 "void nlmDistance(__read_only image2d_array_t U1, __write_only image2d_array_t U4, const int t, const int4 q) {   \n" \
@@ -75,43 +74,40 @@ static const char* kernel_source_code =
 "   int y = get_global_id(1);                                                                                     \n" \
 "   if (x >= VI_DIM_X || y >= VI_DIM_Y) return;                                                                   \n" \
 "                                                                                                                 \n" \
-"   const sampler_t smp_f = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_NONE | CLK_FILTER_NEAREST;                  \n" \
-"   const sampler_t smp_t = CLK_NORMALIZED_COORDS_TRUE | CLK_ADDRESS_REPEAT | CLK_FILTER_NEAREST;                 \n" \
-"   int4   p    = (int4) (x, y, t, 0);                                                                            \n" \
-"   float  x_pq = native_divide((float) (x + q.x), (float) (VI_DIM_X - 1));                                       \n" \
-"   float  y_pq = native_divide((float) (y + q.y), (float) (VI_DIM_Y - 1));                                       \n" \
-"   float4 p_pq = (float4) (x_pq, y_pq, t + q.z, 0);                                                              \n" \
+"   const sampler_t smp = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP | CLK_FILTER_NEAREST;                   \n" \
+"   int4 p    = (int4) (x, y, t, 0);                                                                              \n" \
+"   int4 p_pq = p + q;                                                                                            \n" \
 "                                                                                                                 \n" \
-"   if (CHECK_FLAG(NLM_CLIP_REF_LUMA)) {                                                                          \n" \
+"   #if defined(NLM_CLIP_REF_LUMA)                                                                                \n" \
 "                                                                                                                 \n" \
-"       float  u1    = read_imagef(U1, smp_f, p   ).x;                                                            \n" \
-"       float  u1_pq = read_imagef(U1, smp_t, p_pq).x;                                                            \n" \
+"       float  u1    = read_imagef(U1, smp, p   ).x;                                                              \n" \
+"       float  u1_pq = read_imagef(U1, smp, p_pq).x;                                                              \n" \
 "       float  val   = 3.0f * (u1 - u1_pq) * (u1 - u1_pq);                                                        \n" \
 "       write_imagef(U4, p, (float4) (val, 0.0f, 0.0f, 0.0f));                                                    \n" \
 "                                                                                                                 \n" \
-"   } else if (CHECK_FLAG(NLM_CLIP_REF_CHROMA)) {                                                                 \n" \
+"   #elif defined(NLM_CLIP_REF_CHROMA)                                                                            \n" \
 "                                                                                                                 \n" \
-"       float2 u1    = read_imagef(U1, smp_f, p   ).xy;                                                           \n" \
-"       float2 u1_pq = read_imagef(U1, smp_t, p_pq).xy;                                                           \n" \
+"       float2 u1    = read_imagef(U1, smp, p   ).xy;                                                             \n" \
+"       float2 u1_pq = read_imagef(U1, smp, p_pq).xy;                                                             \n" \
 "       float  dst_u = (u1.x - u1_pq.x) * (u1.x - u1_pq.x);                                                       \n" \
 "       float  dst_v = (u1.y - u1_pq.y) * (u1.y - u1_pq.y);                                                       \n" \
 "       float  val   = 1.5f * (dst_u + dst_v);                                                                    \n" \
 "       write_imagef(U4, p, (float4) (val, 0.0f, 0.0f, 0.0f));                                                    \n" \
 "                                                                                                                 \n" \
-"   } else if (CHECK_FLAG(NLM_CLIP_REF_YUV)) {                                                                    \n" \
+"   #elif defined(NLM_CLIP_REF_YUV)                                                                               \n" \
 "                                                                                                                 \n" \
-"       float3 u1    = read_imagef(U1, smp_f, p   ).xyz;                                                          \n" \
-"       float3 u1_pq = read_imagef(U1, smp_t, p_pq).xyz;                                                          \n" \
+"       float3 u1    = read_imagef(U1, smp, p   ).xyz;                                                            \n" \
+"       float3 u1_pq = read_imagef(U1, smp, p_pq).xyz;                                                            \n" \
 "       float  dst_y = (u1.x - u1_pq.x) * (u1.x - u1_pq.x);                                                       \n" \
 "       float  dst_u = (u1.y - u1_pq.y) * (u1.y - u1_pq.y);                                                       \n" \
 "       float  dst_v = (u1.z - u1_pq.z) * (u1.z - u1_pq.z);                                                       \n" \
 "       float  val   = dst_y + dst_u + dst_v;                                                                     \n" \
 "       write_imagef(U4, p, (float4) (val, 0.0f, 0.0f, 0.0f));                                                    \n" \
 "                                                                                                                 \n" \
-"   } else if (CHECK_FLAG(NLM_CLIP_REF_RGB)) {                                                                    \n" \
+"   #elif defined(NLM_CLIP_REF_RGB)                                                                               \n" \
 "                                                                                                                 \n" \
-"       float3 u1    = read_imagef(U1, smp_f, p   ).xyz;                                                          \n" \
-"       float3 u1_pq = read_imagef(U1, smp_t, p_pq).xyz;                                                          \n" \
+"       float3 u1    = read_imagef(U1, smp, p   ).xyz;                                                            \n" \
+"       float3 u1_pq = read_imagef(U1, smp, p_pq).xyz;                                                            \n" \
 "       float  m_red = native_divide(u1.x + u1_pq.x, 6.0f);                                                       \n" \
 "       float  dst_r = (2.0f/3.0f + m_red) * (u1.x - u1_pq.x) * (u1.x - u1_pq.x);                                 \n" \
 "       float  dst_g = (4.0f/3.0f        ) * (u1.y - u1_pq.y) * (u1.y - u1_pq.y);                                 \n" \
@@ -119,7 +115,7 @@ static const char* kernel_source_code =
 "       float  val   = dst_r + dst_g + dst_b;                                                                     \n" \
 "       write_imagef(U4, p, (float4) (val, 0.0f, 0.0f, 0.0f));                                                    \n" \
 "                                                                                                                 \n" \
-"   }                                                                                                             \n" \
+"   #endif                                                                                                        \n" \
 "}                                                                                                                \n" \
 "                                                                                                                 \n" \
 "__kernel __attribute__((reqd_work_group_size(HRZ_BLOCK_X, HRZ_BLOCK_Y, 1)))                                      \n" \
@@ -181,15 +177,15 @@ static const char* kernel_source_code =
 "           sum += buffer[get_local_id(0)][get_local_id(1) + i * VRT_BLOCK_Y + j];                                \n" \
 "                                                                                                                 \n" \
 "       float val = 0.0f;                                                                                         \n" \
-"       if (NLM_WMODE == NLM_WMODE_WELSCH) {                                                                      \n" \
+"       #if defined(NLM_WMODE_WELSCH)                                                                             \n" \
 "           val = native_exp(- sum * NLM_H2_INV_NORM);                                                            \n" \
-"       } else if (NLM_WMODE == NLM_WMODE_BISQUARE1) {                                                            \n" \
+"       #elif defined(NLM_WMODE_BISQUARE1)                                                                        \n" \
 "           val = fdim(1.0f, sum * NLM_H2_INV_NORM);                                                              \n" \
-"       } else if (NLM_WMODE == NLM_WMODE_BISQUARE2) {                                                            \n" \
+"       #elif defined(NLM_WMODE_BISQUARE2)                                                                        \n" \
 "           val = pown(fdim(1.0f, sum * NLM_H2_INV_NORM), 2);                                                     \n" \
-"       } else if (NLM_WMODE == NLM_WMODE_BISQUARE8) {                                                            \n" \
+"       #elif defined(NLM_WMODE_BISQUARE8)                                                                        \n" \
 "           val = pown(fdim(1.0f, sum * NLM_H2_INV_NORM), 8);                                                     \n" \
-"       }                                                                                                         \n" \
+"       #endif                                                                                                    \n" \
 "       write_imagef(U4_out, (int4) (x, y + i * VRT_BLOCK_Y, t, 0), (float4) (val, 0.0f, 0.0f, 0.0f));            \n" \
 "   }                                                                                                             \n" \
 "}                                                                                                                \n" \
@@ -211,7 +207,7 @@ static const char* kernel_source_code =
 "   float u4_mq = read_imagef(U4, smp, p - q).x;                                                                  \n" \
 "   U5[gidx]    = fmax(U5[gidx], fmax(u4, u4_mq));                                                                \n" \
 "                                                                                                                 \n" \
-"   if (CHECK_FLAG(NLM_CLIP_REF_LUMA)) {                                                                          \n" \
+"   #if defined(NLM_CLIP_REF_LUMA)                                                                                \n" \
 "                                                                                                                 \n" \
 "       float  u1_pq = read_imagef(U1, smp, p + q).x;                                                             \n" \
 "       float  u1_mq = read_imagef(U1, smp, p - q).x;                                                             \n" \
@@ -220,7 +216,7 @@ static const char* kernel_source_code =
 "              u2.y += (u4 + u4_mq);                                                                              \n" \
 "       vstore2(u2, gidx, U2);                                                                                    \n" \
 "                                                                                                                 \n" \
-"   } else if (CHECK_FLAG(NLM_CLIP_REF_CHROMA)) {                                                                 \n" \
+"   #elif defined(NLM_CLIP_REF_CHROMA)                                                                            \n" \
 "                                                                                                                 \n" \
 "       float2 u1_pq = read_imagef(U1, smp, p + q).xy;                                                            \n" \
 "       float2 u1_mq = read_imagef(U1, smp, p - q).xy;                                                            \n" \
@@ -230,7 +226,7 @@ static const char* kernel_source_code =
 "              u2.z += (u4 + u4_mq);                                                                              \n" \
 "       vstore3(u2, gidx, U2);                                                                                    \n" \
 "                                                                                                                 \n" \
-"   } else if (CHECK_FLAG(NLM_CLIP_REF_YUV)) {                                                                    \n" \
+"   #elif defined(NLM_CLIP_REF_YUV)                                                                               \n" \
 "                                                                                                                 \n" \
 "       float3 u1_pq = read_imagef(U1, smp, p + q).xyz;                                                           \n" \
 "       float3 u1_mq = read_imagef(U1, smp, p - q).xyz;                                                           \n" \
@@ -241,7 +237,7 @@ static const char* kernel_source_code =
 "              u2.w += (u4 + u4_mq);                                                                              \n" \
 "       vstore4(u2, gidx, U2);                                                                                    \n" \
 "                                                                                                                 \n" \
-"   } else if (CHECK_FLAG(NLM_CLIP_REF_RGB)) {                                                                    \n" \
+"   #elif defined(NLM_CLIP_REF_RGB)                                                                               \n" \
 "                                                                                                                 \n" \
 "       float3 u1_pq = read_imagef(U1, smp, p + q).xyz;                                                           \n" \
 "       float3 u1_mq = read_imagef(U1, smp, p - q).xyz;                                                           \n" \
@@ -252,7 +248,7 @@ static const char* kernel_source_code =
 "              u2.w += (u4 + u4_mq);                                                                              \n" \
 "       vstore4(u2, gidx, U2);                                                                                    \n" \
 "                                                                                                                 \n" \
-"   }                                                                                                             \n" \
+"   #endif                                                                                                        \n" \
 "}                                                                                                                \n" \
 "                                                                                                                 \n" \
 "__kernel                                                                                                         \n" \
@@ -269,7 +265,7 @@ static const char* kernel_source_code =
 "   int gidx = mad24(y, VI_DIM_X, x);                                                                             \n" \
 "   float wM = NLM_WREF * U5[gidx];                                                                               \n" \
 "                                                                                                                 \n" \
-"   if (CHECK_FLAG(NLM_CLIP_REF_LUMA)) {                                                                          \n" \
+"   #if defined(NLM_CLIP_REF_LUMA)                                                                                \n" \
 "                                                                                                                 \n" \
 "       float  u1    = read_imagef(U1_in, smp, p).x;                                                              \n" \
 "       float2 u2    = vload2(gidx, U2);                                                                          \n" \
@@ -278,7 +274,7 @@ static const char* kernel_source_code =
 "       float  val   = native_divide(num, den);                                                                   \n" \
 "       write_imagef(U1_out, s, (float4) (val, 0.0f, 0.0f, 0.0f));                                                \n" \
 "                                                                                                                 \n" \
-"   } else if (CHECK_FLAG(NLM_CLIP_REF_CHROMA)) {                                                                 \n" \
+"   #elif defined(NLM_CLIP_REF_CHROMA)                                                                            \n" \
 "                                                                                                                 \n" \
 "       float2 u1    = read_imagef(U1_in, smp, p).xy;                                                             \n" \
 "       float3 u2    = vload3(gidx, U2);                                                                          \n" \
@@ -289,7 +285,7 @@ static const char* kernel_source_code =
 "       float  val_v = native_divide(num_v, den);                                                                 \n" \
 "       write_imagef(U1_out, s,  (float4) (val_u, val_v, 0.0f, 0.0f));                                            \n" \
 "                                                                                                                 \n" \
-"   } else if (CHECK_FLAG(NLM_CLIP_REF_YUV)) {                                                                    \n" \
+"   #elif defined(NLM_CLIP_REF_YUV)                                                                               \n" \
 "                                                                                                                 \n" \
 "       float3 u1    = read_imagef(U1_in, smp, p).xyz;                                                            \n" \
 "       float4 u2    = vload4(gidx, U2);                                                                          \n" \
@@ -302,7 +298,7 @@ static const char* kernel_source_code =
 "       float  val_v = native_divide(num_v, den);                                                                 \n" \
 "       write_imagef(U1_out, s,  (float4) (val_y, val_u, val_v, 0.0f));                                           \n" \
 "                                                                                                                 \n" \
-"   } else if (CHECK_FLAG(NLM_CLIP_REF_RGB)) {                                                                    \n" \
+"   #elif defined(NLM_CLIP_REF_RGB)                                                                               \n" \
 "                                                                                                                 \n" \
 "       float3 u1    = read_imagef(U1_in, smp, p).xyz;                                                            \n" \
 "       float4 u2    = vload4(gidx, U2);                                                                          \n" \
@@ -315,7 +311,7 @@ static const char* kernel_source_code =
 "       float  val_b = native_divide(num_b, den);                                                                 \n" \
 "       write_imagef(U1_out, s,  (float4) (val_r, val_g, val_b, 0.0f));                                           \n" \
 "                                                                                                                 \n" \
-"   }                                                                                                             \n" \
+"   #endif                                                                                                        \n" \
 "}                                                                                                                \n" \
 "                                                                                                                 \n" \
 "__kernel                                                                                                         \n" \
@@ -331,16 +327,16 @@ static const char* kernel_source_code =
 "   int4 p = (int4) (x, y, t, 0);                                                                                 \n" \
 "   int2 s = (int2) (x, y);                                                                                       \n" \
 "                                                                                                                 \n" \
-"   if (CHECK_FLAG(NLM_CLIP_TYPE_STACKED | NLM_CLIP_REF_LUMA)) {                                                  \n" \
+"   #if defined(NLM_CLIP_TYPE_STACKED) && defined(NLM_CLIP_REF_LUMA)                                              \n" \
 "       float y_msb = convert_float(read_imageui(R,     smp, s).x);                                               \n" \
 "       float y_lsb = convert_float(read_imageui(R_lsb, smp, s).x);                                               \n" \
 "       float y     = NLM_16BIT_MSB * y_msb + NLM_16BIT_LSB * y_lsb;                                              \n" \
 "       write_imagef(U1, p, (float4) (y, 0.0f, 0.0f, 0.0f));                                                      \n" \
-"   } else if (CHECK_FLAG(NLM_CLIP_TYPE_UNORM | NLM_CLIP_REF_CHROMA)) {                                           \n" \
+"   #elif defined(NLM_CLIP_TYPE_UNORM) && defined(NLM_CLIP_REF_CHROMA)                                            \n" \
 "       float u     = read_imagef(R, smp, s).x;                                                                   \n" \
 "       float v     = read_imagef(G, smp, s).x;                                                                   \n" \
 "       write_imagef(U1, p, (float4) (u, v, 0.0f, 0.0f));                                                         \n" \
-"   } else if (CHECK_FLAG(NLM_CLIP_TYPE_STACKED | NLM_CLIP_REF_CHROMA)) {                                         \n" \
+"   #elif defined(NLM_CLIP_TYPE_STACKED) && defined(NLM_CLIP_REF_CHROMA)                                          \n" \
 "       float u_msb = convert_float(read_imageui(R,     smp, s).x);                                               \n" \
 "       float v_msb = convert_float(read_imageui(G,     smp, s).x);                                               \n" \
 "       float u_lsb = convert_float(read_imageui(R_lsb, smp, s).x);                                               \n" \
@@ -348,17 +344,17 @@ static const char* kernel_source_code =
 "       float u     = NLM_16BIT_MSB * u_msb + NLM_16BIT_LSB * u_lsb;                                              \n" \
 "       float v     = NLM_16BIT_MSB * v_msb + NLM_16BIT_LSB * v_lsb;                                              \n" \
 "       write_imagef(U1, p, (float4) (u, v, 0.0f, 0.0f));                                                         \n" \
-"   } else if (CHECK_FLAG(NLM_CLIP_TYPE_UNORM | NLM_CLIP_REF_YUV)) {                                              \n" \
+"   #elif defined(NLM_CLIP_TYPE_UNORM) && defined(NLM_CLIP_REF_YUV)                                               \n" \
 "       float y     = read_imagef(R, smp, s).x;                                                                   \n" \
 "       float u     = read_imagef(G, smp, s).x;                                                                   \n" \
 "       float v     = read_imagef(B, smp, s).x;                                                                   \n" \
 "       write_imagef(U1, p, (float4) (y, u, v, 0.0f));                                                            \n" \
-"   } else if (CHECK_FLAG(NLM_CLIP_TYPE_UNSIGNED | NLM_CLIP_REF_YUV)) {                                           \n" \
+"   #elif defined(NLM_CLIP_TYPE_UNSIGNED) && defined(NLM_CLIP_REF_YUV)                                            \n" \
 "       float y     = native_divide(convert_float(read_imageui(R, smp, s).x), 1023.0f);                           \n" \
 "       float u     = native_divide(convert_float(read_imageui(G, smp, s).x), 1023.0f);                           \n" \
 "       float v     = native_divide(convert_float(read_imageui(B, smp, s).x), 1023.0f);                           \n" \
 "       write_imagef(U1, p, (float4) (y, u, v, 0.0f));                                                            \n" \
-"   } else if (CHECK_FLAG(NLM_CLIP_TYPE_STACKED | NLM_CLIP_REF_YUV)) {                                            \n" \
+"   #elif defined(NLM_CLIP_TYPE_STACKED) && defined(NLM_CLIP_REF_YUV)                                             \n" \
 "       float y_msb = convert_float(read_imageui(R,     smp, s).x);                                               \n" \
 "       float u_msb = convert_float(read_imageui(G,     smp, s).x);                                               \n" \
 "       float v_msb = convert_float(read_imageui(B,     smp, s).x);                                               \n" \
@@ -369,17 +365,17 @@ static const char* kernel_source_code =
 "       float u     = NLM_16BIT_MSB * u_msb + NLM_16BIT_LSB * u_lsb;                                              \n" \
 "       float v     = NLM_16BIT_MSB * v_msb + NLM_16BIT_LSB * v_lsb;                                              \n" \
 "       write_imagef(U1, p, (float4) (y, u, v, 0.0f));                                                            \n" \
-"   } else if (CHECK_FLAG(NLM_CLIP_TYPE_UNORM | NLM_CLIP_REF_RGB)) {                                              \n" \
+"   #elif defined(NLM_CLIP_TYPE_UNORM) && defined(NLM_CLIP_REF_RGB)                                               \n" \
 "       float r     = read_imagef(R, smp, s).x;                                                                   \n" \
 "       float g     = read_imagef(G, smp, s).x;                                                                   \n" \
 "       float b     = read_imagef(B, smp, s).x;                                                                   \n" \
 "       write_imagef(U1, p, (float4) (r, g, b, 0.0f));                                                            \n" \
-"   } else if (CHECK_FLAG(NLM_CLIP_TYPE_UNSIGNED | NLM_CLIP_REF_RGB)) {                                           \n" \
+"   #elif defined(NLM_CLIP_TYPE_UNSIGNED) && defined(NLM_CLIP_REF_RGB)                                            \n" \
 "       float r     = native_divide(convert_float(read_imageui(R, smp, s).x), 1023.0f);                           \n" \
 "       float g     = native_divide(convert_float(read_imageui(G, smp, s).x), 1023.0f);                           \n" \
 "       float b     = native_divide(convert_float(read_imageui(B, smp, s).x), 1023.0f);                           \n" \
 "       write_imagef(U1, p, (float4) (r, g, b, 0.0f));                                                            \n" \
-"   }                                                                                                             \n" \
+"   #endif                                                                                                        \n" \
 "}                                                                                                                \n" \
 "                                                                                                                 \n" \
 "__kernel                                                                                                         \n" \
@@ -394,16 +390,16 @@ static const char* kernel_source_code =
 "   const sampler_t smp = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_NONE | CLK_FILTER_NEAREST;                    \n" \
 "   int2 s = (int2) (x, y);                                                                                       \n" \
 "                                                                                                                 \n" \
-"   if (CHECK_FLAG(NLM_CLIP_TYPE_STACKED | NLM_CLIP_REF_LUMA)) {                                                  \n" \
+"   #if defined(NLM_CLIP_TYPE_STACKED) && defined(NLM_CLIP_REF_LUMA)                                              \n" \
 "       float  val = read_imagef(U1, smp, s).x;                                                                   \n" \
 "       ushort y   = convert_ushort_sat(val * 65535.0f);                                                          \n" \
 "       write_imageui(R,     s, (uint4)  (y >> CHAR_BIT, 0u, 0u, 0u));                                            \n" \
 "       write_imageui(R_lsb, s, (uint4)  (y &  0xFF,     0u, 0u, 0u));                                            \n" \
-"   } else if (CHECK_FLAG(NLM_CLIP_TYPE_UNORM | NLM_CLIP_REF_CHROMA)) {                                           \n" \
+"   #elif defined(NLM_CLIP_TYPE_UNORM) && defined(NLM_CLIP_REF_CHROMA)                                            \n" \
 "       float2 val = read_imagef(U1, smp, s).xy;                                                                  \n" \
 "       write_imagef(R,      s, (float4) (val.x, 0.0f, 0.0f, 0.0f));                                              \n" \
 "       write_imagef(G,      s, (float4) (val.y, 0.0f, 0.0f, 0.0f));                                              \n" \
-"   } else if (CHECK_FLAG(NLM_CLIP_TYPE_STACKED | NLM_CLIP_REF_CHROMA)) {                                         \n" \
+"   #elif defined(NLM_CLIP_TYPE_STACKED) && defined(NLM_CLIP_REF_CHROMA)                                          \n" \
 "       float2 val = read_imagef(U1, smp, s).xy;                                                                  \n" \
 "       ushort u   = convert_ushort_sat(val.x * 65535.0f);                                                        \n" \
 "       ushort v   = convert_ushort_sat(val.y * 65535.0f);                                                        \n" \
@@ -411,12 +407,12 @@ static const char* kernel_source_code =
 "       write_imageui(G,     s, (uint4)  (v >> CHAR_BIT, 0u, 0u, 0u));                                            \n" \
 "       write_imageui(R_lsb, s, (uint4)  (u &  0xFF,     0u, 0u, 0u));                                            \n" \
 "       write_imageui(G_lsb, s, (uint4)  (v &  0xFF,     0u, 0u, 0u));                                            \n" \
-"   } else if (CHECK_FLAG(NLM_CLIP_TYPE_UNORM | NLM_CLIP_REF_YUV)) {                                              \n" \
+"   #elif defined(NLM_CLIP_TYPE_UNORM) && defined(NLM_CLIP_REF_YUV)                                               \n" \
 "       float3 val = read_imagef(U1, smp, s).xyz;                                                                 \n" \
 "       write_imagef(R,      s, (float4) (val.x, 0.0f, 0.0f, 0.0f));                                              \n" \
 "       write_imagef(G,      s, (float4) (val.y, 0.0f, 0.0f, 0.0f));                                              \n" \
 "       write_imagef(B,      s, (float4) (val.z, 0.0f, 0.0f, 0.0f));                                              \n" \
-"   } else if (CHECK_FLAG(NLM_CLIP_TYPE_UNSIGNED | NLM_CLIP_REF_YUV)) {                                           \n" \
+"   #elif defined(NLM_CLIP_TYPE_UNSIGNED) && defined(NLM_CLIP_REF_YUV)                                            \n" \
 "       float3 val = read_imagef(U1, smp, s).xyz;                                                                 \n" \
 "       ushort y   = convert_ushort_sat(val.x * 1023.0f);                                                         \n" \
 "       ushort u   = convert_ushort_sat(val.y * 1023.0f);                                                         \n" \
@@ -424,7 +420,7 @@ static const char* kernel_source_code =
 "       write_imageui(R,     s, (uint4)  (y, 0u, 0u, 0u));                                                        \n" \
 "       write_imageui(G,     s, (uint4)  (u, 0u, 0u, 0u));                                                        \n" \
 "       write_imageui(B,     s, (uint4)  (v, 0u, 0u, 0u));                                                        \n" \
-"   } else if (CHECK_FLAG(NLM_CLIP_TYPE_STACKED | NLM_CLIP_REF_YUV)) {                                            \n" \
+"   #elif defined(NLM_CLIP_TYPE_STACKED) && defined(NLM_CLIP_REF_YUV)                                             \n" \
 "       float3 val = read_imagef(U1, smp, s).xyz;                                                                 \n" \
 "       ushort y   = convert_ushort_sat(val.x * 65535.0f);                                                        \n" \
 "       ushort u   = convert_ushort_sat(val.y * 65535.0f);                                                        \n" \
@@ -435,12 +431,12 @@ static const char* kernel_source_code =
 "       write_imageui(R_lsb, s, (uint4)  (y &  0xFF,     0u, 0u, 0u));                                            \n" \
 "       write_imageui(G_lsb, s, (uint4)  (u &  0xFF,     0u, 0u, 0u));                                            \n" \
 "       write_imageui(B_lsb, s, (uint4)  (v &  0xFF,     0u, 0u, 0u));                                            \n" \
-"   } else if (CHECK_FLAG(NLM_CLIP_TYPE_UNORM | NLM_CLIP_REF_RGB)) {                                              \n" \
+"   #elif defined(NLM_CLIP_TYPE_UNORM) && defined(NLM_CLIP_REF_RGB)                                               \n" \
 "       float3  val    = read_imagef(U1, smp, s).xyz;                                                             \n" \
 "       write_imagef(R,      s, (float4) (val.x, 0.0f, 0.0f, 0.0f));                                              \n" \
 "       write_imagef(G,      s, (float4) (val.y, 0.0f, 0.0f, 0.0f));                                              \n" \
 "       write_imagef(B,      s, (float4) (val.z, 0.0f, 0.0f, 0.0f));                                              \n" \
-"   } else if (CHECK_FLAG(NLM_CLIP_TYPE_UNSIGNED | NLM_CLIP_REF_RGB)) {                                           \n" \
+"   #elif defined(NLM_CLIP_TYPE_UNSIGNED) && defined(NLM_CLIP_REF_RGB)                                            \n" \
 "       float3 val = read_imagef(U1, smp, s).xyz;                                                                 \n" \
 "       ushort r   = convert_ushort(val.x * 1023.0f);                                                             \n" \
 "       ushort g   = convert_ushort(val.y * 1023.0f);                                                             \n" \
@@ -448,5 +444,5 @@ static const char* kernel_source_code =
 "       write_imageui(R,     s, (uint4)  (r, 0u, 0u, 0u));                                                        \n" \
 "       write_imageui(G,     s, (uint4)  (g, 0u, 0u, 0u));                                                        \n" \
 "       write_imageui(B,     s, (uint4)  (b, 0u, 0u, 0u));                                                        \n" \
-"   }                                                                                                             \n" \
+"   #endif                                                                                                        \n" \
 "}                                                                                                                ";

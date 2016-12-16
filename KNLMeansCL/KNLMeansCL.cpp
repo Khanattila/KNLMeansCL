@@ -297,18 +297,14 @@ _NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _
     char options[2048];
     setlocale(LC_ALL, "C");
     snprintf(options, 2048, "-cl-single-precision-constant -cl-denorms-are-zero -cl-fast-relaxed-math -Werror \
-        -D NLM_CLIP_TYPE_UNORM=%u -D NLM_CLIP_TYPE_UNSIGNED=%u -D NLM_CLIP_TYPE_STACKED=%u \
-        -D NLM_CLIP_REF_LUMA=%u -D NLM_CLIP_REF_CHROMA=%u -D NLM_CLIP_REF_YUV=%u -D NLM_CLIP_REF_RGB=%u \
-        -D NLM_WMODE_WELSCH=%u -D NLM_WMODE_BISQUARE1=%u -D NLM_WMODE_BISQUARE2=%u -D NLM_WMODE_BISQUARE8=%u \
-        -D VI_DIM_X=%u -D VI_DIM_Y=%u -D HRZ_RESULT=%zu -D VRT_RESULT=%zu \
+        -D %s -D %s -D %s -D VI_DIM_X=%u -D VI_DIM_Y=%u -D HRZ_RESULT=%zu -D VRT_RESULT=%zu \
         -D HRZ_BLOCK_X=%zu -D HRZ_BLOCK_Y=%zu  -D VRT_BLOCK_X=%zu -D VRT_BLOCK_Y=%zu \
-        -D NLM_TCLIP=%u -D NLM_D=%i -D NLM_S=%i -D NLM_WMODE=%i -D NLM_WREF=%f -D NLM_H=%f",
-        NLM_CLIP_TYPE_UNORM, NLM_CLIP_TYPE_UNSIGNED, NLM_CLIP_TYPE_STACKED,
-        NLM_CLIP_REF_LUMA, NLM_CLIP_REF_CHROMA, NLM_CLIP_REF_YUV, NLM_CLIP_REF_RGB,
-        NLM_WMODE_WELSCH, NLM_WMODE_BISQUARE1, NLM_WMODE_BISQUARE2, NLM_WMODE_BISQUARE8,
+        -D NLM_D=%i -D NLM_S=%i -D NLM_H=%f -D NLM_WREF=%f",
+        oclUtilsNlmClipTypeToString(clip_t), oclUtilsNlmClipRefToString(clip_t),
+        oclUtilsNlmWmodeToString(wmode),
         idmn[0], idmn[1], hrz_result, vrt_result,
         hrz_block_x, hrz_block_y, vrt_block_x, vrt_block_y,
-        clip_t, d, s, wmode, wref, h);
+        d, s, h, wref);
     ret = clBuildProgram(program, 1, &deviceID, options, NULL, NULL);
     if (ret != CL_SUCCESS) {
         oclUtilsDebugInfo(platformID, deviceID, program);
@@ -1524,33 +1520,25 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
     char options[2048];
     setlocale(LC_ALL, "C");
 #    ifdef __APPLE__
-    snprintf(options, 2048, "-cl-denorms-are-zero -cl-fast-relaxed-math -cl-mad-enable \
-        -D NLM_CLIP_TYPE_UNORM=%u -D NLM_CLIP_TYPE_UNSIGNED=%u -D NLM_CLIP_TYPE_STACKED=%u \
-        -D NLM_CLIP_REF_LUMA=%u -D NLM_CLIP_REF_CHROMA=%u -D NLM_CLIP_REF_YUV=%u -D NLM_CLIP_REF_RGB=%u \
-        -D NLM_WMODE_CAUCHY=%u -D NLM_WMODE_WELSCH=%u -D NLM_WMODE_BISQUARE=%u -D NLM_WMODE_MOD_BISQUARE=%u \
-        -D VI_DIM_X=%u -D VI_DIM_Y=%u -D DST_BLOCK_X=%zu -D DST_BLOCK_Y=%zu \
-        -D HRZ_BLOCK_X=%zu -D HRZ_BLOCK_Y=%zu -D HRZ_RESULT=%zu -D VRT_BLOCK_X=%zu -D VRT_BLOCK_Y=%zu -D VRT_RESULT=%zu \
-        -D NLM_TCLIP=%u -D NLM_D=%i -D NLM_S=%i -D NLM_WMODE=%i -D NLM_WREF=%ff -D NLM_H=%ff",
-        NLM_CLIP_TYPE_UNORM, NLM_CLIP_TYPE_UNSIGNED, NLM_CLIP_TYPE_STACKED,
-        NLM_CLIP_REF_LUMA, NLM_CLIP_REF_CHROMA, NLM_CLIP_REF_YUV, NLM_CLIP_REF_RGB,
-        NLM_WMODE_CAUCHY, NLM_WMODE_WELSCH, NLM_WMODE_BISQUARE, NLM_WMODE_MOD_BISQUARE,
-        d.idmn[0], d.idmn[1], d.dst_block_x, d.dst_block_y,
-        d.hrz_block_x, d.hrz_block_y, d.hrz_result, d.vrt_block_x, d.vrt_block_y, d.vrt_result,
-        d.clip_t, int64ToIntS(d.d), int64ToIntS(d.s), int64ToIntS(d.wmode), d.wref, d.h);
-#    else
-    snprintf(options, 2048, "-cl-single-precision-constant -cl-denorms-are-zero -cl-fast-relaxed-math -Werror \
-        -D NLM_CLIP_TYPE_UNORM=%u -D NLM_CLIP_TYPE_UNSIGNED=%u -D NLM_CLIP_TYPE_STACKED=%u \
-        -D NLM_CLIP_REF_LUMA=%u -D NLM_CLIP_REF_CHROMA=%u -D NLM_CLIP_REF_YUV=%u -D NLM_CLIP_REF_RGB=%u \
-        -D NLM_WMODE_WELSCH=%u -D NLM_WMODE_BISQUARE1=%u -D NLM_WMODE_BISQUARE2=%u -D NLM_WMODE_BISQUARE8=%u \
-        -D VI_DIM_X=%u -D VI_DIM_Y=%u -D HRZ_RESULT=%zu -D VRT_RESULT=%zu \
+    snprintf(options, 2048, "-cl-denorms-are-zero -cl-fast-relaxed-math -cl-mad-enable -Werror \
+        -D %s -D %s -D %s -D VI_DIM_X=%u -D VI_DIM_Y=%u -D HRZ_RESULT=%zu -D VRT_RESULT=%zu \
         -D HRZ_BLOCK_X=%zu -D HRZ_BLOCK_Y=%zu  -D VRT_BLOCK_X=%zu -D VRT_BLOCK_Y=%zu \
-        -D NLM_TCLIP=%u -D NLM_D=%i -D NLM_S=%i -D NLM_WMODE=%i -D NLM_WREF=%f -D NLM_H=%f",
-        NLM_CLIP_TYPE_UNORM, NLM_CLIP_TYPE_UNSIGNED, NLM_CLIP_TYPE_STACKED,
-        NLM_CLIP_REF_LUMA, NLM_CLIP_REF_CHROMA, NLM_CLIP_REF_YUV, NLM_CLIP_REF_RGB,
-        NLM_WMODE_WELSCH, NLM_WMODE_BISQUARE1, NLM_WMODE_BISQUARE2, NLM_WMODE_BISQUARE8,
+        -D NLM_D=%i -D NLM_S=%i -D NLM_H=%ff -D NLM_WREF=%ff",
+        oclUtilsNlmClipTypeToString(d.clip_t), oclUtilsNlmClipRefToString(d.clip_t),
+        oclUtilsNlmWmodeToString(int64ToIntS(d.wmode)),
         d.idmn[0], d.idmn[1], d.hrz_result, d.vrt_result,
         d.hrz_block_x, d.hrz_block_y, d.vrt_block_x, d.vrt_block_y,
-        d.clip_t, int64ToIntS(d.d), int64ToIntS(d.s), int64ToIntS(d.wmode), d.wref, d.h);
+        int64ToIntS(d.d), int64ToIntS(d.s), d.h, d.wref);
+#    else
+    snprintf(options, 2048, "-cl-single-precision-constant -cl-denorms-are-zero -cl-fast-relaxed-math -Werror \
+        -D %s -D %s -D %s -D VI_DIM_X=%u -D VI_DIM_Y=%u -D HRZ_RESULT=%zu -D VRT_RESULT=%zu \
+        -D HRZ_BLOCK_X=%zu -D HRZ_BLOCK_Y=%zu  -D VRT_BLOCK_X=%zu -D VRT_BLOCK_Y=%zu \
+        -D NLM_D=%i -D NLM_S=%i -D NLM_H=%f -D NLM_WREF=%f",
+        oclUtilsNlmClipTypeToString(d.clip_t), oclUtilsNlmClipRefToString(d.clip_t),
+        oclUtilsNlmWmodeToString(int64ToIntS(d.wmode)),
+        d.idmn[0], d.idmn[1], d.hrz_result, d.vrt_result,
+        d.hrz_block_x, d.hrz_block_y, d.vrt_block_x, d.vrt_block_y,
+        int64ToIntS(d.d), int64ToIntS(d.s), d.h, d.wref);
 #    endif
     ret = clBuildProgram(d.program, 1, &d.deviceID, options, NULL, NULL);
     if (ret != CL_SUCCESS) {
