@@ -234,6 +234,7 @@ static const char* kernel_source_code =
 "   if (x >= VI_DIM_X || y >= VI_DIM_Y) return;                                                                   \n" \
 "                                                                                                                 \n" \
 "   int4  p = (int4) (x, y, NLM_D, 0);                                                                            \n" \
+"   int2  s = (int2) (x, y);                                                                                      \n" \
 "   int  gidx = mad24(y, VI_DIM_X, x);                                                                            \n" \
 "   float m = NLM_WREF * U5[gidx];                                                                                \n" \
 "                                                                                                                 \n" \
