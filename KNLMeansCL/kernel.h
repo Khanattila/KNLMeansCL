@@ -60,6 +60,10 @@
 //////////////////////////////////////////
 // Kernel Definition
 static const char* kernel_source_code =
+"#ifndef cl_amd_media_ops2                                                                                        \n" \
+"#  define amd_max3(a, b, c)   fmax(a, fmax(b, c))                                                                \n" \
+"#endif                                                                                                           \n" \
+"                                                                                                                 \n" \
 "#define NLM_NORM            ( 255.0f * 255.0f )                                                                  \n" \
 "#define NLM_S_SIZE          ( (2 * NLM_S + 1) * (2 * NLM_S + 1) )                                                \n" \
 "#define NLM_H2_INV_NORM     ( NLM_NORM / (NLM_H * NLM_H * NLM_S_SIZE) )                                          \n" \
@@ -195,7 +199,7 @@ static const char* kernel_source_code =
 "                                                                                                                 \n" \
 "   float u4    = read_imagef(U4, nne, p    ).x;                                                                  \n" \
 "   float u4_mq = read_imagef(U4, clm, p - q).x;                                                                  \n" \
-"   U5[gidx] = fmax(U5[gidx], fmax(u4, u4_mq));                                                                   \n" \
+"   U5[gidx]    = amd_max3(u4, u4_mq, U5[gidx]);                                                                  \n" \
 "                                                                                                                 \n" \
 "#if   (NLM_CHANNELS == 1)                                                                                        \n" \
 "   float  u1_pq = read_imagef(U1, clm, p + q).x;                                                                 \n" \
