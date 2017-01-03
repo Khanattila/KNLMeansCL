@@ -58,7 +58,7 @@ private:
     cl_context context;
     cl_command_queue command_queue;
     cl_program program;
-    cl_kernel kernel[NLM_KERNELS];
+    cl_kernel kernel[NLM_KERNEL];
     cl_mem mem_U[NLM_MEMORY], mem_P[6];
     size_t hrz_result, vrt_result, hrz_block_x, hrz_block_y, vrt_block_x, vrt_block_y;
     bool equals(VideoInfo *v, VideoInfo *w);
@@ -86,7 +86,7 @@ public:
     cl_context context;
     cl_command_queue command_queue;
     cl_program program;
-    cl_kernel kernel[NLM_KERNELS];
+    cl_kernel kernel[NLM_KERNEL];
     cl_mem mem_U[NLM_MEMORY], mem_P[3];
     size_t hrz_result, vrt_result, hrz_block_x, hrz_block_y, vrt_block_x, vrt_block_y;
     bool equals(const VSVideoInfo *v, const VSVideoInfo *w);

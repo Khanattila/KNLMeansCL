@@ -31,7 +31,7 @@
 #define nlmFinish                  0x4
 #define nlmPack                    0x5
 #define nlmUnpack                  0x6
-#define NLM_KERNELS                0x7
+#define NLM_KERNEL                 0x7
 
 #define memU1a                     0x0
 #define memU1b                     0x1
@@ -87,6 +87,7 @@ static const char* kernel_source_code =
 "   int x = get_global_id(0);                                                                                     \n" \
 "   int y = get_global_id(1);                                                                                     \n" \
 "   if (x >= VI_DIM_X || y >= VI_DIM_Y) return;                                                                   \n" \
+"                                                                                                                 \n" \
 "   int4 p = (int4) (x, y, t, 0);                                                                                 \n" \
 "                                                                                                                 \n" \
 "#if   defined(NLM_CLIP_REF_LUMA)                                                                                 \n" \

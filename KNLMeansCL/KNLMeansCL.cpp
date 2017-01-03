@@ -164,9 +164,8 @@ _NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _
         idmn[1] = (cl_uint) (lsb ? (vi.height >> 1) : vi.height);
     }
 
-    // Set clip_t, channel_order and channel_type
+    // Set clip_t, channel_order and channel_num
     cl_channel_order channel_order;
-    cl_channel_type channel_type_u, channel_type_p;
     if (!strcasecmp(channels, "YUV")) {
         clip_t |= NLM_CLIP_REF_YUV;
         channel_order = CL_RGBA;
@@ -194,6 +193,9 @@ _NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _
             channel_num = 4; /* 3 + buffer */
         }
     }
+
+    // Set channel_type
+    cl_channel_type channel_type_u, channel_type_p;
     if (lsb) {
         clip_t |= NLM_CLIP_TYPE_STACKED;
         channel_type_u = CL_UNORM_INT16;
@@ -1373,9 +1375,8 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
     d.idmn[0] = (cl_uint) d.vi->width;
     d.idmn[1] = (cl_uint) d.vi->height;
 
-    // Set clip_t, channel_order and channel_type
+    // Set clip_t, channel_order and channel_num
     cl_channel_order channel_order;
-    cl_channel_type channel_type_u, channel_type_p;
     if (!strcasecmp(d.channels, "YUV")) {
         d.clip_t |= NLM_CLIP_REF_YUV;
         channel_order = CL_RGBA;
@@ -1403,26 +1404,49 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
             d.channel_num = 2; /* 1 + buffer */
         }
     }
-    if (d.vi->format->bitsPerSample == 8) {
-        d.clip_t |= NLM_CLIP_TYPE_UNORM;
-        channel_type_u = channel_type_p = CL_UNORM_INT8;
-    } else if (d.vi->format->bitsPerSample == 10) {
-        if (d.clip_t & NLM_CLIP_REF_YUV || d.clip_t & NLM_CLIP_REF_RGB) {
-            d.clip_t |= NLM_CLIP_TYPE_UNSIGNED;
-            channel_order = CL_RGB;
-            channel_type_u = CL_UNORM_INT_101010;
-            channel_type_p = CL_UNORM_INT16;
+
+    // Set channel_type
+    cl_channel_type channel_type_u, channel_type_p;
+    if (d.vi->format->sampleType == VSSampleType::stInteger) {
+        if (d.vi->format->bitsPerSample == 8) {
+            d.clip_t |= NLM_CLIP_TYPE_UNORM;
+            channel_type_u = channel_type_p = CL_UNORM_INT8;
+        } else if (d.vi->format->bitsPerSample == 10) {
+            if (d.clip_t & NLM_CLIP_REF_YUV || d.clip_t & NLM_CLIP_REF_RGB) {
+                d.clip_t |= NLM_CLIP_TYPE_UNSIGNED;
+                channel_order = CL_RGB;
+                channel_type_u = CL_UNORM_INT_101010;
+                channel_type_p = CL_UNORM_INT16;
+            } else {
+                vsapi->setError(out, "knlm.KNLMeansCL: only YUV444P10 and RGB30 are supported!");
+                vsapi->freeNode(d.node);
+                vsapi->freeNode(d.knot);
+                return;
+            }
+        } else if (d.vi->format->bitsPerSample == 16) {
+            d.clip_t |= NLM_CLIP_TYPE_UNORM;
+            channel_type_u = channel_type_p = CL_UNORM_INT16;
         } else {
-            vsapi->setError(out, "knlm.KNLMeansCL: only YUV444P10 and RGB30 are supported!");
+            vsapi->setError(out, "knlm.KNLMeansCL: P8, P10, P16, Half and Single are supported!");
             vsapi->freeNode(d.node);
             vsapi->freeNode(d.knot);
             return;
-        }    
-    } else if (d.vi->format->bitsPerSample == 16) {
-        d.clip_t |= NLM_CLIP_TYPE_UNORM;
-        channel_type_u = channel_type_p = CL_UNORM_INT16;
+        }
+    } else if (d.vi->format->sampleType == VSSampleType::stFloat) {
+        if (d.vi->format->bitsPerSample == 16) {
+            d.clip_t |= NLM_CLIP_TYPE_UNORM;
+            channel_type_u = channel_type_p = CL_HALF_FLOAT;
+        } else if (d.vi->format->bitsPerSample == 16) {
+            d.clip_t |= NLM_CLIP_TYPE_UNORM;
+            channel_type_u = channel_type_p = CL_FLOAT;
+        } else {
+            vsapi->setError(out, "knlm.KNLMeansCL: P8, P10, P16, Half and Single are supported!");
+            vsapi->freeNode(d.node);
+            vsapi->freeNode(d.knot);
+            return;
+        }
     } else {
-        vsapi->setError(out, "knlm.KNLMeansCL: P8, P10, P16, Half and Single are supported!");
+        vsapi->setError(out, "knlm.KNLMeansCL: video sample type not supported!");
         vsapi->freeNode(d.node);
         vsapi->freeNode(d.knot);
         return;
