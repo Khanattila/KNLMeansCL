@@ -1436,7 +1436,7 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
         if (d.vi->format->bitsPerSample == 16) {
             d.clip_t |= NLM_CLIP_TYPE_UNORM;
             channel_type_u = channel_type_p = CL_HALF_FLOAT;
-        } else if (d.vi->format->bitsPerSample == 16) {
+        } else if (d.vi->format->bitsPerSample == 32) {
             d.clip_t |= NLM_CLIP_TYPE_UNORM;
             channel_type_u = channel_type_p = CL_FLOAT;
         } else {
