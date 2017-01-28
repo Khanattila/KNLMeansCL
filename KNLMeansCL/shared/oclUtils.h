@@ -40,7 +40,7 @@ inline size_t mrounds(const size_t number, const size_t multiple) {
     return ((number + multiple - 1) / multiple) * multiple;
 }
 
-template<class T> const T& min(const T& a, const T& b) {
+template<class T> inline const T& min(const T& a, const T& b) {
     return (b < a) ? b : a;
 }
 
