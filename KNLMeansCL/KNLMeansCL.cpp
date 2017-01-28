@@ -939,7 +939,8 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
         } else if (d->clip_t & NLM_CLIP_REF_CHROMA) {
             const VSFrameRef * planeSrc[] = { src, NULL, NULL };
             const int planes[] = { 0, 1, 2 };
-            dst = vsapi->newVideoFrame2(fi, (int) d->idmn[0], (int) d->idmn[1], planeSrc, planes, src, core);
+            dst = vsapi->newVideoFrame2(fi, (int) d->idmn[0] << d->vi->format->subSamplingW, 
+                (int) d->idmn[1] << d->vi->format->subSamplingH, planeSrc, planes, src, core);
         } else {
             dst = vsapi->newVideoFrame(fi, (int) d->idmn[0], (int) d->idmn[1], src, core);
         }
@@ -1427,8 +1428,13 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
     }
 
     // Set image dimensions
-    d.idmn[0] = (cl_uint) d.vi->width;
-    d.idmn[1] = (cl_uint) d.vi->height;
+    if (!strcasecmp(d.channels, "UV")) {
+        d.idmn[0] = (cl_uint) d.vi->width >> d.vi->format->subSamplingW;
+        d.idmn[1] = (cl_uint) d.vi->height >> d.vi->format->subSamplingH;
+    } else {
+        d.idmn[0] = (cl_uint) d.vi->width;
+        d.idmn[1] = (cl_uint) d.vi->height;
+    }
 
     // Set clip_t, channel_order and channel_num
     cl_channel_order channel_order;
