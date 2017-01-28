@@ -78,8 +78,8 @@ static const char* kernel_source_code =
 "#  define NLM_CHANNELS  3                                                                                        \n" \
 "#endif                                                                                                           \n" \
 "                                                                                                                 \n" \
-"const sampler_t nne = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_NONE  | CLK_FILTER_NEAREST;                      \n" \
-"const sampler_t clm = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP | CLK_FILTER_NEAREST;                      \n" \
+"__constant sampler_t nne = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_NONE  | CLK_FILTER_NEAREST;                 \n" \
+"__constant sampler_t clm = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP | CLK_FILTER_NEAREST;                 \n" \
 "                                                                                                                 \n" \
 "__kernel                                                                                                         \n" \
 "void nlmDistance(__read_only image2d_array_t U1, __write_only image2d_array_t U4, const int t, const int4 q) {   \n" \
