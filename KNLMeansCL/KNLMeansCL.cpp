@@ -969,9 +969,9 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
                     break;
                 case (NLM_CLIP_EXTRA_FALSE | NLM_CLIP_TYPE_UNORM | NLM_CLIP_REF_CHROMA):
                     ret |= clEnqueueWriteImage(d->command_queue, d->mem_P[0], CL_FALSE, origin, region,
-                        (size_t) vsapi->getStride(src, 1), 0, vsapi->getReadPtr(src, 0), 0, NULL, NULL);
+                        (size_t) vsapi->getStride(src, 1), 0, vsapi->getReadPtr(src, 1), 0, NULL, NULL);
                     ret |= clEnqueueWriteImage(d->command_queue, d->mem_P[1], CL_FALSE, origin, region,
-                        (size_t) vsapi->getStride(src, 2), 0, vsapi->getReadPtr(src, 1), 0, NULL, NULL);
+                        (size_t) vsapi->getStride(src, 2), 0, vsapi->getReadPtr(src, 2), 0, NULL, NULL);
                     ret |= clSetKernelArg(d->kernel[nlmPack], 6, sizeof(cl_mem), &d->mem_U[memU1a]);
                     ret |= clSetKernelArg(d->kernel[nlmPack], 7, sizeof(cl_int), &t_pk);
                     ret |= clEnqueueNDRangeKernel(d->command_queue, d->kernel[nlmPack],
