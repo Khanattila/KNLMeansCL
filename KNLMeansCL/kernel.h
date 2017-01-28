@@ -257,7 +257,7 @@ static const char* kernel_source_code =
 "   float  num_y = mad(u1.y, m, u2.y);                                                                            \n" \
 "   float  den   = m + u2.z;                                                                                      \n" \
 "   float  val_x = native_divide(num_x, den);                                                                     \n" \
-"   float  val_x = native_divide(num_y, den);                                                                     \n" \
+"   float  val_y = native_divide(num_y, den);                                                                     \n" \
 "   write_imagef(U1_out, s,  (float4) (val_x, val_y, 0.0f, 0.0f));                                                \n" \
 "#elif (NLM_CHANNELS == 3)                                                                                        \n" \
 "   float3 u1    = read_imagef(U1_in, nne, p).xyz;                                                                \n" \
