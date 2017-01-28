@@ -1,3 +1,16 @@
+v1.0.0
+   - Improved performance with CPU.
+   - Improved performance with AMD GCN Architecture.
+   - Reduced CPU overhead in some system.
+   - Reduced memory usage in some system.
+   - Advanced OpenCL parameters for fine tuning.
+   - Replaced 'cmode' with 'channels' and added the options to only process the chroma.
+   - Two new modified bisquare weighting functions.
+   - Increased the maximum 's' value to 8.
+   - Updated to VapourSynth R35.
+   - Removed Cauchy weighting function.
+   - Second clip 'rclip' in some circumstances.
+
 v0.7.7
    - Improved debugging information.
    - Improved the overall stability.
