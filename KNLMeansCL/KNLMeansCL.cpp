@@ -280,8 +280,10 @@ _NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _
     const cl_image_desc desc_u1z = { CL_MEM_OBJECT_IMAGE2D, idmn[0], idmn[1], 1, 1, 0, 0, 0, 0, NULL };
     mem_U[memU1a] = clCreateImage(context, flags_u1ab, &format_u1, &desc_u, NULL, &ret);
     oclErrorCheck("clCreateImage(mem_U[NLM_MEM_U1a])", ret, env);
-    mem_U[memU1b] = clCreateImage(context, flags_u1ab, &format_u1, &desc_u, NULL, &ret);
-    oclErrorCheck("clCreateImage(mem_U[NLM_MEM_U1b])", ret, env);
+    if (baby) {
+        mem_U[memU1b] = clCreateImage(context, flags_u1ab, &format_u1, &desc_u, NULL, &ret);
+        oclErrorCheck("clCreateImage(mem_U[NLM_MEM_U1b])", ret, env);
+    }
     mem_U[memU1z] = clCreateImage(context, flags_u1z, &format_u1, &desc_u1z, NULL, &ret);
     oclErrorCheck("clCreateImage(mem_U[NLM_MEM_U1z])", ret, env);
     mem_U[memU2] = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_HOST_WRITE_ONLY, size_u2, NULL, &ret);
@@ -361,7 +363,7 @@ _NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _
     }
 
     // Set kernel arguments - nlmDistance
-    int index_u1 = (clip_t & NLM_CLIP_EXTRA_FALSE) ? memU1a : memU1b;
+    int index_u1 = (baby) ? memU1b : memU1a;
     ret = clSetKernelArg(kernel[nlmDistance], 0, sizeof(cl_mem), &mem_U[index_u1]);
     oclErrorCheck("clSetKernelArg(nlmDistance[0])", ret, env);
     ret = clSetKernelArg(kernel[nlmDistance], 1, sizeof(cl_mem), &mem_U[memU4a]);
@@ -1199,7 +1201,9 @@ _NLMAvisynth::~_NLMAvisynth() {
     clReleaseMemObject(mem_U[memU4a]);
     clReleaseMemObject(mem_U[memU2]);
     clReleaseMemObject(mem_U[memU1z]);
-    clReleaseMemObject(mem_U[memU1b]);
+    if (baby) {
+        clReleaseMemObject(mem_U[memU1b]);
+    }
     clReleaseMemObject(mem_U[memU1a]);
     clReleaseKernel(kernel[nlmUnpack]);
     clReleaseKernel(kernel[nlmPack]);
@@ -1220,8 +1224,6 @@ _NLMAvisynth::~_NLMAvisynth() {
 
 static void VS_CC VapourSynthPluginFree(void *instanceData, VSCore *core, const VSAPI *vsapi) {
     NLMVapoursynth *d = (NLMVapoursynth*) instanceData;
-    vsapi->freeNode(d->node);
-    vsapi->freeNode(d->knot);
     // d->mem_P[5] is only required to AviSynth
     // d->mem_P[4] is only required to AviSynth
     // d->mem_P[3] is only required to AviSynth
@@ -1233,7 +1235,9 @@ static void VS_CC VapourSynthPluginFree(void *instanceData, VSCore *core, const 
     clReleaseMemObject(d->mem_U[memU4a]);
     clReleaseMemObject(d->mem_U[memU2]);
     clReleaseMemObject(d->mem_U[memU1z]);
-    clReleaseMemObject(d->mem_U[memU1b]);
+    if (d->knot) {
+        clReleaseMemObject(d->mem_U[memU1b]);
+    }
     clReleaseMemObject(d->mem_U[memU1a]);
     clReleaseKernel(d->kernel[nlmUnpack]);
     clReleaseKernel(d->kernel[nlmPack]);
@@ -1245,6 +1249,8 @@ static void VS_CC VapourSynthPluginFree(void *instanceData, VSCore *core, const 
     clReleaseProgram(d->program);
     clReleaseCommandQueue(d->command_queue);
     clReleaseContext(d->context);
+    vsapi->freeNode(d->node);
+    vsapi->freeNode(d->knot);
     free(d);
 }
 #endif //__VAPOURSYNTH_H__
@@ -1580,8 +1586,10 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
     const cl_image_desc desc_u1z = { CL_MEM_OBJECT_IMAGE2D, d.idmn[0], d.idmn[1], 1, 1, 0, 0, 0, 0, NULL };
     d.mem_U[memU1a] = clCreateImage(d.context, flags_u1ab, &format_u1, &desc_u, NULL, &ret);
     if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateImage(d.mem_P[memU1a])", ret, out, vsapi); return; }
-    d.mem_U[memU1b] = clCreateImage(d.context, flags_u1ab, &format_u1, &desc_u, NULL, &ret);
-    if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateImage(d.mem_P[memU1b])", ret, out, vsapi); return; }
+    if (d.knot) {
+        d.mem_U[memU1b] = clCreateImage(d.context, flags_u1ab, &format_u1, &desc_u, NULL, &ret);
+        if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateImage(d.mem_P[memU1b])", ret, out, vsapi); return; }
+    }
     d.mem_U[memU1z] = clCreateImage(d.context, flags_u1z, &format_u1, &desc_u1z, NULL, &ret);
     if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateImage(d.mem_P[memU1z])", ret, out, vsapi); return; }
     d.mem_U[memU2] = clCreateBuffer(d.context, CL_MEM_READ_WRITE | CL_MEM_HOST_WRITE_ONLY, size_u2, NULL, &ret);
@@ -1673,7 +1681,7 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
     }
 
     // Set kernel arguments - nlmDistanceLeft
-    int index_u1 = (d.clip_t & NLM_CLIP_EXTRA_FALSE) ? memU1a : memU1b;
+    int index_u1 = (d.knot) ? memU1b : memU1a;
     ret = clSetKernelArg(d.kernel[nlmDistance], 0, sizeof(cl_mem), &d.mem_U[index_u1]);
     if (ret != CL_SUCCESS) { d.oclErrorCheck("clSetKernelArg(nlmDistance[0])", ret, out, vsapi); return; }
     ret = clSetKernelArg(d.kernel[nlmDistance], 1, sizeof(cl_mem), &d.mem_U[memU4a]);
