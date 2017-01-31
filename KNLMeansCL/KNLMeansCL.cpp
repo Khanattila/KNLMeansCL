@@ -32,7 +32,6 @@
 #define DFT_info          false 
 
 #ifdef _MSC_VER
-#    define _stdcall __stdcall
 #    define strcasecmp _stricmp
 #    pragma warning (disable : 4514 4710 6031)
 #endif
