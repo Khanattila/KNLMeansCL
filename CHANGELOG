@@ -7,7 +7,7 @@ v1.0.0
    - Replaced 'cmode' with 'channels' and added the options to only process the chroma.
    - Two new modified bisquare weighting functions.
    - Increased the maximum 's' value to 8.
-   - Updated to VapourSynth R35.
+   - Updated to VapourSynth R36.
    - Removed Cauchy weighting function.
    - Second clip 'rclip' in some circumstances.
 
