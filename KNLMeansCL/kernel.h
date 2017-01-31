@@ -354,8 +354,8 @@ static const char* kernel_source_code =
 "   ushort g   = convert_ushort_sat(val.y * 65535.0f);                                                            \n" \
 "   write_imageui(R,     s, (uint4)  (r >> CHAR_BIT, 0u, 0u, 0u));                                                \n" \
 "   write_imageui(G,     s, (uint4)  (g >> CHAR_BIT, 0u, 0u, 0u));                                                \n" \
-"   write_imageui(R_lsb, s, (uint4)  (u &  0xFF,     0u, 0u, 0u));                                                \n" \
-"   write_imageui(G_lsb, s, (uint4)  (v &  0xFF,     0u, 0u, 0u));                                                \n" \
+"   write_imageui(R_lsb, s, (uint4)  (r &  0xFF,     0u, 0u, 0u));                                                \n" \
+"   write_imageui(G_lsb, s, (uint4)  (g &  0xFF,     0u, 0u, 0u));                                                \n" \
 "#elif defined(NLM_CLIP_TYPE_UNORM)    && (NLM_CHANNELS == 3)                                                     \n" \
 "   float3 val = read_imagef(U1, nne, s).xyz;                                                                     \n" \
 "   write_imagef(R,      s, (float4) (val.x, 0.0f, 0.0f, 0.0f));                                                  \n" \
