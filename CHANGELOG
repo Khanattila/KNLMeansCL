@@ -9,7 +9,7 @@ v1.0.0
    - Increased the maximum 's' value to 8.
    - Updated to VapourSynth R36.
    - Removed Cauchy weighting function.
-   - Second clip 'rclip' in some circumstances.
+   - Fixed second clip 'rclip' in some circumstances.
 
 v0.7.7
    - Improved debugging information.
