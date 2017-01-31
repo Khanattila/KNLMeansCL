@@ -52,6 +52,7 @@ private:
     PClip baby;
     const char *channels, *ocl_device;
     const bool lsb, info;
+    bool pre_processing;
     cl_uint clip_t, channel_num, idmn[2];
     cl_platform_id platformID;
     cl_device_id deviceID;
@@ -80,6 +81,7 @@ public:
     int64_t d, a, s, wmode, ocl_id, ocl_x, ocl_y, ocl_r, info;
     double wref, h;
     const char *channels, *ocl_device;
+    bool pre_processing;
     cl_uint clip_t, channel_num, idmn[2];
     cl_platform_id platformID;
     cl_device_id deviceID;

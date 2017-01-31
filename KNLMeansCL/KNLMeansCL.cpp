@@ -173,9 +173,11 @@ _NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _
         idmn[1] = (cl_uint) (lsb ? (vi.height >> 1) : vi.height);
     }
 
-    // Set clip_t, channel_order and channel_num
+    // Set pre_processing, clip_t, channel_order and channel_num
+    pre_processing = false;
     cl_channel_order channel_order;
     if (!strcasecmp(channels, "YUV")) {
+        pre_processing = true;
         clip_t |= NLM_CLIP_REF_YUV;
         channel_order = CL_RGBA;
         channel_num = 4; /* 3 + buffer */
@@ -184,6 +186,7 @@ _NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _
         channel_order = CL_R;
         channel_num = 2; /* 1 + buffer */
     } else if (!strcasecmp(channels, "UV")) {
+        pre_processing = true;
         clip_t |= NLM_CLIP_REF_CHROMA;
         channel_order = CL_RG;
         channel_num = 3; /* 2 + buffer */
@@ -206,6 +209,7 @@ _NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _
     // Set channel_type
     cl_channel_type channel_type_u, channel_type_p;
     if (lsb) {
+        pre_processing = true;
         clip_t |= NLM_CLIP_TYPE_STACKED;
         channel_type_u = CL_UNORM_INT16;
         channel_type_p = CL_UNSIGNED_INT8;
@@ -296,20 +300,22 @@ _NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _
     oclErrorCheck("clCreateBuffer(mem_U[NLM_MEM_U0a])", ret, env);
 
     // Create mem_P[]
-    const cl_image_format format_p = { CL_R, channel_type_p };
-    const cl_image_desc desc_p = { CL_MEM_OBJECT_IMAGE2D, idmn[0], idmn[1], 1, 1, 0, 0, 0, 0, NULL };
-    mem_P[0] = clCreateImage(context, CL_MEM_READ_WRITE, &format_p, &desc_p, NULL, &ret);
-    oclErrorCheck("clCreateImage(mem_P[0])", ret, env);
-    mem_P[1] = clCreateImage(context, CL_MEM_READ_WRITE, &format_p, &desc_p, NULL, &ret);
-    oclErrorCheck("clCreateImage(mem_P[1])", ret, env);
-    mem_P[2] = clCreateImage(context, CL_MEM_READ_WRITE, &format_p, &desc_p, NULL, &ret);
-    oclErrorCheck("clCreateImage(mem_P[2])", ret, env);
-    mem_P[3] = clCreateImage(context, CL_MEM_READ_WRITE, &format_p, &desc_p, NULL, &ret);
-    oclErrorCheck("clCreateImage(mem_P[3])", ret, env);
-    mem_P[4] = clCreateImage(context, CL_MEM_READ_WRITE, &format_p, &desc_p, NULL, &ret);
-    oclErrorCheck("clCreateImage(mem_P[4])", ret, env);
-    mem_P[5] = clCreateImage(context, CL_MEM_READ_WRITE, &format_p, &desc_p, NULL, &ret);
-    oclErrorCheck("clCreateImage(mem_P[5])", ret, env);
+    if (pre_processing) {
+        const cl_image_format format_p = { CL_R, channel_type_p };
+        const cl_image_desc desc_p = { CL_MEM_OBJECT_IMAGE2D, idmn[0], idmn[1], 1, 1, 0, 0, 0, 0, NULL };
+        mem_P[0] = clCreateImage(context, CL_MEM_READ_WRITE, &format_p, &desc_p, NULL, &ret);
+        oclErrorCheck("clCreateImage(mem_P[0])", ret, env);
+        mem_P[1] = clCreateImage(context, CL_MEM_READ_WRITE, &format_p, &desc_p, NULL, &ret);
+        oclErrorCheck("clCreateImage(mem_P[1])", ret, env);
+        mem_P[2] = clCreateImage(context, CL_MEM_READ_WRITE, &format_p, &desc_p, NULL, &ret);
+        oclErrorCheck("clCreateImage(mem_P[2])", ret, env);
+        mem_P[3] = clCreateImage(context, CL_MEM_READ_WRITE, &format_p, &desc_p, NULL, &ret);
+        oclErrorCheck("clCreateImage(mem_P[3])", ret, env);
+        mem_P[4] = clCreateImage(context, CL_MEM_READ_WRITE, &format_p, &desc_p, NULL, &ret);
+        oclErrorCheck("clCreateImage(mem_P[4])", ret, env);
+        mem_P[5] = clCreateImage(context, CL_MEM_READ_WRITE, &format_p, &desc_p, NULL, &ret);
+        oclErrorCheck("clCreateImage(mem_P[5])", ret, env);
+    }
 
     // Creates and Build a program executable from the program source
     program = clCreateProgramWithSource(context, 1, &kernel_source_code, NULL, NULL);
@@ -407,36 +413,40 @@ _NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _
     oclErrorCheck("clSetKernelArg(nlmFinish[3])", ret, env);
 
     // nlmPack
-    ret = clSetKernelArg(kernel[nlmPack], 0, sizeof(cl_mem), &mem_P[0]);
-    oclErrorCheck("clSetKernelArg(nlmPack[0])", ret, env);
-    ret = clSetKernelArg(kernel[nlmPack], 1, sizeof(cl_mem), &mem_P[1]);
-    oclErrorCheck("clSetKernelArg(nlmPack[1])", ret, env);
-    ret = clSetKernelArg(kernel[nlmPack], 2, sizeof(cl_mem), &mem_P[2]);
-    oclErrorCheck("clSetKernelArg(nlmPack[2])", ret, env);
-    ret = clSetKernelArg(kernel[nlmPack], 3, sizeof(cl_mem), &mem_P[3]);
-    oclErrorCheck("clSetKernelArg(nlmPack[3])", ret, env);
-    ret = clSetKernelArg(kernel[nlmPack], 4, sizeof(cl_mem), &mem_P[4]);
-    oclErrorCheck("clSetKernelArg(nlmPack[4])", ret, env);
-    ret = clSetKernelArg(kernel[nlmPack], 5, sizeof(cl_mem), &mem_P[5]);
-    oclErrorCheck("clSetKernelArg(nlmPack[5])", ret, env);
-    // kernel[nlmPack] -> 6 is set by AviSynthPluginGetFrame 
-    // kernel[nlmPack] -> 7 is set by AviSynthPluginGetFrame 
+    if (pre_processing) {
+        ret = clSetKernelArg(kernel[nlmPack], 0, sizeof(cl_mem), &mem_P[0]);
+        oclErrorCheck("clSetKernelArg(nlmPack[0])", ret, env);
+        ret = clSetKernelArg(kernel[nlmPack], 1, sizeof(cl_mem), &mem_P[1]);
+        oclErrorCheck("clSetKernelArg(nlmPack[1])", ret, env);
+        ret = clSetKernelArg(kernel[nlmPack], 2, sizeof(cl_mem), &mem_P[2]);
+        oclErrorCheck("clSetKernelArg(nlmPack[2])", ret, env);
+        ret = clSetKernelArg(kernel[nlmPack], 3, sizeof(cl_mem), &mem_P[3]);
+        oclErrorCheck("clSetKernelArg(nlmPack[3])", ret, env);
+        ret = clSetKernelArg(kernel[nlmPack], 4, sizeof(cl_mem), &mem_P[4]);
+        oclErrorCheck("clSetKernelArg(nlmPack[4])", ret, env);
+        ret = clSetKernelArg(kernel[nlmPack], 5, sizeof(cl_mem), &mem_P[5]);
+        oclErrorCheck("clSetKernelArg(nlmPack[5])", ret, env);
+        // kernel[nlmPack] -> 6 is set by AviSynthPluginGetFrame 
+        // kernel[nlmPack] -> 7 is set by AviSynthPluginGetFrame 
+    }
 
     // nlmUnpack
-    ret = clSetKernelArg(kernel[nlmUnpack], 0, sizeof(cl_mem), &mem_P[0]);
-    oclErrorCheck("clSetKernelArg(nlmUnpack[0])", ret, env);
-    ret = clSetKernelArg(kernel[nlmUnpack], 1, sizeof(cl_mem), &mem_P[1]);
-    oclErrorCheck("clSetKernelArg(nlmUnpack[1])", ret, env);
-    ret = clSetKernelArg(kernel[nlmUnpack], 2, sizeof(cl_mem), &mem_P[2]);
-    oclErrorCheck("clSetKernelArg(nlmUnpack[2])", ret, env);
-    ret = clSetKernelArg(kernel[nlmUnpack], 3, sizeof(cl_mem), &mem_P[3]);
-    oclErrorCheck("clSetKernelArg(nlmUnpack[3])", ret, env);
-    ret = clSetKernelArg(kernel[nlmUnpack], 4, sizeof(cl_mem), &mem_P[4]);
-    oclErrorCheck("clSetKernelArg(nlmUnpack[4])", ret, env);
-    ret = clSetKernelArg(kernel[nlmUnpack], 5, sizeof(cl_mem), &mem_P[5]);
-    oclErrorCheck("clSetKernelArg(nlmUnpack[5])", ret, env);
-    ret = clSetKernelArg(kernel[nlmUnpack], 6, sizeof(cl_mem), &mem_U[memU1z]);
-    oclErrorCheck("clSetKernelArg(nlmUnpack[6])", ret, env);
+    if (pre_processing) {
+        ret = clSetKernelArg(kernel[nlmUnpack], 0, sizeof(cl_mem), &mem_P[0]);
+        oclErrorCheck("clSetKernelArg(nlmUnpack[0])", ret, env);
+        ret = clSetKernelArg(kernel[nlmUnpack], 1, sizeof(cl_mem), &mem_P[1]);
+        oclErrorCheck("clSetKernelArg(nlmUnpack[1])", ret, env);
+        ret = clSetKernelArg(kernel[nlmUnpack], 2, sizeof(cl_mem), &mem_P[2]);
+        oclErrorCheck("clSetKernelArg(nlmUnpack[2])", ret, env);
+        ret = clSetKernelArg(kernel[nlmUnpack], 3, sizeof(cl_mem), &mem_P[3]);
+        oclErrorCheck("clSetKernelArg(nlmUnpack[3])", ret, env);
+        ret = clSetKernelArg(kernel[nlmUnpack], 4, sizeof(cl_mem), &mem_P[4]);
+        oclErrorCheck("clSetKernelArg(nlmUnpack[4])", ret, env);
+        ret = clSetKernelArg(kernel[nlmUnpack], 5, sizeof(cl_mem), &mem_P[5]);
+        oclErrorCheck("clSetKernelArg(nlmUnpack[5])", ret, env);
+        ret = clSetKernelArg(kernel[nlmUnpack], 6, sizeof(cl_mem), &mem_U[memU1z]);
+        oclErrorCheck("clSetKernelArg(nlmUnpack[6])", ret, env);
+    }
 
 }
 #endif //__AVISYNTH_6_H__
@@ -1190,12 +1200,14 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
 // AviSynthFree
 #ifdef __AVISYNTH_6_H__
 _NLMAvisynth::~_NLMAvisynth() {
-    clReleaseMemObject(mem_P[5]);
-    clReleaseMemObject(mem_P[4]);
-    clReleaseMemObject(mem_P[3]);
-    clReleaseMemObject(mem_P[2]);
-    clReleaseMemObject(mem_P[1]);
-    clReleaseMemObject(mem_P[0]);
+    if (pre_processing) {
+        clReleaseMemObject(mem_P[5]);
+        clReleaseMemObject(mem_P[4]);
+        clReleaseMemObject(mem_P[3]);
+        clReleaseMemObject(mem_P[2]);
+        clReleaseMemObject(mem_P[1]);
+        clReleaseMemObject(mem_P[0]);
+    }
     clReleaseMemObject(mem_U[memU5]);
     clReleaseMemObject(mem_U[memU4b]);
     clReleaseMemObject(mem_U[memU4a]);
@@ -1224,10 +1236,10 @@ _NLMAvisynth::~_NLMAvisynth() {
 
 static void VS_CC VapourSynthPluginFree(void *instanceData, VSCore *core, const VSAPI *vsapi) {
     NLMVapoursynth *d = (NLMVapoursynth*) instanceData;
-    // d->mem_P[5] is only required to AviSynth
-    // d->mem_P[4] is only required to AviSynth
-    // d->mem_P[3] is only required to AviSynth
-    if (!(d->clip_t & NLM_CLIP_REF_LUMA)) {
+    if (d->pre_processing) {
+        // d->mem_P[5] is only required to AviSynth
+        // d->mem_P[4] is only required to AviSynth
+        // d->mem_P[3] is only required to AviSynth
         clReleaseMemObject(d->mem_P[2]);
         clReleaseMemObject(d->mem_P[1]);
         clReleaseMemObject(d->mem_P[0]);
@@ -1444,9 +1456,11 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
         d.idmn[1] = (cl_uint) d.vi->height;
     }
 
-    // Set clip_t, channel_order and channel_num
+    // Set pre_processing, clip_t, channel_order and channel_num
+    d.pre_processing = false;
     cl_channel_order channel_order;
     if (!strcasecmp(d.channels, "YUV")) {
+        d.pre_processing = true;
         d.clip_t |= NLM_CLIP_REF_YUV;
         channel_order = CL_RGBA;
         d.channel_num = 4; /* 3 + buffer */
@@ -1455,15 +1469,18 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
         channel_order = CL_R;
         d.channel_num = 2; /* 1 + buffer */
     } else if (!strcasecmp(d.channels, "UV")) {
+        d.pre_processing = true;
         d.clip_t |= NLM_CLIP_REF_CHROMA;
         channel_order = CL_RG;
         d.channel_num = 3; /* 2 + buffer */
     } else if (!strcasecmp(d.channels, "RGB")) {
+        d.pre_processing = true;
         d.clip_t |= NLM_CLIP_REF_RGB;
         channel_order = CL_RGBA;
         d.channel_num = 4; /* 3 + buffer */
     } else {
         if (d.vi->format->colorFamily == VSColorFamily::cmRGB) {
+            d.pre_processing = true;
             d.clip_t |= NLM_CLIP_REF_RGB;
             channel_order = CL_RGBA;
             d.channel_num = 4; /* 3 + buffer */
@@ -1604,7 +1621,7 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
     if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateImage(d.mem_P[memU0])", ret, out, vsapi); return; }
 
     // Create mem_P[]
-    if (!(d.clip_t & NLM_CLIP_REF_LUMA)) {
+    if (d.pre_processing) {
         const cl_image_format format_p = { CL_R, channel_type_p };
         const cl_image_desc desc_p = { CL_MEM_OBJECT_IMAGE2D, d.idmn[0], d.idmn[1], 1, 1, 0, 0, 0, 0, NULL };
         d.mem_P[0] = clCreateImage(d.context, CL_MEM_READ_WRITE, &format_p, &desc_p, NULL, &ret);
@@ -1729,7 +1746,7 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
     if (ret != CL_SUCCESS) { d.oclErrorCheck("clSetKernelArg(nlmFinish[3])", ret, out, vsapi); return; }
 
     // nlmPack
-    if (!(d.clip_t & NLM_CLIP_REF_LUMA)) {
+    if (d.pre_processing) {
         ret = clSetKernelArg(d.kernel[nlmPack], 0, sizeof(cl_mem), &d.mem_P[0]);
         if (ret != CL_SUCCESS) { d.oclErrorCheck("clSetKernelArg(nlmPack[0])", ret, out, vsapi); return; }
         ret = clSetKernelArg(d.kernel[nlmPack], 1, sizeof(cl_mem), &d.mem_P[1]);
@@ -1747,7 +1764,7 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
     }
 
     // nlmUnpack
-    if (!(d.clip_t & NLM_CLIP_REF_LUMA)) {
+    if (d.pre_processing) {
         ret = clSetKernelArg(d.kernel[nlmUnpack], 0, sizeof(cl_mem), &d.mem_P[0]);
         if (ret != CL_SUCCESS) { d.oclErrorCheck("clSetKernelArg(nlmUnpack[0])", ret, out, vsapi); return; }
         ret = clSetKernelArg(d.kernel[nlmUnpack], 1, sizeof(cl_mem), &d.mem_P[1]);
