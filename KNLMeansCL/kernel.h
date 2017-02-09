@@ -53,9 +53,9 @@
 #define NLM_CLIP_REF_RGB          (1 << 8)
 
 #define NLM_WMODE_WELSCH           0x0
-#define NLM_WMODE_BISQUARE1        0x1
-#define NLM_WMODE_BISQUARE2        0x2
-#define NLM_WMODE_BISQUARE8        0x3
+#define NLM_WMODE_BISQUARE_A       0x1
+#define NLM_WMODE_BISQUARE_B       0x2
+#define NLM_WMODE_BISQUARE_C       0x3
 
 //////////////////////////////////////////
 // Kernel Definition
@@ -175,11 +175,11 @@ static const char* kernel_source_code =
 "                                                                                                                 \n" \
 "#if   defined(NLM_WMODE_WELSCH)                                                                                  \n" \
 "       float val = native_exp(- sum * NLM_H2_INV_NORM);                                                          \n" \
-"#elif defined(NLM_WMODE_BISQUARE1)                                                                               \n" \
+"#elif defined(NLM_WMODE_BISQUARE_A)                                                                              \n" \
 "       float val = fdim(1.0f, sum * NLM_H2_INV_NORM);                                                            \n" \
-"#elif defined(NLM_WMODE_BISQUARE2)                                                                               \n" \
+"#elif defined(NLM_WMODE_BISQUARE_B)                                                                              \n" \
 "       float val = pown(fdim(1.0f, sum * NLM_H2_INV_NORM), 2);                                                   \n" \
-"#elif defined(NLM_WMODE_BISQUARE8)                                                                               \n" \
+"#elif defined(NLM_WMODE_BISQUARE_C)                                                                              \n" \
 "       float val = pown(fdim(1.0f, sum * NLM_H2_INV_NORM), 8);                                                   \n" \
 "#endif                                                                                                           \n" \
 "                                                                                                                 \n" \

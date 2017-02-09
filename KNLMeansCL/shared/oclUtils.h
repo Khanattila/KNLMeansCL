@@ -73,9 +73,9 @@ inline const char* oclUtilsNlmClipRefToString(cl_uint clip) {
 inline const char* oclUtilsNlmWmodeToString(cl_int wmode) {
     switch (wmode) {
         STR(NLM_WMODE_WELSCH);
-        STR(NLM_WMODE_BISQUARE1);
-        STR(NLM_WMODE_BISQUARE2);
-        STR(NLM_WMODE_BISQUARE8);
+        STR(NLM_WMODE_BISQUARE_A);
+        STR(NLM_WMODE_BISQUARE_B);
+        STR(NLM_WMODE_BISQUARE_C);
         default: return "OCL_UTILS_WMODE_ERROR";
     }
 }

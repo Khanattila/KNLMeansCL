@@ -68,9 +68,9 @@ inline void _NLMAvisynth::oclErrorCheck(const char* function, cl_int errcode, IS
 //////////////////////////////////////////
 // VapourSynthFunctions
 #ifdef VAPOURSYNTH_H
-inline bool _NLMVapoursynth::equals(const VSVideoInfo *v, const VSVideoInfo *w) {
+inline bool _NLMVapoursynth::equals(const VSVideoInfo *v, const VSVideoInfo *w) {   
     return v->width == w->width && v->height == w->height && v->fpsNum == w->fpsNum &&
-        v->fpsDen == w->fpsDen && v->numFrames == w->numFrames && v->format == w->format;
+        v->fpsDen == w->fpsDen && v->numFrames == w->numFrames && v->format == w->format;       
 }
 
 inline void _NLMVapoursynth::oclErrorCheck(const char* function, cl_int errcode, VSMap *out, const VSAPI *vsapi) {
@@ -265,6 +265,7 @@ _NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _
 
     // Create a command queue
     command_queue = clCreateCommandQueue(context, deviceID, 0, &ret);
+    oclErrorCheck("clCreateCommandQueue", ret, env);
 
     // Create mem_U[]
     size_t size_u2 = sizeof(cl_float) * idmn[0] * idmn[1] * channel_num;
@@ -1199,6 +1200,7 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
 // AviSynthFree
 #ifdef __AVISYNTH_6_H__
 _NLMAvisynth::~_NLMAvisynth() {
+    clReleaseCommandQueue(command_queue);
     if (pre_processing) {
         clReleaseMemObject(mem_P[5]);
         clReleaseMemObject(mem_P[4]);
@@ -1224,7 +1226,6 @@ _NLMAvisynth::~_NLMAvisynth() {
     clReleaseKernel(kernel[nlmHorizontal]);
     clReleaseKernel(kernel[nlmDistance]);
     clReleaseProgram(program);
-    clReleaseCommandQueue(command_queue);
     clReleaseContext(context);
 }
 #endif //__AVISYNTH_6_H__
@@ -1235,6 +1236,7 @@ _NLMAvisynth::~_NLMAvisynth() {
 
 static void VS_CC VapourSynthPluginFree(void *instanceData, VSCore *core, const VSAPI *vsapi) {
     NLMVapoursynth *d = (NLMVapoursynth*) instanceData;
+    clReleaseCommandQueue(d->command_queue);
     if (d->pre_processing) {
         // d->mem_P[5] is only required to AviSynth
         // d->mem_P[4] is only required to AviSynth
@@ -1260,7 +1262,6 @@ static void VS_CC VapourSynthPluginFree(void *instanceData, VSCore *core, const 
     clReleaseKernel(d->kernel[nlmHorizontal]);
     clReleaseKernel(d->kernel[nlmDistance]);
     clReleaseProgram(d->program);
-    clReleaseCommandQueue(d->command_queue);
     clReleaseContext(d->context);
     vsapi->freeNode(d->node);
     vsapi->freeNode(d->knot);
@@ -1295,11 +1296,15 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
         d.knot = nullptr;
         d.clip_t = NLM_CLIP_EXTRA_FALSE;
     } else d.clip_t = NLM_CLIP_EXTRA_TRUE;
-    if (d.knot && !d.equals(d.vi, vsapi->getVideoInfo(d.knot))) {
-        vsapi->setError(out, "knlm.KNLMeansCL: 'rclip' does not match the source clip!");
-        vsapi->freeNode(d.node);
-        vsapi->freeNode(d.knot);
-        return;
+    if (d.knot) {
+        d.vi = vsapi->getVideoInfo(d.node);
+        const VSVideoInfo *vi2 = vsapi->getVideoInfo(d.knot);
+        if (!d.equals(d.vi, vi2)) {
+            vsapi->setError(out, "knlm.KNLMeansCL: 'rclip' does not match the source clip!");
+            vsapi->freeNode(d.node);
+            vsapi->freeNode(d.knot);
+            return;
+        }
     }
 
     // Set default value
@@ -1355,7 +1360,6 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
         vsapi->freeNode(d.knot);
         return;
     }
-    d.vi = vsapi->getVideoInfo(d.node);
     if (!isConstantFormat(d.vi)) {
         vsapi->setError(out, "knlm.KNLMeansCL: only constant format!");
         vsapi->freeNode(d.node);
