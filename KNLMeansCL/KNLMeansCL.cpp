@@ -1292,12 +1292,12 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
     int err;
     d.node = vsapi->propGetNode(in, "clip", 0, 0);
     d.knot = vsapi->propGetNode(in, "rclip", 0, &err);
+    d.vi = vsapi->getVideoInfo(d.node);
     if (err) {
         d.knot = nullptr;
         d.clip_t = NLM_CLIP_EXTRA_FALSE;
     } else d.clip_t = NLM_CLIP_EXTRA_TRUE;
-    if (d.knot) {
-        d.vi = vsapi->getVideoInfo(d.node);
+    if (d.knot) {      
         const VSVideoInfo *vi2 = vsapi->getVideoInfo(d.knot);
         if (!d.equals(d.vi, vi2)) {
             vsapi->setError(out, "knlm.KNLMeansCL: 'rclip' does not match the source clip!");
