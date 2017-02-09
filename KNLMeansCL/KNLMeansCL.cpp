@@ -1233,7 +1233,6 @@ _NLMAvisynth::~_NLMAvisynth() {
 //////////////////////////////////////////
 // VapourSynthFree
 #ifdef VAPOURSYNTH_H
-
 static void VS_CC VapourSynthPluginFree(void *instanceData, VSCore *core, const VSAPI *vsapi) {
     NLMVapoursynth *d = (NLMVapoursynth*) instanceData;
     clReleaseCommandQueue(d->command_queue);
@@ -1284,7 +1283,6 @@ AVSValue __cdecl AviSynthPluginCreate(AVSValue args, void* user_data, IScriptEnv
 //////////////////////////////////////////
 // VapourSynthCreate
 #ifdef VAPOURSYNTH_H
-
 static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *userData, VSCore *core, const VSAPI *vsapi) {
 
     // Check source clip and rclip
