@@ -318,7 +318,8 @@ _NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _
     }
 
     // Creates and Build a program executable from the program source
-    program = clCreateProgramWithSource(context, 1, &kernel_source_code, NULL, NULL);
+    program = clCreateProgramWithSource(context, 1, &kernel_source_code, NULL, &ret);
+    oclErrorCheck("clCreateProgramWithSource", ret, env);
     char options[2048];
     setlocale(LC_ALL, "C");
     snprintf(options, 2048, "-cl-single-precision-constant -cl-denorms-are-zero -cl-fast-relaxed-math -Werror \
@@ -1637,7 +1638,8 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
     }
 
     // Create and Build a program executable from the program source
-    d.program = clCreateProgramWithSource(d.context, 1, &kernel_source_code, NULL, NULL);
+    d.program = clCreateProgramWithSource(d.context, 1, &kernel_source_code, NULL, &ret);
+    if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateProgramWithSource", ret, out, vsapi); return; }
     char options[2048];
     setlocale(LC_ALL, "C");
 #    ifdef __APPLE__
