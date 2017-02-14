@@ -1,3 +1,7 @@
+v1.0.1
+   - Fixed wrong output with 'wmode' different to 0 some circumstances.
+   - Fixed second clip 'rclip' in VapourSynth.
+
 v1.0.0
    - Improved performance with CPU.
    - Improved performance with AMD GCN Architecture.
