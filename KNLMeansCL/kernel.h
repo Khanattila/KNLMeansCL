@@ -65,8 +65,9 @@ static const char* kernel_source_code =
 "#endif                                                                                                           \n" \
 "                                                                                                                 \n" \
 "#define NLM_NORM            ( 255.0f * 255.0f )                                                                  \n" \
+"#define NLM_LEGACY          ( 3.0f )                                                                             \n" \
 "#define NLM_S_SIZE          ( (2 * NLM_S + 1) * (2 * NLM_S + 1) )                                                \n" \
-"#define NLM_H2_INV_NORM     ( NLM_NORM / (NLM_H * NLM_H * NLM_S_SIZE) )                                          \n" \
+"#define NLM_H2_INV_NORM     ( NLM_NORM / (NLM_LEGACY * NLM_H * NLM_H * NLM_S_SIZE) )                             \n" \
 "#define NLM_16BIT_MSB       ( 256.0f / (257.0f * 255.0f) )                                                       \n" \
 "#define NLM_16BIT_LSB       (   1.0f / (257.0f * 255.0f) )                                                       \n" \
 "                                                                                                                 \n" \
