@@ -296,7 +296,7 @@ cl_int oclUtilsGetPlaformDeviceIDs(cl_uint device_type, cl_uint shf_device, cl_p
     }
 }
 
-void oclUtilsDebugInfo(cl_platform_id platform, cl_device_id device, cl_program program) {
+void oclUtilsDebugInfo(cl_platform_id platform, cl_device_id device, cl_program program, cl_int errcode) {
     cl_int ret = CL_SUCCESS;
     std::ofstream outfile("Log-KNLMeansCL.txt", std::ofstream::out);
 
@@ -383,6 +383,7 @@ void oclUtilsDebugInfo(cl_platform_id platform, cl_device_id device, cl_program 
         str_options.replace(pos, search.length(), format);
         pos += format.length();
     }
+    outfile << " CL_PROGRAM_BUILD_ERROR:            " << oclUtilsErrorToString(errcode) << std::endl;
     outfile << " CL_PROGRAM_BUILD_OPTIONS:          " << str_options.c_str() << std::endl;
     outfile << " CL_PROGRAM_BUILD_LOG:              " << std::endl << bld_log_txt << std::endl << std::endl;
     free(bld_options_txt);

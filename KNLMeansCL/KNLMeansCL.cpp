@@ -333,7 +333,7 @@ _NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _
         d, s, h, wref);
     ret = clBuildProgram(program, 1, &deviceID, options, NULL, NULL);
     if (ret != CL_SUCCESS) {
-        oclUtilsDebugInfo(platformID, deviceID, program);
+        oclUtilsDebugInfo(platformID, deviceID, program, ret);
         env->ThrowError("KNLMeansCL: build program error!\n Please report Log-KNLMeansCL.txt.");
     }
     setlocale(LC_ALL, "");
@@ -1135,10 +1135,7 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
                 return 0;
         }
 
-        // Issues all queued OpenCL commands
-        ret |= clFlush(d->command_queue);
-
-        // Finish
+        // Blocks until commands have completed
         ret |= clFinish(d->command_queue);
         if (ret != CL_SUCCESS) {
             vsapi->setFilterError("knlm.KNLMeansCL: fatal error!\n (VapourSynthGetFrame)", frameCtx);
@@ -1665,7 +1662,7 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
 #    endif
     ret = clBuildProgram(d.program, 1, &d.deviceID, options, NULL, NULL);
     if (ret != CL_SUCCESS) {
-        oclUtilsDebugInfo(d.platformID, d.deviceID, d.program);
+        oclUtilsDebugInfo(d.platformID, d.deviceID, d.program, ret);
         vsapi->setError(out, "knlm.KNLMeansCL: build programm error!\n Please report Log-KNLMeansCL.txt.");
         vsapi->freeNode(d.node);
         vsapi->freeNode(d.knot);
