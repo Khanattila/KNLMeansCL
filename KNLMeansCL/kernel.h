@@ -284,19 +284,22 @@ static const char* kernel_source_code =
 "   int y = get_global_id(1);                                                                                     \n" \
 "   if (x >= VI_DIM_X || y >= VI_DIM_Y) return;                                                                   \n" \
 "                                                                                                                 \n" \
-"   int4 p = (int4) (x, y, t, 0);                                                                                 \n" \
-"   int2 s = (int2) (x, y);                                                                                       \n" \
-"                                                                                                                 \n" \
-"#if   defined(NLM_CLIP_TYPE_STACKED) && (NLM_CHANNELS == 1)                                                      \n" \
+"#if   defined(NLM_CLIP_TYPE_STACKED)  && (NLM_CHANNELS == 1)                                                     \n" \
+"   int4  p     = (int4) (x, y, t, 0);                                                                            \n" \
+"   int2  s     = (int2) (x, y);                                                                                  \n" \
 "   float r_msb = convert_float(read_imageui(R,     nne, s).x);                                                   \n" \
 "   float r_lsb = convert_float(read_imageui(R_lsb, nne, s).x);                                                   \n" \
 "   float r     = NLM_16BIT_MSB * r_msb + NLM_16BIT_LSB * r_lsb;                                                  \n" \
 "   write_imagef(U1, p, (float4) (r, 0.0f, 0.0f, 0.0f));                                                          \n" \
-"#elif defined(NLM_CLIP_TYPE_UNORM)   && (NLM_CHANNELS == 2)                                                      \n" \
+"#elif defined(NLM_CLIP_TYPE_UNORM)    && (NLM_CHANNELS == 2)                                                     \n" \
+"   int4  p     = (int4) (x, y, t, 0);                                                                            \n" \
+"   int2  s     = (int2) (x, y);                                                                                  \n" \
 "   float r     = read_imagef(R, nne, s).x;                                                                       \n" \
 "   float g     = read_imagef(G, nne, s).x;                                                                       \n" \
 "   write_imagef(U1, p, (float4) (r, g, 0.0f, 0.0f));                                                             \n" \
-"#elif defined(NLM_CLIP_TYPE_STACKED) && (NLM_CHANNELS == 2)                                                      \n" \
+"#elif defined(NLM_CLIP_TYPE_STACKED)  && (NLM_CHANNELS == 2)                                                     \n" \
+"   int4  p     = (int4) (x, y, t, 0);                                                                            \n" \
+"   int2  s     = (int2) (x, y);                                                                                  \n" \
 "   float r_msb = convert_float(read_imageui(R,     nne, s).x);                                                   \n" \
 "   float g_msb = convert_float(read_imageui(G,     nne, s).x);                                                   \n" \
 "   float r_lsb = convert_float(read_imageui(R_lsb, nne, s).x);                                                   \n" \
@@ -305,16 +308,22 @@ static const char* kernel_source_code =
 "   float g     = NLM_16BIT_MSB * g_msb + NLM_16BIT_LSB * g_lsb;                                                  \n" \
 "   write_imagef(U1, p, (float4) (r, g, 0.0f, 0.0f));                                                             \n" \
 "#elif defined(NLM_CLIP_TYPE_UNORM)    && (NLM_CHANNELS == 3)                                                     \n" \
+"   int4  p     = (int4) (x, y, t, 0);                                                                            \n" \
+"   int2  s     = (int2) (x, y);                                                                                  \n" \
 "   float r     = read_imagef(R, nne, s).x;                                                                       \n" \
 "   float g     = read_imagef(G, nne, s).x;                                                                       \n" \
 "   float b     = read_imagef(B, nne, s).x;                                                                       \n" \
 "   write_imagef(U1, p, (float4) (r, g, b, 0.0f));                                                                \n" \
 "#elif defined(NLM_CLIP_TYPE_UNSIGNED) && (NLM_CHANNELS == 3)                                                     \n" \
+"   int4  p     = (int4) (x, y, t, 0);                                                                            \n" \
+"   int2  s     = (int2) (x, y);                                                                                  \n" \
 "   float r     = native_divide(convert_float(read_imageui(R, nne, s).x), 1023.0f);                               \n" \
 "   float g     = native_divide(convert_float(read_imageui(G, nne, s).x), 1023.0f);                               \n" \
 "   float b     = native_divide(convert_float(read_imageui(B, nne, s).x), 1023.0f);                               \n" \
 "   write_imagef(U1, p, (float4) (r, g, b, 0.0f));                                                                \n" \
 "#elif defined(NLM_CLIP_TYPE_STACKED)  && (NLM_CHANNELS == 3)                                                     \n" \
+"   int4  p     = (int4) (x, y, t, 0);                                                                            \n" \
+"   int2  s     = (int2) (x, y);                                                                                  \n" \
 "   float r_msb = convert_float(read_imageui(R,     nne, s).x);                                                   \n" \
 "   float g_msb = convert_float(read_imageui(G,     nne, s).x);                                                   \n" \
 "   float b_msb = convert_float(read_imageui(B,     nne, s).x);                                                   \n" \
@@ -338,18 +347,19 @@ static const char* kernel_source_code =
 "   int y = get_global_id(1);                                                                                     \n" \
 "   if (x >= VI_DIM_X || y >= VI_DIM_Y) return;                                                                   \n" \
 "                                                                                                                 \n" \
-"   int2 s = (int2) (x, y);                                                                                       \n" \
-"                                                                                                                 \n" \
 "#if   defined(NLM_CLIP_TYPE_STACKED)  && (NLM_CHANNELS == 1)                                                     \n" \
+"   int2   s   = (int2) (x, y);                                                                                   \n" \
 "   float  val = read_imagef(U1, nne, s).x;                                                                       \n" \
 "   ushort r   = convert_ushort_sat(val * 65535.0f);                                                              \n" \
 "   write_imageui(R,     s, (uint4)  (r >> CHAR_BIT, 0u, 0u, 0u));                                                \n" \
 "   write_imageui(R_lsb, s, (uint4)  (r &  0xFF,     0u, 0u, 0u));                                                \n" \
 "#elif defined(NLM_CLIP_TYPE_UNORM)    && (NLM_CHANNELS == 2)                                                     \n" \
+"   int2   s   = (int2) (x, y);                                                                                   \n" \
 "   float2 val = read_imagef(U1, nne, s).xy;                                                                      \n" \
 "   write_imagef(R,      s, (float4) (val.x, 0.0f, 0.0f, 0.0f));                                                  \n" \
 "   write_imagef(G,      s, (float4) (val.y, 0.0f, 0.0f, 0.0f));                                                  \n" \
 "#elif defined(NLM_CLIP_TYPE_STACKED)  && (NLM_CHANNELS == 2)                                                     \n" \
+"   int2   s   = (int2) (x, y);                                                                                   \n" \
 "   float2 val = read_imagef(U1, nne, s).xy;                                                                      \n" \
 "   ushort r   = convert_ushort_sat(val.x * 65535.0f);                                                            \n" \
 "   ushort g   = convert_ushort_sat(val.y * 65535.0f);                                                            \n" \
@@ -358,11 +368,13 @@ static const char* kernel_source_code =
 "   write_imageui(R_lsb, s, (uint4)  (r &  0xFF,     0u, 0u, 0u));                                                \n" \
 "   write_imageui(G_lsb, s, (uint4)  (g &  0xFF,     0u, 0u, 0u));                                                \n" \
 "#elif defined(NLM_CLIP_TYPE_UNORM)    && (NLM_CHANNELS == 3)                                                     \n" \
+"   int2   s   = (int2) (x, y);                                                                                   \n" \
 "   float3 val = read_imagef(U1, nne, s).xyz;                                                                     \n" \
 "   write_imagef(R,      s, (float4) (val.x, 0.0f, 0.0f, 0.0f));                                                  \n" \
 "   write_imagef(G,      s, (float4) (val.y, 0.0f, 0.0f, 0.0f));                                                  \n" \
 "   write_imagef(B,      s, (float4) (val.z, 0.0f, 0.0f, 0.0f));                                                  \n" \
 "#elif defined(NLM_CLIP_TYPE_UNSIGNED) && (NLM_CHANNELS == 3)                                                     \n" \
+"   int2   s   = (int2) (x, y);                                                                                   \n" \
 "   float3 val = read_imagef(U1, nne, s).xyz;                                                                     \n" \
 "   ushort r   = convert_ushort_sat(val.x * 1023.0f);                                                             \n" \
 "   ushort g   = convert_ushort_sat(val.y * 1023.0f);                                                             \n" \
@@ -371,6 +383,7 @@ static const char* kernel_source_code =
 "   write_imageui(G,     s, (uint4)  (g, 0u, 0u, 0u));                                                            \n" \
 "   write_imageui(B,     s, (uint4)  (b, 0u, 0u, 0u));                                                            \n" \
 "#elif defined(NLM_CLIP_TYPE_STACKED)  && (NLM_CHANNELS == 3)                                                     \n" \
+"   int2   s   = (int2) (x, y);                                                                                   \n" \
 "   float3 val = read_imagef(U1, nne, s).xyz;                                                                     \n" \
 "   ushort r   = convert_ushort_sat(val.x * 65535.0f);                                                            \n" \
 "   ushort g   = convert_ushort_sat(val.y * 65535.0f);                                                            \n" \
