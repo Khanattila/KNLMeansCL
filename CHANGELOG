@@ -1,3 +1,7 @@
+v1.0.2
+   - Tuned 'h' strength for backward compatibility.
+   - Fixed VapourSynth OSX version.
+
 v1.0.1
    - Fixed wrong output with 'wmode' different to 0 some circumstances.
    - Fixed second clip 'rclip' in VapourSynth.
