@@ -113,8 +113,9 @@ _NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _
         if (!equals(&vi, &rvi)) env->ThrowError("KNLMeansCL: 'rclip' does not match the source clip!");
         baby->SetCacheHints(CACHE_WINDOW, d);
         clip_t = NLM_CLIP_EXTRA_TRUE;
-    } else
+    } else {
         clip_t = NLM_CLIP_EXTRA_FALSE;
+    }
 
     // Checks user value
     if (d < 0)
@@ -151,11 +152,10 @@ _NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _
         env->ThrowError("KNLMeansCL: 'device_type' must be 'cpu', 'gpu', 'accelerator' or 'auto'!");
     if (ocl_id < 0)
         env->ThrowError("KNLMeansCL: 'device_id' must be greater than or equal to 0!");
-    if (ocl_x < 0 || ocl_y < 0 || ocl_r < 0) {
+    if (ocl_x < 0 || ocl_y < 0 || ocl_r < 0) 
         env->ThrowError("KNLMeansCL: 'ocl_x', 'ocl_y' and 'ocl_r' must be greater than 0!");
-    } else if (!(ocl_x == 0 && ocl_y == 0 && ocl_r == 0) && !(ocl_x > 0 && ocl_y > 0 && ocl_r > 0)) {
-        env->ThrowError("KNLMeansCL: 'ocl_x', 'ocl_y' and 'ocl_r' must be set!");
-    } 
+    else if (!(ocl_x == 0 && ocl_y == 0 && ocl_r == 0) && !(ocl_x > 0 && ocl_y > 0 && ocl_r > 0)) 
+        env->ThrowError("KNLMeansCL: 'ocl_x', 'ocl_y' and 'ocl_r' must be set!");   
     if (lsb && vi.IsRGB())
         env->ThrowError("KNLMeansCL: RGB48y is not supported!");
     if (info && vi.IsRGB())
@@ -359,15 +359,14 @@ _NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _
     ret = clGetKernelWorkGroupInfo(kernel[nlmDistance], deviceID,
         CL_KERNEL_WORK_GROUP_SIZE, sizeof(size_t), &dst_work_group, NULL);
     oclErrorCheck("clGetKernelWorkGroupInfo(nlmDistance)", ret, env);
-    if (dst_work_group >= 1024) {
+    if (dst_work_group >= 1024) 
         dst_block[0] = dst_block[1] = 32;
-    } else if (dst_work_group >= 256) {
+     else if (dst_work_group >= 256) 
         dst_block[0] = dst_block[1] = 16;
-    } else if (dst_work_group >= 64) {
+     else if (dst_work_group >= 64) 
         dst_block[0] = dst_block[1] = 8;
-    } else {
+     else 
         dst_block[0] = dst_block[1] = 1;
-    }
 
     // Set kernel arguments - nlmDistance
     int index_u1 = (baby) ? memU1b : memU1a;
