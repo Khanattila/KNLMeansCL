@@ -97,9 +97,9 @@ inline void _NLMVapoursynth::oclErrorCheck(const char* function, cl_int errcode,
 #ifdef __AVISYNTH_6_H__
 _NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _s, const double _h, const char* _channels,
     const int _wmode, const double _wref, PClip _baby, const char* _ocl_device, const int _ocl_id, const int _ocl_x,
-    const int _ocl_y, const int _ocl_r, const bool _lsb, const bool _info, IScriptEnvironment *env) : GenericVideoFilter(_child),
+    const int _ocl_y, const int _ocl_r, const bool _stacked, const bool _info, IScriptEnvironment *env) : GenericVideoFilter(_child),
     d(_d), a(_a), s(_s), h(_h), channels(_channels), wmode(_wmode), wref(_wref), baby(_baby), ocl_device(_ocl_device),
-    ocl_id(_ocl_id), ocl_x(_ocl_x), ocl_y(_ocl_y), ocl_r(_ocl_r), lsb(_lsb), info(_info) {
+    ocl_id(_ocl_id), ocl_x(_ocl_x), ocl_y(_ocl_y), ocl_r(_ocl_r), stacked(_stacked), info(_info) {
 
     // Check AviSynth Version
     env->CheckVersion(5);
@@ -156,7 +156,7 @@ _NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _
         env->ThrowError("KNLMeansCL: 'ocl_x', 'ocl_y' and 'ocl_r' must be greater than 0!");
     else if (!(ocl_x == 0 && ocl_y == 0 && ocl_r == 0) && !(ocl_x > 0 && ocl_y > 0 && ocl_r > 0)) 
         env->ThrowError("KNLMeansCL: 'ocl_x', 'ocl_y' and 'ocl_r' must be set!");   
-    if (lsb && vi.IsRGB())
+    if (stacked && vi.IsRGB())
         env->ThrowError("KNLMeansCL: RGB48y is not supported!");
     if (info && vi.IsRGB())
         env->ThrowError("KNLMeansCL: 'info' requires YUV color space!");
@@ -164,12 +164,12 @@ _NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _
     // Set image dimensions
     if (!strcasecmp(channels, "UV")) {
         int subSamplingW = vi.IsYV24() ? 0 : 1;
-        int subSamplingH = lsb ? (vi.IsYV12() ? 2 : 1) : (vi.IsYV12() ? 1 : 0);
+        int subSamplingH = stacked ? (vi.IsYV12() ? 2 : 1) : (vi.IsYV12() ? 1 : 0);
         idmn[0] = (cl_uint) vi.width >> subSamplingW;
         idmn[1] = (cl_uint) vi.height >> subSamplingH;
     } else {
         idmn[0] = (cl_uint) vi.width;
-        idmn[1] = (cl_uint) (lsb ? (vi.height >> 1) : vi.height);
+        idmn[1] = (cl_uint) (stacked ? (vi.height >> 1) : vi.height);
     }
 
     // Set pre_processing, clip_t, channel_order and channel_num
@@ -207,7 +207,7 @@ _NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _
 
     // Set channel_type
     cl_channel_type channel_type_u, channel_type_p;
-    if (lsb) {
+    if (stacked) {
         pre_processing = true;
         clip_t |= NLM_CLIP_TYPE_STACKED;
         channel_type_u = CL_UNORM_INT16;
@@ -271,7 +271,7 @@ _NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _
     size_t size_u2 = sizeof(cl_float) * idmn[0] * idmn[1] * channel_num;
     size_t size_u5 = sizeof(cl_float) * idmn[0] * idmn[1];
     cl_mem_flags flags_u1ab, flags_u1z;
-    if (!(clip_t & NLM_CLIP_REF_CHROMA) && !(clip_t & NLM_CLIP_REF_YUV) && !lsb) {
+    if (!(clip_t & NLM_CLIP_REF_CHROMA) && !(clip_t & NLM_CLIP_REF_YUV) && !stacked) {
         flags_u1ab = CL_MEM_READ_ONLY | CL_MEM_HOST_WRITE_ONLY;
         flags_u1z = CL_MEM_READ_WRITE | CL_MEM_HOST_READ_ONLY;
     } else {
@@ -361,11 +361,11 @@ _NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _
     oclErrorCheck("clGetKernelWorkGroupInfo(nlmDistance)", ret, env);
     if (dst_work_group >= 1024) 
         dst_block[0] = dst_block[1] = 32;
-     else if (dst_work_group >= 256) 
+    else if (dst_work_group >= 256) 
         dst_block[0] = dst_block[1] = 16;
-     else if (dst_work_group >= 64) 
+    else if (dst_work_group >= 64) 
         dst_block[0] = dst_block[1] = 8;
-     else 
+    else 
         dst_block[0] = dst_block[1] = 1;
 
     // Set kernel arguments - nlmDistance
@@ -1803,7 +1803,7 @@ extern "C" __declspec(dllexport) const char* __stdcall AvisynthPluginInit3(IScri
 
     AVS_linkage = vectors;
     env->AddFunction("KNLMeansCL", "c[d]i[a]i[s]i[h]f[channels]s[wmode]i[wref]f[rclip]c[device_type]s[device_id]i[ocl_x]i[ocl_y]i\
-[ocl_r]i[lsb_inout]b[info]b", AviSynthPluginCreate, 0);
+[ocl_r]i[stacked]b[info]b", AviSynthPluginCreate, 0);
     return "KNLMeansCL for AviSynth";
 }
 #endif //__AVISYNTH_6_H__

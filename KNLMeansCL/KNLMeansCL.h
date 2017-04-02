@@ -51,7 +51,7 @@ private:
     const double wref, h;
     PClip baby;
     const char *channels, *ocl_device;
-    const bool lsb, info;
+    const bool stacked, info;
     bool pre_processing;
     cl_uint clip_t, channel_num, idmn[2];
     cl_platform_id platformID;
