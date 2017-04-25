@@ -217,7 +217,7 @@ _NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _
                 channel_type_u = channel_type_p = CL_UNORM_INT8;
             }
         } else if (vi.BitsPerComponent() == 10) {
-            if (vi.IsYV24) {
+            if (vi.IsYV24()) {
                 clip_t |= NLM_CLIP_TYPE_UNSIGNED;
                 channel_order = CL_RGB;
                 channel_type_u = CL_UNORM_INT_101010;
