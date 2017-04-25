@@ -154,10 +154,8 @@ _NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _
         env->ThrowError("KNLMeansCL: 'ocl_x', 'ocl_y' and 'ocl_r' must be greater than 0!");
     else if (!(ocl_x == 0 && ocl_y == 0 && ocl_r == 0) && !(ocl_x > 0 && ocl_y > 0 && ocl_r > 0)) 
         env->ThrowError("KNLMeansCL: 'ocl_x', 'ocl_y' and 'ocl_r' must be set!");   
-    if (stacked && vi.IsRGB())
-        env->ThrowError("KNLMeansCL: RGB48y is not supported!");
-    if (info && vi.IsRGB())
-        env->ThrowError("KNLMeansCL: 'info' requires YUV color space!");
+    if ((info && vi.IsRGB()) || (info && vi.BitsPerComponent != 8))
+        env->ThrowError("KNLMeansCL: 'info' requires Gray8 or YUVP8 color space!");
 
     // Set image dimensions
     if (!strcasecmp(channels, "UV")) {
