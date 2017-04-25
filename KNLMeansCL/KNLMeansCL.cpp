@@ -106,8 +106,6 @@ _NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _
     child->SetCacheHints(CACHE_WINDOW, d);
 
     // Check source clip and rclip
-    if (!vi.IsPlanar() && !vi.IsRGB32())
-        env->ThrowError("KNLMeansCL: planar YUV or RGB32 data!");
     if (baby) {
         VideoInfo rvi = baby->GetVideoInfo();
         if (!equals(&vi, &rvi)) env->ThrowError("KNLMeansCL: 'rclip' does not match the source clip!");
@@ -128,9 +126,9 @@ _NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _
         env->ThrowError("KNLMeansCL: 'h' must be greater than 0!");
     if (vi.IsY8() && strcasecmp(channels, "Y") && strcasecmp(channels, "auto"))
         env->ThrowError("KNLMeansCL: 'channels' must be 'Y' with Y8 pixel format!");
-    else if (vi.IsPlanar() && strcasecmp(channels, "YUV") && strcasecmp(channels, "Y") &&
+    else if (vi.IsPlanar() && vi.IsYUV() && strcasecmp(channels, "YUV") && strcasecmp(channels, "Y") &&
         strcasecmp(channels, "UV") && strcasecmp(channels, "auto"))
-        env->ThrowError("KNLMeansCL: 'channels' must be 'YUV', 'Y', 'UV' with YUV color space!");
+        env->ThrowError("KNLMeansCL: 'channels' must be 'YUV', 'Y' or 'UV' with YUV color space!");
     else if (!vi.IsYV24() && !strcasecmp(channels, "YUV"))
         env->ThrowError("KNLMeansCL: 'channels = YUV' require a YV24 pixel format!");
     else if (vi.IsRGB() && strcasecmp(channels, "RGB") && strcasecmp(channels, "auto"))
@@ -207,14 +205,45 @@ _NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _
 
     // Set channel_type
     cl_channel_type channel_type_u, channel_type_p;
-    if (stacked) {
-        pre_processing = true;
-        clip_t |= NLM_CLIP_TYPE_STACKED;
-        channel_type_u = CL_UNORM_INT16;
-        channel_type_p = CL_UNSIGNED_INT8;
+    if (vi.IsPlanar() && vi.IsYUV() || vi.IsRGB32() || vi.IsRGB64()) {
+        if (vi.BitsPerComponent() == 8) {
+            if (stacked) {
+                pre_processing = true;
+                clip_t |= NLM_CLIP_TYPE_STACKED;
+                channel_type_u = CL_UNORM_INT16;
+                channel_type_p = CL_UNSIGNED_INT8;
+            } else {
+                clip_t |= NLM_CLIP_TYPE_UNORM;
+                channel_type_u = channel_type_p = CL_UNORM_INT8;
+            }
+        } else if (vi.BitsPerComponent() == 10) {
+            if (vi.IsYV24) {
+                clip_t |= NLM_CLIP_TYPE_UNSIGNED;
+                channel_order = CL_RGB;
+                channel_type_u = CL_UNORM_INT_101010;
+                channel_type_p = CL_UNORM_INT16;
+            } else {
+                env->ThrowError("KNLMeansCL: only YUV444P10 is supported!");
+            }
+        } else if (vi.BitsPerComponent() == 16) {
+            if (stacked) {
+                env->ThrowError("KNLMeansCL: P8, P10, P16 and Single are supported!");
+            } else {
+                clip_t |= NLM_CLIP_TYPE_UNORM;
+                channel_type_u = channel_type_p = CL_UNORM_INT16;
+            }
+        } else if (vi.BitsPerComponent() == 32) {
+            if (stacked) {
+                env->ThrowError("KNLMeansCL: P8, P10, P16 and Single are supported!");
+            } else {
+                clip_t |= NLM_CLIP_TYPE_UNORM;
+                channel_type_u = channel_type_p = CL_FLOAT;
+            }
+        } else {
+            env->ThrowError("KNLMeansCL: P8, P10, P16 and Single are supported!");
+        }
     } else {
-        clip_t |= NLM_CLIP_TYPE_UNORM;
-        channel_type_u = channel_type_p = CL_UNORM_INT8;
+        env->ThrowError("KNLMeansCL: planar YUV, RGB32 and RGB64 are supported!");
     }
 
     // Get platformID and deviceID
