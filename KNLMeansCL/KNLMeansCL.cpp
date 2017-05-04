@@ -202,7 +202,7 @@ _NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _
     }
 
     // Set channel_type
-    cl_channel_type channel_type_u, channel_type_p;
+    cl_channel_type channel_type_u = NULL, channel_type_p = NULL;
     if (vi.IsPlanar() && vi.IsYUV() || vi.IsRGB32() || vi.IsRGB64()) {
         if (vi.BitsPerComponent() == 8) {
             if (stacked) {
@@ -215,7 +215,9 @@ _NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _
                 channel_type_u = channel_type_p = CL_UNORM_INT8;
             }
         } else if (vi.BitsPerComponent() == 10) {
-            if (vi.IsYV24()) {
+            if (stacked) {
+                env->ThrowError("KNLMeansCL: P8, P10, P16 and Single are supported!");
+            } else if (vi.IsYV24()) {
                 clip_t |= NLM_CLIP_TYPE_UNSIGNED;
                 channel_order = CL_RGB;
                 channel_type_u = CL_UNORM_INT_101010;
@@ -896,6 +898,8 @@ PVideoFrame __stdcall _NLMAvisynth::GetFrame(int n, IScriptEnvironment* env) {
         DrawString(frm, pitch, 0, y++, "KNLMeansCL");
         DrawString(frm, pitch, 0, y++, " Version " VERSION);
         DrawString(frm, pitch, 0, y++, " Copyright(C) Khanattila");
+        snprintf(buffer, 2048, " Bits per sample: %i", stacked ? 16 : vi.BitsPerComponent());
+        DrawString(frm, pitch, 0, y++, buffer);
         snprintf(buffer, 2048, " Search window: %ix%ix%i", 2 * a + 1, 2 * a + 1, 2 * d + 1);
         DrawString(frm, pitch, 0, y++, buffer);
         snprintf(buffer, 2048, " Similarity neighborhood: %ix%i", 2 * s + 1, 2 * s + 1);
@@ -1181,6 +1185,8 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
             DrawString(frm, pitch, 0, y++, "KNLMeansCL");
             DrawString(frm, pitch, 0, y++, " Version " VERSION);
             DrawString(frm, pitch, 0, y++, " Copyright(C) Khanattila");
+            snprintf(buffer, 2048, " Bits per sample: %i", d->vi->format->bitsPerSample);
+            DrawString(frm, pitch, 0, y++, buffer);
             snprintf(buffer, 2048, " Search window: %" PRId64 "x%" PRId64 "x%" PRId64,
                 2 * d->a + 1, 2 * d->a + 1, 2 * d->d + 1);
             DrawString(frm, pitch, 0, y++, buffer);
