@@ -16,7 +16,7 @@
 *    along with KNLMeansCL. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#define VERSION "1.0.2"
+#define VERSION "1.1.0"
 #define CL_USE_DEPRECATED_OPENCL_2_0_APIS
 
 #include <cstdint>
