@@ -1842,7 +1842,7 @@ extern "C" __declspec(dllexport) const char* __stdcall AvisynthPluginInit3(IScri
     env->AddFunction("KNLMeansCL", "c[d]i[a]i[s]i[h]f[channels]s[wmode]i[wref]f[rclip]c[device_type]s[device_id]i[ocl_x]i[ocl_y]i\
 [ocl_r]i[stacked]b[info]b", AviSynthPluginCreate, 0);
     if (env->FunctionExists("SetFilterMTMode")) {
-        static_cast<IScriptEnvironment2*>(env)->SetFilterMTMode("KNLMeansCL", MT_NICE_FILTER, true);
+        static_cast<IScriptEnvironment2*>(env)->SetFilterMTMode("KNLMeansCL", MT_MULTI_INSTANCE, true);
     }
     return "KNLMeansCL for AviSynth";
 }
