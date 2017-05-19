@@ -62,6 +62,8 @@
 static const char* kernel_source_code =
 "#ifndef cl_amd_media_ops2                                                                                        \n" \
 "#  define amd_max3(a, b, c)   fmax(a, fmax(b, c))                                                                \n" \
+"#else                                                                                                            \n" \
+"#  pragma OPENCL EXTENSION cl_amd_media_ops2 : enable                                                            \n" \
 "#endif                                                                                                           \n" \
 "                                                                                                                 \n" \
 "#define NLM_NORM            ( 255.0f * 255.0f )                                                                  \n" \
