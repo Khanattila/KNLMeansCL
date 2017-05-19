@@ -1,3 +1,9 @@
+v1.1.0
+   - Added AviSynth MT support (MT_MULTI_INSTANCE).
+   - Added AviSynth+'s high bit depth support.
+   - Replaced 'lsb_inout' with 'stacked'.
+   - Info now display 'Bits per sample'.
+
 v1.0.2
    - Tuned 'h' strength for backward compatibility.
    - Fixed VapourSynth OSX version.
