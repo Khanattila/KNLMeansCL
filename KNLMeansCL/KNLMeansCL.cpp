@@ -33,7 +33,6 @@
 
 #ifdef _MSC_VER
 #    define strcasecmp _stricmp
-#    pragma warning (disable : 4514 4710 6031)
 #endif
 
 #include "KNLMeansCL.h"
@@ -41,12 +40,12 @@
 //////////////////////////////////////////
 // AviSynthFunctions
 #ifdef __AVISYNTH_6_H__
-inline bool _NLMAvisynth::equals(VideoInfo *v, VideoInfo *w) {
+inline bool NLMAvisynth::equals(VideoInfo *v, VideoInfo *w) {
     return v->width == w->width && v->height == w->height && v->fps_numerator == w->fps_numerator &&
         v->fps_denominator == w->fps_denominator && v->num_frames == w->num_frames;
 }
 
-inline void _NLMAvisynth::oclErrorCheck(const char* function, cl_int errcode, IScriptEnvironment *env) {
+inline void NLMAvisynth::oclErrorCheck(const char* function, cl_int errcode, IScriptEnvironment *env) {
     switch (errcode) {
         case CL_SUCCESS:
             break;
@@ -68,12 +67,12 @@ inline void _NLMAvisynth::oclErrorCheck(const char* function, cl_int errcode, IS
 //////////////////////////////////////////
 // VapourSynthFunctions
 #ifdef VAPOURSYNTH_H
-inline bool _NLMVapoursynth::equals(const VSVideoInfo *v, const VSVideoInfo *w) {   
+inline bool NLMVapoursynth::equals(const VSVideoInfo *v, const VSVideoInfo *w) {   
     return v->width == w->width && v->height == w->height && v->fpsNum == w->fpsNum &&
         v->fpsDen == w->fpsDen && v->numFrames == w->numFrames && v->format == w->format;       
 }
 
-inline void _NLMVapoursynth::oclErrorCheck(const char* function, cl_int errcode, VSMap *out, const VSAPI *vsapi) {
+inline void NLMVapoursynth::oclErrorCheck(const char* function, cl_int errcode, VSMap *out, const VSAPI *vsapi) {
     switch (errcode) {
         case OCL_UTILS_NO_DEVICE_AVAILABLE:
             vsapi->setError(out, "knlm.KNLMeansCL: no compatible opencl platforms available!");
@@ -95,7 +94,7 @@ inline void _NLMVapoursynth::oclErrorCheck(const char* function, cl_int errcode,
 //////////////////////////////////////////
 // AviSynthInit
 #ifdef __AVISYNTH_6_H__
-_NLMAvisynth::_NLMAvisynth(PClip _child, const int _d, const int _a, const int _s, const double _h, const char* _channels,
+NLMAvisynth::NLMAvisynth(PClip _child, const int _d, const int _a, const int _s, const double _h, const char* _channels,
     const int _wmode, const double _wref, PClip _baby, const char* _ocl_device, const int _ocl_id, const int _ocl_x,
     const int _ocl_y, const int _ocl_r, const bool _stacked, const bool _info, IScriptEnvironment *env) : GenericVideoFilter(_child),
     d(_d), a(_a), s(_s), h(_h), channels(_channels), wmode(_wmode), wref(_wref), baby(_baby), ocl_device(_ocl_device),
@@ -494,7 +493,7 @@ static void VS_CC VapourSynthPluginViInit(VSMap *in, VSMap *out, void **instance
 //////////////////////////////////////////
 // AviSynthGetFrame
 #ifdef __AVISYNTH_6_H__
-PVideoFrame __stdcall _NLMAvisynth::GetFrame(int n, IScriptEnvironment* env) {
+PVideoFrame __stdcall NLMAvisynth::GetFrame(int n, IScriptEnvironment* env) {
     // Variables
     PVideoFrame src, ref;
     PVideoFrame dst = env->NewVideoFrame(vi);
@@ -1233,7 +1232,7 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
 //////////////////////////////////////////
 // AviSynthFree
 #ifdef __AVISYNTH_6_H__
-_NLMAvisynth::~_NLMAvisynth() {
+NLMAvisynth::~NLMAvisynth() {
     clReleaseCommandQueue(command_queue);
     if (pre_processing) {
         clReleaseMemObject(mem_P[5]);
@@ -1306,7 +1305,7 @@ static void VS_CC VapourSynthPluginFree(void *instanceData, VSCore *core, const 
 // AviSynthCreate
 #ifdef __AVISYNTH_6_H__
 AVSValue __cdecl AviSynthPluginCreate(AVSValue args, void* user_data, IScriptEnvironment* env) {
-    return new _NLMAvisynth(args[0].AsClip(), args[1].AsInt(DFT_d), args[2].AsInt(DFT_a), args[3].AsInt(DFT_s),
+    return new NLMAvisynth(args[0].AsClip(), args[1].AsInt(DFT_d), args[2].AsInt(DFT_a), args[3].AsInt(DFT_s),
         args[4].AsFloat(DFT_h), args[5].AsString(DFT_channels), args[6].AsInt(DFT_wmode), args[7].AsFloat(DFT_wref),
         args[8].Defined() ? args[8].AsClip() : nullptr, args[9].AsString(DFT_ocl_device), args[10].AsInt(DFT_ocl_id),
         args[11].AsInt(DFT_ocl_x), args[12].AsInt(DFT_ocl_y), args[13].AsInt(DFT_ocl_r), args[14].AsBool(DFT_lsb),

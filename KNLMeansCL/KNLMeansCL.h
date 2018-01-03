@@ -45,7 +45,7 @@
 #include <VSHelper.h>
 
 #ifdef __AVISYNTH_6_H__
-struct _NLMAvisynth : public GenericVideoFilter {
+struct NLMAvisynth : public GenericVideoFilter {
 private:
     const int d, a, s, wmode, ocl_id, ocl_x, ocl_y, ocl_r;
     const double wref, h;
@@ -65,16 +65,16 @@ private:
     bool equals(VideoInfo *v, VideoInfo *w);
     void oclErrorCheck(const char* function, cl_int errcode, IScriptEnvironment *env);
 public:
-    _NLMAvisynth(PClip _child, const int _d, const int _a, const int _s, const double _h, const char* _channels, const int _wmode,
+    NLMAvisynth(PClip _child, const int _d, const int _a, const int _s, const double _h, const char* _channels, const int _wmode,
         const double _wref, PClip _baby, const char* _ocl_device, const int _ocl_id, const int _ocl_x, const int _ocl_y, 
         const int _ocl_r, const bool _lsb, const bool _info, IScriptEnvironment *env);
-    ~_NLMAvisynth();
+    ~NLMAvisynth();
     PVideoFrame __stdcall GetFrame(int n, IScriptEnvironment *env);
 };
 #endif //__AVISYNTH_6_H__
 
 #ifdef VAPOURSYNTH_H
-typedef struct _NLMVapoursynth {
+typedef struct NLMVapoursynth {
 public:
     VSNodeRef *node, *knot;
     const VSVideoInfo *vi;
