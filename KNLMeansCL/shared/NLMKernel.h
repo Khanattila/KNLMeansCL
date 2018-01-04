@@ -21,6 +21,9 @@
 *    in Proc. ACIVS (2), 2010, pp.46-57.
 */
 
+#ifndef NLMKERNEL_H
+#define NLMKERNEL_H
+
 //////////////////////////////////////////
 // Type Definition
 #define nlmDistance                0x0
@@ -398,3 +401,5 @@ static const char* kernel_source_code =
 "#endif                                                                                                           \n" \
 "                                                                                                                 \n" \
 "}                                                                                                                ";
+
+#endif //__NLMKERNEL_H__
