@@ -1,6 +1,6 @@
 /*
 *    This file is part of KNLMeansCL,
-*    Copyright(C) 2015-2017  Edoardo Brunetti.
+*    Copyright(C) 2015-2018  Edoardo Brunetti.
 *
 *    KNLMeansCL is free software: you can redistribute it and/or modify
 *    it under the terms of the GNU General Public License as published by
@@ -16,69 +16,10 @@
 *    along with KNLMeansCL. If not, see <http://www.gnu.org/licenses/>.
 */
 
-//////////////////////////////////////////
-// Type Definition
-#define OCL_UTILS_DEVICE_TYPE_CPU            (1 << 0)
-#define OCL_UTILS_DEVICE_TYPE_GPU            (1 << 1)
-#define OCL_UTILS_DEVICE_TYPE_ACCELERATOR    (1 << 2)
-#define OCL_UTILS_DEVICE_TYPE_AUTO           (1 << 3)
-
-#define OCL_UTILS_MALLOC_ERROR                1
-#define OCL_UTILS_NO_DEVICE_AVAILABLE         2
-#define OCL_UTILS_INVALID_DEVICE_TYPE         3
-#define OCL_UTILS_INVALID_VALUE               4
-
-#define OCL_UTILS_OPENCL_1_0                  10
-#define OCL_UTILS_OPENCL_1_1                  11
-#define OCL_UTILS_OPENCL_1_2                  12
+#include "ocl_utils.h"
+#include <fstream>
 
 #define STR(code) case code: return #code
-
-//////////////////////////////////////////
-// Common
-inline size_t mrounds(const size_t number, const size_t multiple) {
-    return ((number + multiple - 1) / multiple) * multiple;
-}
-
-template<class T> inline const T& min(const T& a, const T& b) {
-    return (b < a) ? b : a;
-}
-
-//////////////////////////////////////////
-// Kernel specific
-inline const char* oclUtilsNlmClipTypeToString(cl_uint clip) {
-    if (clip & NLM_CLIP_TYPE_UNORM)
-        return "NLM_CLIP_TYPE_UNORM";
-    else if (clip & NLM_CLIP_TYPE_UNSIGNED)
-        return "NLM_CLIP_TYPE_UNSIGNED";
-    else if (clip & NLM_CLIP_TYPE_STACKED)
-        return "NLM_CLIP_TYPE_STACKED";
-    else
-        return "OCL_UTILS_CLIP_TYPE_ERROR";
-}
-
-inline const char* oclUtilsNlmClipRefToString(cl_uint clip) {
-    if (clip & NLM_CLIP_REF_LUMA)
-        return "NLM_CLIP_REF_LUMA";
-    else if (clip & NLM_CLIP_REF_CHROMA)
-        return "NLM_CLIP_REF_CHROMA";
-    else if (clip & NLM_CLIP_REF_YUV)
-        return "NLM_CLIP_REF_YUV";
-    else if (clip & NLM_CLIP_REF_RGB)
-        return "NLM_CLIP_REF_RGB";
-    else
-        return "OCL_UTILS_CLIP_REF_ERROR";
-}
-
-inline const char* oclUtilsNlmWmodeToString(cl_int wmode) {
-    switch (wmode) {
-        STR(NLM_WMODE_WELSCH);
-        STR(NLM_WMODE_BISQUARE_A);
-        STR(NLM_WMODE_BISQUARE_B);
-        STR(NLM_WMODE_BISQUARE_C);
-        default: return "OCL_UTILS_WMODE_ERROR";
-    }
-}
 
 //////////////////////////////////////////
 // Functions
