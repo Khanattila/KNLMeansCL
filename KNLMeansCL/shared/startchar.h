@@ -3,7 +3,7 @@
 *    Copyright(C) 2002		thejam79,
 *    Copyright(C) 2003		minamina,
 *    Copyright(C) 2007		Donald A. Graft,
-*    Copyright(C) 2014-2016  Edoardo Brunetti.
+*    Copyright(C) 2014-2018 Edoardo Brunetti.
 *
 *    KNLMeansCL is free software: you can redistribute it and/or modify
 *    it under the terms of the GNU General Public License as published by
@@ -18,6 +18,8 @@
 *    You should have received a copy of the GNU General Public License
 *    along with KNLMeansCL. If not, see <http://www.gnu.org/licenses/>.
 */
+
+#include <cstdint>
 
 //////////////////////////////////////////
 // DrawString
