@@ -17,6 +17,11 @@
 */
 
 #include "KNLMeansCL.h"
+#include "shared/startchar.h"
+
+#include <cinttypes>
+#include <clocale>
+#include <cstdio>
 
 #ifdef _MSC_VER
 #    define strcasecmp _stricmp
