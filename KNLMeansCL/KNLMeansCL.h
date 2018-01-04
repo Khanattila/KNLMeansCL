@@ -16,7 +16,11 @@
 *    along with KNLMeansCL. If not, see <http://www.gnu.org/licenses/>.
 */
 
+#ifndef KNLMEANSCL_H
+#define KNLMEANSCL_H
+
 #define VERSION           "1.1.0"
+
 #define DFT_d             1
 #define DFT_a             2
 #define DFT_s             4
@@ -34,23 +38,9 @@
 
 #define CL_USE_DEPRECATED_OPENCL_2_0_APIS
 
-#include <cstdint>
-#include <cinttypes>
-#include <cstdio>
-#include <cstdlib>
-#include <clocale>
-#include <cstring>
-#include <fstream>
-
-#ifdef __APPLE__
-#    include <OpenCL/cl.h>
-#else
-#    include <CL/cl.h>
-#endif
-
-#include "kernel.h"
-#include "shared/oclUtils.h"
-#include "shared/startchar.h"
+#include "shared/NLMKernel.h"
+#include "shared/ocl_specific.h"
+#include "shared/ocl_utils.h"
 
 #ifdef _WIN32
 #    include <avisynth.h>
@@ -58,7 +48,6 @@
 
 #include <VapourSynth.h>
 #include <VSHelper.h>
-
 
 #ifdef __AVISYNTH_6_H__
 struct NLMAvisynth : public GenericVideoFilter {
@@ -111,3 +100,5 @@ public:
     void oclErrorCheck(const char* function, cl_int errcode, VSMap *out, const VSAPI *vsapi);
 } NLMVapoursynth;
 #endif //__VAPOURSYNTH_H__
+
+#endif //__KNLMEANSCL_H__
