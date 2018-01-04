@@ -17,6 +17,4 @@ script:
 - ./configure --cxx=g++-4.8 --install=/usr/lib/x86_64-linux-gnu/vapoursynth && make && sudo make install
 
 notifications:
-  email:
-    - on_success: never
-    - on_failure: never
+  email: false
