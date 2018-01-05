@@ -1,6 +1,6 @@
 /*
 *    This file is part of KNLMeansCL,
-*    Copyright(C) 2015-2017  Edoardo Brunetti.
+*    Copyright(C) 2015-2018  Edoardo Brunetti.
 *
 *    KNLMeansCL is free software: you can redistribute it and/or modify
 *    it under the terms of the GNU General Public License as published by
