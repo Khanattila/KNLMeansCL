@@ -34,8 +34,14 @@
 //////////////////////////////////////////
 // AviSynthFunctions
 inline bool NLMAvisynth::equals(VideoInfo *v, VideoInfo *w) {
-    return v->width == w->width && v->height == w->height && v->fps_numerator == w->fps_numerator &&
-        v->fps_denominator == w->fps_denominator && v->num_frames == w->num_frames;
+    return 
+        v->width == w->width && 
+        v->height == w->height && 
+        v->fps_numerator == w->fps_numerator &&
+        v->fps_denominator == w->fps_denominator && 
+        v->num_frames == w->num_frames &&
+        v->pixel_type == w->pixel_type &&
+        v->sample_type == w->sample_type;
 }
 
 inline void NLMAvisynth::oclErrorCheck(const char* function, cl_int errcode, IScriptEnvironment *env) {
@@ -920,10 +926,22 @@ NLMAvisynth::~NLMAvisynth() {
 //////////////////////////////////////////
 // AviSynthCreate
 AVSValue __cdecl AviSynthPluginCreate(AVSValue args, void* user_data, IScriptEnvironment* env) {
-    return new NLMAvisynth(args[0].AsClip(), args[1].AsInt(DFT_d), args[2].AsInt(DFT_a), args[3].AsInt(DFT_s),
-        args[4].AsFloat(DFT_h), args[5].AsString(DFT_channels), args[6].AsInt(DFT_wmode), args[7].AsFloat(DFT_wref),
-        args[8].Defined() ? args[8].AsClip() : nullptr, args[9].AsString(DFT_ocl_device), args[10].AsInt(DFT_ocl_id),
-        args[11].AsInt(DFT_ocl_x), args[12].AsInt(DFT_ocl_y), args[13].AsInt(DFT_ocl_r), args[14].AsBool(DFT_lsb),
+    return new NLMAvisynth(
+        args[0].AsClip(), 
+        args[1].AsInt(DFT_d), 
+        args[2].AsInt(DFT_a), 
+        args[3].AsInt(DFT_s),
+        args[4].AsFloat(DFT_h), 
+        args[5].AsString(DFT_channels), 
+        args[6].AsInt(DFT_wmode), 
+        args[7].AsFloat(DFT_wref),
+        args[8].Defined() ? args[8].AsClip() : nullptr, 
+        args[9].AsString(DFT_ocl_device), 
+        args[10].AsInt(DFT_ocl_id),
+        args[11].AsInt(DFT_ocl_x), 
+        args[12].AsInt(DFT_ocl_y), 
+        args[13].AsInt(DFT_ocl_r), 
+        args[14].AsBool(DFT_lsb),
         args[15].AsBool(DFT_info), env);
 }
 
