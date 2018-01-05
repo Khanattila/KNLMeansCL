@@ -38,9 +38,7 @@
 
 #define CL_USE_DEPRECATED_OPENCL_2_0_APIS
 
-#include "shared/NLMKernel.h"
-#include "shared/ocl_specific.h"
-#include "shared/ocl_utils.h"
+#include "NLMKernel.h"
 
 #ifdef _WIN32
 #    include <avisynth.h>

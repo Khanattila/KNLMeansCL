@@ -17,7 +17,9 @@
 */
 
 #include "KNLMeansCL.h"
+#include "shared/common.h"
 #include "shared/startchar.h"
+#include "shared/ocl_utils.h"
 
 #include <cinttypes>
 #include <clocale>
