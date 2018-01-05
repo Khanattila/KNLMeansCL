@@ -16,24 +16,12 @@
 *    along with KNLMeansCL. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef __OCL_SPECIFIC_H
-#define __OCL_SPECIFIC_H
-
-#ifdef __APPLE__
-#    include <OpenCL/cl.h>
-#else
-#    include <CL/cl.h>
-#endif
+#ifndef __COMMON_H
+#define __COMMON_H
 
 //////////////////////////////////////////
-// Common
+// Functions
 size_t mrounds(const size_t number, const size_t multiple);
 int min(const int a, const int b);
 
-//////////////////////////////////////////
-// Kernel specific
-const char* oclUtilsNlmClipTypeToString(cl_uint clip);
-const char* oclUtilsNlmClipRefToString(cl_uint clip);
-const char* oclUtilsNlmWmodeToString(cl_int wmode);
-
-#endif //__OCL_SPECIFIC_H__
+#endif //__COMMON_H__
