@@ -21,8 +21,14 @@
 *    in Proc. ACIVS (2), 2010, pp.46-57.
 */
 
-#ifndef NLMKERNEL_H
-#define NLMKERNEL_H
+#ifndef __NLM_KERNEL_H
+#define __NLM_KERNEL_H
+
+#ifdef __APPLE__
+#    include <OpenCL/cl.h>
+#else
+#    include <CL/cl.h>
+#endif
 
 //////////////////////////////////////////
 // Type Definition
@@ -58,6 +64,14 @@
 #define NLM_WMODE_BISQUARE_A       0x1
 #define NLM_WMODE_BISQUARE_B       0x2
 #define NLM_WMODE_BISQUARE_C       0x3
+
+#define STR(code) case code: return #code
+
+//////////////////////////////////////////
+// Kernel function
+const char* oclUtilsNlmClipTypeToString(cl_uint clip);
+const char* oclUtilsNlmClipRefToString(cl_uint clip);
+const char* oclUtilsNlmWmodeToString(cl_int wmode);
 
 //////////////////////////////////////////
 // Kernel Definition
@@ -402,4 +416,4 @@ static const char* kernel_source_code =
 "                                                                                                                 \n" \
 "}                                                                                                                ";
 
-#endif //__NLMKERNEL_H__
+#endif //__NLM_KERNEL_H__
