@@ -66,9 +66,9 @@ inline void NLMAvisynth::oclErrorCheck(const char* function, cl_int errcode, ISc
 // AviSynthInit
 NLMAvisynth::NLMAvisynth(PClip _child, const int _d, const int _a, const int _s, const double _h, const char* _channels,
     const int _wmode, const double _wref, PClip _baby, const char* _ocl_device, const int _ocl_id, const int _ocl_x,
-    const int _ocl_y, const int _ocl_r, const bool _stacked, const bool _info, IScriptEnvironment *env) : GenericVideoFilter(_child),
-    d(_d), a(_a), s(_s), h(_h), channels(_channels), wmode(_wmode), wref(_wref), baby(_baby), ocl_device(_ocl_device),
-    ocl_id(_ocl_id), ocl_x(_ocl_x), ocl_y(_ocl_y), ocl_r(_ocl_r), stacked(_stacked), info(_info) {
+    const int _ocl_y, const int _ocl_r, const bool _stacked, const bool _info, IScriptEnvironment *env) : 
+    GenericVideoFilter(_child), d(_d), a(_a), s(_s), h(_h), channels(_channels), wmode(_wmode), wref(_wref), baby(_baby), 
+    ocl_device(_ocl_device), ocl_id(_ocl_id), ocl_x(_ocl_x), ocl_y(_ocl_y), ocl_r(_ocl_r), stacked(_stacked), info(_info) {
 
     // Check AviSynth Version
     env->CheckVersion(5);
@@ -144,29 +144,29 @@ NLMAvisynth::NLMAvisynth(PClip _child, const int _d, const int _a, const int _s,
         pre_processing = true;
         clip_t |= NLM_CLIP_REF_YUV;
         channel_order = CL_RGBA;
-        channel_num = 4; /* 3 + buffer */
+        channel_num = 4; // 3 + buffer
     } else if (!strcasecmp(channels, "Y")) {
         clip_t |= NLM_CLIP_REF_LUMA;
         channel_order = CL_R;
-        channel_num = 2; /* 1 + buffer */
+        channel_num = 2; // 1 + buffer
     } else if (!strcasecmp(channels, "UV")) {
         pre_processing = true;
         clip_t |= NLM_CLIP_REF_CHROMA;
         channel_order = CL_RG;
-        channel_num = 3; /* 2 + buffer */
+        channel_num = 3; // 2 + buffer
     } else if (!strcasecmp(channels, "RGB")) {
         clip_t |= NLM_CLIP_REF_RGB;
         channel_order = CL_RGBA;
-        channel_num = 4; /* 3 + buffer */
+        channel_num = 4; // 3 + buffer
     } else {
         if (vi.IsPlanar()) {
             clip_t |= NLM_CLIP_REF_LUMA;
             channel_order = CL_R;
-            channel_num = 2; /* 1 + buffer */
+            channel_num = 2; // 1 + buffer
         } else {
             clip_t |= NLM_CLIP_REF_RGB;
             channel_order = CL_RGBA;
-            channel_num = 4; /* 3 + buffer */
+            channel_num = 4; // 3 + buffer
         }
     }
 
@@ -185,25 +185,25 @@ NLMAvisynth::NLMAvisynth(PClip _child, const int _d, const int _a, const int _s,
             }
         } else if (vi.BitsPerComponent() == 10) {
             if (stacked) {
-                env->ThrowError("KNLMeansCL: P8, P10, P16 and Single are supported!");
+                env->ThrowError("KNLMeansCL: INT20 are not supported!");
             } else if (vi.IsYV24()) {
                 clip_t |= NLM_CLIP_TYPE_UNSIGNED;
                 channel_order = CL_RGB;
                 channel_type_u = CL_UNORM_INT_101010;
                 channel_type_p = CL_UNORM_INT16;
             } else {
-                env->ThrowError("KNLMeansCL: only YUV444P10 is supported!");
+                env->ThrowError("KNLMeansCL: only 4:4:4 is supported!");
             }
         } else if (vi.BitsPerComponent() == 16) {
             if (stacked) {
-                env->ThrowError("KNLMeansCL: P8, P10, P16 and Single are supported!");
+                env->ThrowError("KNLMeansCL: INT32 are not supported!");
             } else {
                 clip_t |= NLM_CLIP_TYPE_UNORM;
                 channel_type_u = channel_type_p = CL_UNORM_INT16;
             }
         } else if (vi.BitsPerComponent() == 32) {
             if (stacked) {
-                env->ThrowError("KNLMeansCL: P8, P10, P16 and Single are supported!");
+                env->ThrowError("KNLMeansCL: DOUBLE are not supported!");
             } else {
                 clip_t |= NLM_CLIP_TYPE_UNORM;
                 channel_type_u = channel_type_p = CL_FLOAT;
