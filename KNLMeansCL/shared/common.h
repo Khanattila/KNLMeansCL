@@ -19,6 +19,8 @@
 #ifndef __COMMON_H
 #define __COMMON_H
 
+#include <cstddef>
+
 //////////////////////////////////////////
 // Functions
 size_t mrounds(const size_t number, const size_t multiple);
