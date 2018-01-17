@@ -19,9 +19,14 @@
 *    along with KNLMeansCL. If not, see <http://www.gnu.org/licenses/>.
 */
 
+#ifndef __STARTCHAR_H
+#define __STARTCHAR_H
+
 #include <cstdint>
 
 //////////////////////////////////////////
 // Functions
 void DrawDigit(uint8_t* dst, int pitch, int x, int y, int num);
 void DrawString(uint8_t* dst, int pitch, int x, int y, const char *s);
+
+#endif //__STARTCHAR_H__
