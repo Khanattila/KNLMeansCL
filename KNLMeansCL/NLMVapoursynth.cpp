@@ -34,8 +34,13 @@
 //////////////////////////////////////////
 // VapourSynthFunctions
 inline bool NLMVapoursynth::equals(const VSVideoInfo *v, const VSVideoInfo *w) {
-    return v->width == w->width && v->height == w->height && v->fpsNum == w->fpsNum &&
-        v->fpsDen == w->fpsDen && v->numFrames == w->numFrames && v->format == w->format;
+    return 
+        v->width == w->width && 
+        v->height == w->height && 
+        v->fpsNum == w->fpsNum &&
+        v->fpsDen == w->fpsDen && 
+        v->numFrames == w->numFrames && 
+        v->format == w->format;
 }
 
 inline void NLMVapoursynth::oclErrorCheck(const char* function, cl_int errcode, VSMap *out, const VSAPI *vsapi) {
