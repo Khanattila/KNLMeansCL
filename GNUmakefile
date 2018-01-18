@@ -5,43 +5,30 @@
 
 include config.mak
 
-vpath %.cpp $(SRCDIR)
-vpath %.h $(SRCDIR)
+SRCS = KNLMeansCL/NLMKernel.cpp \
+       KNLMeansCL/NLMVapoursynth.cpp \
+       KNLMeansCL/shared/common.cpp \
+       KNLMeansCL/shared/ocl_utils.cpp \
+       KNLMeansCL/shared/startchar.cpp
 
-SRCS = KNLMeansCL/KNLMeansCL.cpp
+OBJS = KNLMeansCL/NLMKernel.o \
+       KNLMeansCL/NLMVapoursynth.o \
+       KNLMeansCL/shared/common.o \
+       KNLMeansCL/shared/ocl_utils.o \
+       KNLMeansCL/shared/startchar.o
 
-OBJS = $(SRCS:%.cpp=%.o)
+.PHONY: all install clean distclean
 
-.PHONY: all install clean distclean dep
-
-all: $(LIBNAME)
-
-$(LIBNAME): $(OBJS)
-	$(LD) -o $@ $(LDFLAGS) $^ $(LIBS)
-	-@ $(if $(STRIP), $(STRIP) -x $@)
-
-%.o: %.cpp .depend
-	$(CXX) $(CXXFLAGS) -c $< -o $@
+all:
+	$(LD) -o $(LIBNAME) $(LDFLAGS) $(CXXFLAGS) $(LIBS) $(SRCS)
+	$(STRIP) $(LIBNAME)
 
 install: all
 	install -d $(DESTDIR)$(libdir)
 	install -m 755 $(LIBNAME) $(DESTDIR)$(libdir)
 
 clean:
-	$(RM) *.dll *.so *.dylib $(OBJS) .depend
+	$(RM) *.dll *.so *.dylib $(OBJS)
 
 distclean: clean
 	$(RM) config.*
-
-dep: .depend
-
-ifneq ($(wildcard .depend),)
-include .depend
-endif
-
-.depend: config.mak
-	@$(RM) .depend
-	@$(foreach SRC, $(SRCS:%=$(SRCDIR)/%), $(CXX) $(SRC) $(CXXFLAGS) -MT $(SRC:$(SRCDIR)/%.cpp=%.o) -MM >> .depend;)
-
-config.mak:
-	./configure
