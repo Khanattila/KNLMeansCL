@@ -19,6 +19,8 @@
 #ifndef __OCL_UTILS_H
 #define __OCL_UTILS_H
 
+#include <cstring>
+
 #ifdef __APPLE__
 #    include <OpenCL/cl.h>
 #else
