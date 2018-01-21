@@ -16,7 +16,8 @@
 *    along with KNLMeansCL. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "KNLMeansCL.h"
+#include "NLMVapoursynth.h"
+#include "NLMDefault.h"
 #include "shared/common.h"
 #include "shared/startchar.h"
 #include "shared/ocl_utils.h"
