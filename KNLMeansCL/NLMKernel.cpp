@@ -27,7 +27,7 @@
 
 //////////////////////////////////////////
 // Kernel function
-const char* oclUtilsNlmClipTypeToString(cl_uint clip) {
+const char* nlmClipTypeToString(cl_uint clip) {
     if (clip & NLM_CLIP_TYPE_UNORM)
         return "NLM_CLIP_TYPE_UNORM";
     else if (clip & NLM_CLIP_TYPE_UNSIGNED)
@@ -38,7 +38,7 @@ const char* oclUtilsNlmClipTypeToString(cl_uint clip) {
         return "OCL_UTILS_CLIP_TYPE_ERROR";
 }
 
-const char* oclUtilsNlmClipRefToString(cl_uint clip) {
+const char* nlmClipRefToString(cl_uint clip) {
     if (clip & NLM_CLIP_REF_LUMA)
         return "NLM_CLIP_REF_LUMA";
     else if (clip & NLM_CLIP_REF_CHROMA)
@@ -51,7 +51,7 @@ const char* oclUtilsNlmClipRefToString(cl_uint clip) {
         return "OCL_UTILS_CLIP_REF_ERROR";
 }
 
-const char* oclUtilsNlmWmodeToString(cl_int wmode) {
+const char* nlmWmodeToString(cl_int wmode) {
     switch (wmode) {
         STR(NLM_WMODE_WELSCH);
         STR(NLM_WMODE_BISQUARE_A);

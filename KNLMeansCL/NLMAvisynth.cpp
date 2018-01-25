@@ -325,8 +325,7 @@ NLMAvisynth::NLMAvisynth(PClip _child, const int _d, const int _a, const int _s,
         -D %s -D %s -D %s -D VI_DIM_X=%u -D VI_DIM_Y=%u -D HRZ_RESULT=%zu -D VRT_RESULT=%zu \
         -D HRZ_BLOCK_X=%zu -D HRZ_BLOCK_Y=%zu -D VRT_BLOCK_X=%zu -D VRT_BLOCK_Y=%zu \
         -D NLM_D=%i -D NLM_S=%i -D NLM_H=%f -D NLM_WREF=%f",
-        oclUtilsNlmClipTypeToString(clip_t), oclUtilsNlmClipRefToString(clip_t),
-        oclUtilsNlmWmodeToString(wmode),
+        nlmClipTypeToString(clip_t), nlmClipRefToString(clip_t), nlmWmodeToString(wmode),
         idmn[0], idmn[1], hrz_result, vrt_result,
         hrz_block[0], hrz_block[1], vrt_block[0], vrt_block[1],
         d, s, h, wref);

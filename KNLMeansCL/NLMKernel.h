@@ -71,9 +71,9 @@
 
 //////////////////////////////////////////
 // Kernel function
-const char* oclUtilsNlmClipTypeToString(cl_uint clip);
-const char* oclUtilsNlmClipRefToString(cl_uint clip);
-const char* oclUtilsNlmWmodeToString(cl_int wmode);
+const char* nlmClipTypeToString(cl_uint clip);
+const char* nlmClipRefToString(cl_uint clip);
+const char* nlmWmodeToString(cl_int wmode);
 
 //////////////////////////////////////////
 // Kernel Definition
