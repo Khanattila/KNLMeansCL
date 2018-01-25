@@ -764,8 +764,7 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
         "-D %s -D %s -D %s -D VI_DIM_X=%u -D VI_DIM_Y=%u -D HRZ_RESULT=%zu -D VRT_RESULT=%zu "
         "-D HRZ_BLOCK_X=%zu -D HRZ_BLOCK_Y=%zu -D VRT_BLOCK_X=%zu -D VRT_BLOCK_Y=%zu "
         "-D NLM_D=%i -D NLM_S=%i -D NLM_H=%ff -D NLM_WREF=%ff",
-        oclUtilsNlmClipTypeToString(d.clip_t), oclUtilsNlmClipRefToString(d.clip_t),
-        oclUtilsNlmWmodeToString(int64ToIntS(d.wmode)),
+        nlmClipTypeToString(d.clip_t), nlmClipRefToString(d.clip_t), nlmWmodeToString(int64ToIntS(d.wmode)),
         d.idmn[0], d.idmn[1], d.hrz_result, d.vrt_result,
         d.hrz_block[0], d.hrz_block[1], d.vrt_block[0], d.vrt_block[1],
         int64ToIntS(d.d), int64ToIntS(d.s), d.h, d.wref);
