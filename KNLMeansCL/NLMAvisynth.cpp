@@ -187,6 +187,8 @@ NLMAvisynth::NLMAvisynth(PClip _child, const int _d, const int _a, const int _s,
         } else if (vi.BitsPerComponent() == 10) {
             if (stacked) {
                 env->ThrowError("KNLMeansCL: INT20 are not supported!");
+            } else if (strcasecmp(channels, "YUV")) {
+                env->ThrowError("KNLMeansCL: INT10 require 'channels = YUV'!");
             } else if (vi.Is444()) {
                 clip_t |= NLM_CLIP_TYPE_UNSIGNED;
                 channel_order = CL_RGB;
