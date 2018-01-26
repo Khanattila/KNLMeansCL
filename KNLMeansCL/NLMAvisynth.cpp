@@ -99,7 +99,7 @@ NLMAvisynth::NLMAvisynth(PClip _child, const int _d, const int _a, const int _s,
     else if (vi.IsPlanar() && vi.IsYUV() && strcasecmp(channels, "YUV") && strcasecmp(channels, "Y") &&
         strcasecmp(channels, "UV") && strcasecmp(channels, "auto"))
         env->ThrowError("KNLMeansCL: 'channels' must be 'YUV', 'Y' or 'UV' with YUV color space!");
-    else if (!vi.IsYV24() && !strcasecmp(channels, "YUV"))
+    else if (!vi.Is444() && !strcasecmp(channels, "YUV"))
         env->ThrowError("KNLMeansCL: 'channels = YUV' require a YV24 pixel format!");
     else if (vi.IsRGB() && strcasecmp(channels, "RGB") && strcasecmp(channels, "auto"))
         env->ThrowError("KNLMeansCL: 'channels' must be 'RGB' with RGB color space!");
@@ -187,13 +187,13 @@ NLMAvisynth::NLMAvisynth(PClip _child, const int _d, const int _a, const int _s,
         } else if (vi.BitsPerComponent() == 10) {
             if (stacked) {
                 env->ThrowError("KNLMeansCL: INT20 are not supported!");
-            } else if (vi.IsYV24()) {
+            } else if (vi.Is444()) {
                 clip_t |= NLM_CLIP_TYPE_UNSIGNED;
                 channel_order = CL_RGB;
                 channel_type_u = CL_UNORM_INT_101010;
-                channel_type_p = CL_UNORM_INT16;
+                channel_type_p = CL_UNSIGNED_INT16;
             } else {
-                env->ThrowError("KNLMeansCL: only 4:4:4 is supported!");
+                env->ThrowError("KNLMeansCL: INT10 require no chroma subsampling!");
             }
         } else if (vi.BitsPerComponent() == 16) {
             if (stacked) {
