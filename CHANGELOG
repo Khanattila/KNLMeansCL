@@ -1,3 +1,9 @@
+v1.1.1
+   - Added more check of rclip.
+   - Fixed build programm error in some circumstances. 
+   - Fixed Avisynth YUV444P10 video format.
+   - Fixed Vapoursynth RGB30 video format.
+
 v1.1.0
    - Added AviSynth MT support (MT_MULTI_INSTANCE).
    - Added AviSynth+'s high bit depth support.
