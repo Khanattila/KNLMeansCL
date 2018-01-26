@@ -621,7 +621,7 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
                 d.clip_t |= NLM_CLIP_TYPE_UNSIGNED;
                 channel_order = CL_RGB;
                 channel_type_u = CL_UNORM_INT_101010;
-                channel_type_p = CL_UNORM_INT16;
+                channel_type_p = CL_UNSIGNED_INT16;
             } else {
                 vsapi->setError(out, "knlm.KNLMeansCL: only YUV444P10 and RGB30 are supported!");
                 vsapi->freeNode(d.node);
