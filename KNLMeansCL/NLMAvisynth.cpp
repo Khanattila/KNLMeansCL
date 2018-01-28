@@ -75,7 +75,11 @@ NLMAvisynth::NLMAvisynth(PClip _child, const int _d, const int _a, const int _s,
     env->CheckVersion(5);
     child->SetCacheHints(CACHE_WINDOW, d);
 
-    // Check source clip and rclip
+    // Check source clip
+    if (vi.width > 8192 || vi.height > 8192)
+        env->ThrowError("KNLMeansCL: 8192x8192 is the highest resolution supported!");
+
+    // Check rclip
     if (baby) {
         VideoInfo rvi = baby->GetVideoInfo();
         if (!equals(&vi, &rvi)) env->ThrowError("KNLMeansCL: 'rclip' does not match the source clip!");

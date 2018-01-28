@@ -403,12 +403,19 @@ static void VS_CC VapourSynthPluginFree(void *instanceData, VSCore *core, const 
 // VapourSynthCreate
 static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *userData, VSCore *core, const VSAPI *vsapi) {
 
-    // Check source clip and rclip
+    // Check source clip
     NLMVapoursynth d;
-    int err;
     d.node = vsapi->propGetNode(in, "clip", 0, 0);
-    d.knot = vsapi->propGetNode(in, "rclip", 0, &err);
     d.vi = vsapi->getVideoInfo(d.node);
+    if (d.vi->width > 8192 || d.vi->height > 8192) {
+        vsapi->setError(out, "knlm.KNLMeansCL: 8192x8192 is the highest resolution supported!");
+        vsapi->freeNode(d.node);
+        return;
+    }
+
+    // Check rclip
+    int err;
+    d.knot = vsapi->propGetNode(in, "rclip", 0, &err);
     if (err) {
         d.knot = nullptr;
         d.clip_t = NLM_CLIP_EXTRA_FALSE;
