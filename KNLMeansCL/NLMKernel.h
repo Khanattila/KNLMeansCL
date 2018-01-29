@@ -394,9 +394,9 @@ static const char* kernel_source_code =
 "#elif defined(NLM_CLIP_TYPE_UNSIGNED) && (NLM_CHANNELS == 3)                                                     \n" \
 "   int2   s   = (int2) (x, y);                                                                                   \n" \
 "   float3 val = read_imagef(U1, nne, s).xyz;                                                                     \n" \
-"   ushort r   = min(convert_ushort_sat_rte(val.x * 1023.0f), 0x3FF);                                             \n" \
-"   ushort g   = min(convert_ushort_sat_rte(val.y * 1023.0f), 0x3FF);                                             \n" \
-"   ushort b   = min(convert_ushort_sat_rte(val.z * 1023.0f), 0x3FF);                                             \n" \
+"   ushort r   = min(convert_ushort_sat_rte(val.x * 1023.0f), (ushort) 0x3FF);                                    \n" \
+"   ushort g   = min(convert_ushort_sat_rte(val.y * 1023.0f), (ushort) 0x3FF);                                    \n" \
+"   ushort b   = min(convert_ushort_sat_rte(val.z * 1023.0f), (ushort) 0x3FF);                                    \n" \
 "   write_imageui(R,     s, (uint4)  (r, 0u, 0u, 0u));                                                            \n" \
 "   write_imageui(G,     s, (uint4)  (g, 0u, 0u, 0u));                                                            \n" \
 "   write_imageui(B,     s, (uint4)  (b, 0u, 0u, 0u));                                                            \n" \
