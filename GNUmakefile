@@ -22,12 +22,14 @@
 include config.mak
 
 SRCS = KNLMeansCL/NLMKernel.cpp \
+       KNLMeansCL/NLMAvisynth.cpp \
        KNLMeansCL/NLMVapoursynth.cpp \
        KNLMeansCL/shared/common.cpp \
        KNLMeansCL/shared/ocl_utils.cpp \
        KNLMeansCL/shared/startchar.cpp
 
 OBJS = KNLMeansCL/NLMKernel.o \
+       KNLMeansCL/NLMAvisynth.o \
        KNLMeansCL/NLMVapoursynth.o \
        KNLMeansCL/shared/common.o \
        KNLMeansCL/shared/ocl_utils.o \

@@ -6,7 +6,9 @@ branches:
   
 before_install:
 - sudo add-apt-repository "deb http://ppa.launchpad.net/djcj/vapoursynth/ubuntu trusty main" -y
-- sudo apt-get update
+- sudo add-apt-repository "deb http://ppa.launchpad.net/ubuntu-toolchain-r/test/ubuntu trusty main" -y
+- sudo apt-get update -qq
+- sudo apt-get install --allow-unauthenticated g++-5
 - sudo mv /etc/default/rcS /etc/default/rcS.backup
   
 install:
@@ -14,7 +16,7 @@ install:
 - sudo apt-get install --allow-unauthenticated libvapoursynth-dev 
 
 script: 
-- ./configure --cxx=g++-4.8 --install=/usr/lib/x86_64-linux-gnu/vapoursynth && make && sudo make install
+- ./configure --cxx=g++-5 --install=/usr/lib/x86_64-linux-gnu/vapoursynth && make && sudo make install
 
 notifications:
   email: false
