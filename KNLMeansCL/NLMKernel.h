@@ -24,6 +24,7 @@
 #ifndef __NLM_KERNEL_H
 #define __NLM_KERNEL_H
 
+#define CL_USE_DEPRECATED_OPENCL_1_2_APIS
 #define CL_USE_DEPRECATED_OPENCL_2_0_APIS
 
 #ifdef __APPLE__
