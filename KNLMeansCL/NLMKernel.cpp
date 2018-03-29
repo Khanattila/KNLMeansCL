@@ -400,4 +400,4 @@ const char* kernel_source_code =
 "   write_imageui(B_lsb, s, (uint4)  (b &  0xFF,     0u, 0u, 0u));                                                \n" \
 "#endif                                                                                                           \n" \
 "                                                                                                                 \n" \
-"}                                                                                                                ";
+"}                                                                                                                  ";
