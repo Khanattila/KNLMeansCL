@@ -12,11 +12,11 @@ before_install:
 - sudo mv /etc/default/rcS /etc/default/rcS.backup
   
 install:
-- sudo apt-get install opencl-headers ocl-icd-libopencl1 ocl-icd-opencl-dev 
+- sudo apt-get install opencl-headers ocl-icd-libopencl1 ocl-icd-opencl-dev meson
 - sudo apt-get install --allow-unauthenticated libvapoursynth-dev 
 
 script: 
-- ./configure --cxx=g++-5 --install=/usr/lib/x86_64-linux-gnu/vapoursynth && make && sudo make install
+- mkdir build && cd build && meson .. && ninja && ninja install
 
 notifications:
   email: false
