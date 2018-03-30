@@ -12,8 +12,9 @@ before_install:
 - sudo mv /etc/default/rcS /etc/default/rcS.backup
   
 install:
-- sudo apt-get install opencl-headers ocl-icd-libopencl1 ocl-icd-opencl-dev meson
+- sudo apt-get install opencl-headers ocl-icd-libopencl1 ocl-icd-opencl-dev ninja
 - sudo apt-get install --allow-unauthenticated libvapoursynth-dev 
+- sudo pip3 install meson
 
 script: 
 - mkdir build && cd build && meson .. && ninja && ninja install
