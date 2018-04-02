@@ -14,7 +14,7 @@ before_install:
 install:
 - sudo apt-get install opencl-headers ocl-icd-libopencl1 ocl-icd-opencl-dev python3-pip ninja
 - sudo apt-get install --allow-unauthenticated libvapoursynth-dev 
-- sudo pip3 install meson==0.44
+- sudo pip3 install meson==0.37
 
 script: 
 - mkdir build && cd build && meson .. && ninja && ninja install
