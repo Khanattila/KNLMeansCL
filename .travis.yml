@@ -21,7 +21,6 @@ install:
 script: 
 - meson build
 - ninja -C build
-- ninja install
 
 notifications:
   email: false
