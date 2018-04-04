@@ -4,11 +4,9 @@ project('KNLMeansCL',
         license : 'GPL-3',
         version : '1.1.1')
 
-# Dependencies
 vapoursynth = dependency('vapoursynth')
 opencl = meson.get_compiler('cpp').find_library('OpenCL')
 
-# Sources
 src = [
     'KNLMeansCL/NLMAvisynth.h',
     'KNLMeansCL/NLMAvisynth.cpp',
@@ -24,11 +22,9 @@ src = [
     'KNLMeansCL/shared/startchar.cpp',
     'KNLMeansCL/shared/startchar.h']
 
-# Libs
 library(
     'knlmeanscl',
     src,
     dependencies : [vapoursynth, opencl],
     install_dir : join_paths(get_option('prefix'), get_option('libdir'), 'vapoursynth'),
-    install : true
-)
+    install : true)
