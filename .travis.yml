@@ -21,7 +21,7 @@ install:
 script: 
 - CC=g++5.4.1 meson build
 - ninja -v -C build
-- sudo ninja -v -C build install
+- sudo PATH="`pwd`/build:${PATH}" ninja -v -C build install
 
 notifications:
   email: false
