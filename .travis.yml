@@ -19,7 +19,7 @@ install:
 - sudo pip3 install meson==0.44
 
 script: 
-- CC=g++5.4.1 meson build
+- CC=g++-5.4.1 meson build
 - ninja -v -C build
 - sudo PATH="`pwd`/build:${PATH}" ninja -v -C build install
 
