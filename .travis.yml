@@ -12,11 +12,15 @@ before_install:
 - sudo mv /etc/default/rcS /etc/default/rcS.backup
   
 install:
-- sudo apt-get install opencl-headers ocl-icd-libopencl1 ocl-icd-opencl-dev 
-- sudo apt-get install --allow-unauthenticated libvapoursynth-dev 
+- sudo apt-get install opencl-headers ocl-icd-libopencl1 ocl-icd-opencl-dev python3-pip
+- sudo apt-get install --allow-unauthenticated libvapoursynth-dev
+- mkdir build && export PATH="`pwd`/build:${PATH}"
+- wget https://github.com/ninja-build/ninja/releases/download/v1.7.2/ninja-linux.zip && unzip -q ninja-linux.zip -d build
+- sudo pip3 install meson==0.44
 
 script: 
-- ./configure --cxx=g++-5 --install=/usr/lib/x86_64-linux-gnu/vapoursynth && make && sudo make install
+- CC=/usr/bin/g++-5.4.1 meson build
+- ninja -v -C build
 
 notifications:
   email: false
