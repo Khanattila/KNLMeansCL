@@ -10,7 +10,7 @@ before_install:
 - sudo add-apt-repository ppa:ubuntu-lxc/stable -y
 - sudo apt-get update -qq
 - sudo apt-get install -y adapt g++ ocl-icd-opencl-dev python3-pip
-- sudo adapt install -y -r xenail -p libvapoursynth-dev
+- sudo adapt install -r xenial -p libvapoursynth-dev
 
 install: 
 - mkdir build && export PATH="`pwd`/build:${PATH}"
