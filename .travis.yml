@@ -14,9 +14,11 @@ before_install:
 - docker ps -a
 
 install: 
-- docker exec -t ubuntu-xenial bash -c "add-apt-repository ppa:djcj/vapoursynth -y"
-- docker exec -t ubuntu-xenial bash -c "apt-get update -qq"
-- docker exec -t ubuntu-xenial bash -c "install -y libvapoursynth-dev meson ocl-icd-opencl-dev"
+- docker exec -t ubuntu-xenail bash -c "
+    apt-get install meson ocl-icd-opencl-dev software-properties-common -y;
+    add-apt-repository ppa:djcj/vapoursynth -y;
+    apt-get update -qq;
+    apt-get install libvapoursynth-dev -y"
 
 script: 
 - docker exec -t ubuntu-xenial bash -c "cd / travis"
