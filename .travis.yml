@@ -23,7 +23,7 @@ install:
 
 script: 
 - docker exec -t ubuntu-xenial bash -c "
-  cd /travis;
+  cd /build;
   ninja -v -C build"
 
 notifications:
