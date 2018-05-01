@@ -10,7 +10,7 @@ branches:
   - master
   
 before_install:
-- docker run -d --name ubuntu-xenial -v $(pwd):/build ubuntu:xenial tail -f /dev/null
+- docker run -d --name ubuntu-xenial -v $(pwd):/travis ubuntu:xenial tail -f /dev/null
 - docker ps -a
 
 install: 
@@ -23,7 +23,7 @@ install:
 
 script: 
 - docker exec -t ubuntu-xenial bash -c "
-  cd /build;
+  cd /travis;
   ninja -v -C build"
 
 notifications:
