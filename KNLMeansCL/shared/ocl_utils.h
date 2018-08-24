@@ -19,13 +19,8 @@
 #ifndef __OCL_UTILS_H
 #define __OCL_UTILS_H
 
-#include <cstring>
-
-#ifdef __APPLE__
-#    include <OpenCL/cl.h>
-#else
-#    include <CL/cl.h>
-#endif
+#define CL_TARGET_OPENCL_VERSION 120
+#include <CL/opencl.h>
 
 //////////////////////////////////////////
 // Type Definition
@@ -42,6 +37,9 @@
 #define OCL_UTILS_OPENCL_1_0                  10
 #define OCL_UTILS_OPENCL_1_1                  11
 #define OCL_UTILS_OPENCL_1_2                  12
+#define OCL_UTILS_OPENCL_2_0                  20
+#define OCL_UTILS_OPENCL_2_1                  21
+#define OCL_UTILS_OPENCL_2_2                  22
 
 //////////////////////////////////////////
 // Functions

@@ -24,15 +24,6 @@
 #ifndef __NLM_KERNEL_H
 #define __NLM_KERNEL_H
 
-#define CL_USE_DEPRECATED_OPENCL_1_2_APIS
-#define CL_USE_DEPRECATED_OPENCL_2_0_APIS
-
-#ifdef __APPLE__
-#    include <OpenCL/cl.h>
-#else
-#    include <CL/cl.h>
-#endif
-
 //////////////////////////////////////////
 // Type Definition
 #define nlmDistance                0x0
@@ -72,9 +63,9 @@
 
 //////////////////////////////////////////
 // Kernel function
-const char* nlmClipTypeToString(cl_uint clip);
-const char* nlmClipRefToString(cl_uint clip);
-const char* nlmWmodeToString(cl_int wmode);
+const char* nlmClipTypeToString(unsigned int clip);
+const char* nlmClipRefToString(unsigned int clip);
+const char* nlmWmodeToString(unsigned int wmode);
 
 //////////////////////////////////////////
 // Kernel Declaration

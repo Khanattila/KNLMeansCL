@@ -20,6 +20,7 @@
 #define NLM_AVISYNTH_H
 
 #include "NLMKernel.h"
+#include "shared/ocl_utils.h"
 
 #ifdef _WIN32
 #    include <avisynth.h>

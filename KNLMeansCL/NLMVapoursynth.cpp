@@ -20,7 +20,6 @@
 #include "NLMDefault.h"
 #include "shared/common.h"
 #include "shared/startchar.h"
-#include "shared/ocl_utils.h"
 
 #include <cinttypes>
 #include <clocale>
@@ -54,8 +53,12 @@ inline void NLMVapoursynth::oclErrorCheck(const char* function, cl_int errcode, 
             break;
         default:
             char buffer[2048];
-            snprintf(buffer, 2048, "knlm.KNLMeansCL: fatal error!\n (%s: %s)", function, oclUtilsErrorToString(errcode));
-            vsapi->setError(out, buffer);
+            if (snprintf(buffer, 2048, "knlm.KNLMeansCL: fatal error!\n (%s: %s)",
+                function, oclUtilsErrorToString(errcode)) >= 0) {
+                vsapi->setError(out, buffer);
+            } else {
+                vsapi->setError(out, "knlm.KNLMeansCL: oclErrorCheck internal error!");
+            }
             break;
     }
     vsapi->freeNode(node);
@@ -766,8 +769,8 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
     if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateProgramWithSource", ret, out, vsapi); return; }
     char options[2048];
     setlocale(LC_ALL, "C");
-#    ifdef __APPLE__
-    snprintf(options, 2048, "-cl-denorms-are-zero -cl-fast-relaxed-math -Werror "
+#ifdef __APPLE__
+    if (snprintf(options, 2048, "-cl-denorms-are-zero -cl-fast-relaxed-math -Werror "
         "-D %s -D %s -D %s -D VI_DIM_X=%u -D VI_DIM_Y=%u -D HRZ_RESULT=%zu -D VRT_RESULT=%zu "
         "-D HRZ_BLOCK_X=%zu -D HRZ_BLOCK_Y=%zu -D VRT_BLOCK_X=%zu -D VRT_BLOCK_Y=%zu "
         "-D NLM_D=%i -D NLM_S=%i -D NLM_H=%ff -D NLM_WREF=%ff",
@@ -775,7 +778,8 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
         d.idmn[0], d.idmn[1], d.hrz_result, d.vrt_result,
         d.hrz_block[0], d.hrz_block[1], d.vrt_block[0], d.vrt_block[1],
         int64ToIntS(d.d), int64ToIntS(d.s), d.h, d.wref);
-#    else
+    )
+#else
     snprintf(options, 2048, "-cl-single-precision-constant -cl-denorms-are-zero -cl-fast-relaxed-math -Werror \
         -D %s -D %s -D %s -D VI_DIM_X=%u -D VI_DIM_Y=%u -D HRZ_RESULT=%zu -D VRT_RESULT=%zu \
         -D HRZ_BLOCK_X=%zu -D HRZ_BLOCK_Y=%zu -D VRT_BLOCK_X=%zu -D VRT_BLOCK_Y=%zu \
@@ -784,7 +788,7 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
         d.idmn[0], d.idmn[1], d.hrz_result, d.vrt_result,
         d.hrz_block[0], d.hrz_block[1], d.vrt_block[0], d.vrt_block[1],
         int64ToIntS(d.d), int64ToIntS(d.s), d.h, d.wref);
-#    endif
+#endif
     ret = clBuildProgram(d.program, 1, &d.deviceID, options, NULL, NULL);
     if (ret != CL_SUCCESS) {
         oclUtilsDebugInfo(d.platformID, d.deviceID, d.program, ret);

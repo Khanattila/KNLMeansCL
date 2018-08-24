@@ -20,6 +20,7 @@
 #define NLM_VAPOURSYNTH_H
 
 #include "NLMKernel.h"
+#include "shared/ocl_utils.h"
 
 #include <VapourSynth.h>
 #include <VSHelper.h>

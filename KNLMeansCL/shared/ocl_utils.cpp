@@ -26,10 +26,14 @@
 // Functions
 const char* oclUtilsErrorToString(cl_int err) {
     switch (err) {
+
+        /* Custom error codes */
         STR(OCL_UTILS_INVALID_VALUE);
         STR(OCL_UTILS_INVALID_DEVICE_TYPE);
         STR(OCL_UTILS_NO_DEVICE_AVAILABLE);
         STR(OCL_UTILS_MALLOC_ERROR);
+
+        /* OpenCL error codes */
         STR(CL_SUCCESS);
         STR(CL_DEVICE_NOT_FOUND);
         STR(CL_DEVICE_NOT_AVAILABLE);
@@ -43,13 +47,17 @@ const char* oclUtilsErrorToString(cl_int err) {
         STR(CL_IMAGE_FORMAT_NOT_SUPPORTED);
         STR(CL_BUILD_PROGRAM_FAILURE);
         STR(CL_MAP_FAILURE);
+#ifdef CL_VERSION_1_1
         STR(CL_MISALIGNED_SUB_BUFFER_OFFSET);
         STR(CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST);
+#endif
+#ifdef CL_VERSION_1_2
         STR(CL_COMPILE_PROGRAM_FAILURE);
         STR(CL_LINKER_NOT_AVAILABLE);
         STR(CL_LINK_PROGRAM_FAILURE);
         STR(CL_DEVICE_PARTITION_FAILED);
         STR(CL_KERNEL_ARG_INFO_NOT_AVAILABLE);
+#endif
         STR(CL_INVALID_VALUE);
         STR(CL_INVALID_DEVICE_TYPE);
         STR(CL_INVALID_PLATFORM);
@@ -84,11 +92,23 @@ const char* oclUtilsErrorToString(cl_int err) {
         STR(CL_INVALID_BUFFER_SIZE);
         STR(CL_INVALID_MIP_LEVEL);
         STR(CL_INVALID_GLOBAL_WORK_SIZE);
+#ifdef CL_VERSION_1_1
         STR(CL_INVALID_PROPERTY);
+#endif
+#ifdef CL_VERSION_1_2
         STR(CL_INVALID_IMAGE_DESCRIPTOR);
         STR(CL_INVALID_COMPILER_OPTIONS);
         STR(CL_INVALID_LINKER_OPTIONS);
         STR(CL_INVALID_DEVICE_PARTITION_COUNT);
+#endif
+#ifdef CL_VERSION_2_0
+        STR(CL_INVALID_PIPE_SIZE);
+        STR(CL_INVALID_DEVICE_QUEUE);
+#endif
+#ifdef CL_VERSION_2_2
+        STR(CL_INVALID_SPEC_ID);
+        STR(CL_MAX_SIZE_RESTRICTION_EXCEEDED);
+#endif
         default: return "OCL_UTILS_UNKNOWN_ERROR";
     }
 }

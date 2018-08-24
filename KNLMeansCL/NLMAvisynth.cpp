@@ -20,11 +20,11 @@
 #include "NLMDefault.h"
 #include "shared/common.h"
 #include "shared/startchar.h"
-#include "shared/ocl_utils.h"
 
 #include <cinttypes>
 #include <clocale>
 #include <cstdio>
+#include <cstring>
 
 #ifdef _MSC_VER
 #    define strcasecmp _stricmp
@@ -57,8 +57,12 @@ inline void NLMAvisynth::oclErrorCheck(const char* function, cl_int errcode, ISc
             break;
         default:
             char buffer[2048];
-            snprintf(buffer, 2048, "KNLMeansCL: fatal error!\n (%s: %s)", function, oclUtilsErrorToString(errcode));
-            env->ThrowError(buffer);
+            if (snprintf(buffer, 2048, "KNLMeansCL: fatal error!\n (%s: %s)", 
+                function, oclUtilsErrorToString(errcode)) >= 0) {
+                env->ThrowError(buffer);
+            } else {
+                env->ThrowError("KNLMeansCL: oclErrorCheck internal error!");
+            }
             break;
     }
 }
