@@ -59,13 +59,19 @@
 #define NLM_WMODE_BISQUARE_B       0x2
 #define NLM_WMODE_BISQUARE_C       0x3
 
-#define STR(code) case code: return #code
-
 //////////////////////////////////////////
 // Kernel function
-const char* nlmClipTypeToString(unsigned int clip);
-const char* nlmClipRefToString(unsigned int clip);
-const char* nlmWmodeToString(unsigned int wmode);
+const char* nlmClipTypeToString(
+    unsigned int clip
+);
+
+const char* nlmClipRefToString(
+    unsigned int clip
+);
+
+const char* nlmWmodeToString(
+    unsigned int wmode
+);
 
 //////////////////////////////////////////
 // Kernel Declaration

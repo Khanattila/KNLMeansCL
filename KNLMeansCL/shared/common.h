@@ -23,7 +23,14 @@
 
 //////////////////////////////////////////
 // Functions
-size_t mrounds(const size_t number, const size_t multiple);
-int min(const int a, const int b);
+size_t mrounds(
+    const size_t number,
+    const size_t multiple
+);
+
+int min(
+    const int a,
+    const int b
+);
 
 #endif //__COMMON_H__

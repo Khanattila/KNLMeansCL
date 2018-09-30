@@ -983,7 +983,8 @@ AVSValue __cdecl AviSynthPluginCreate(AVSValue args, void* user_data, IScriptEnv
         args[12].AsInt(DFT_ocl_y),
         args[13].AsInt(DFT_ocl_r),
         args[14].AsBool(DFT_lsb),
-        args[15].AsBool(DFT_info), env);
+        args[15].AsBool(DFT_info),
+        env);
 }
 
 //////////////////////////////////////////
@@ -992,7 +993,6 @@ const AVS_Linkage *AVS_linkage = 0;
 extern "C" __declspec(dllexport) const char* __stdcall AvisynthPluginInit3(
     IScriptEnvironment* env, const AVS_Linkage * const vectors)
 {
-
     AVS_linkage = vectors;
     env->AddFunction("KNLMeansCL", "c[d]i[a]i[s]i[h]f[channels]s[wmode]i[wref]f[rclip]c[device_type]s[device_id]i\
 [ocl_x]i[ocl_y]i[ocl_r]i[stacked]b[info]b", AviSynthPluginCreate, 0);
