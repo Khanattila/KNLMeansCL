@@ -504,7 +504,7 @@ static unsigned short font[][20] = {
         0x3000, 0x3000, 0x3f00, 0x0000,
         0x0000, 0x0000, 0x0000, 0x0000,
     },
-    //STARTCHAR 
+    //STARTCHAR
     {
         0x0000, 0x0000, 0x0000, 0x3000,
         0x3000, 0x1800, 0x1800, 0x0c00,
@@ -1564,7 +1564,8 @@ static unsigned short font[][20] = {
 
 //////////////////////////////////////////
 // Functions
-void DrawDigit(uint8_t* dst, int pitch, int x, int y, int num) {
+void DrawDigit(uint8_t* dst, int pitch, int x, int y, int num)
+{
     uint8_t *dp;
     x = x * 10;
     y = y * 20;
@@ -1572,11 +1573,12 @@ void DrawDigit(uint8_t* dst, int pitch, int x, int y, int num) {
         for (int ty = 0; ty < 20; ty++) {
             dp = &dst[((x + tx) / 1) + ((y + ty) / 1) * pitch];
             if (font[num][ty] & (1 << (15 - tx))) *dp = 235;
-            else *dp = (uint8_t) (*dp >> 1);
+            else *dp = (uint8_t)(*dp >> 1);
         }
     }
 }
 
-void DrawString(uint8_t* dst, int pitch, int x, int y, const char *s) {
+void DrawString(uint8_t* dst, int pitch, int x, int y, const char *s)
+{
     for (int xx = 0; *s; ++s, ++xx) DrawDigit(dst, pitch, x + xx, y, *s - ' ');
 }

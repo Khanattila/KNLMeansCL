@@ -43,11 +43,39 @@
 
 //////////////////////////////////////////
 // Functions
-const char* oclUtilsErrorToString(cl_int err);
-cl_int oclUtilsCheckPlatform(cl_platform_id platofrm, bool *compatible);
-cl_int oclUtilsCheckDevice(cl_device_id device, bool *compatible);
-cl_int oclUtilsGetIDs(cl_device_type device_type, cl_uint shf_device, cl_platform_id *platform, cl_device_id *device);
-cl_int oclUtilsGetPlaformDeviceIDs(cl_uint device_type, cl_uint shf_device, cl_platform_id *platform, cl_device_id *device);
-void oclUtilsDebugInfo(cl_platform_id platform, cl_device_id device, cl_program program, cl_int errcode);
+const char* oclUtilsErrorToString(
+    cl_int err
+);
+
+cl_int oclUtilsCheckPlatform(
+    cl_platform_id platofrm,
+    bool *compatible
+);
+
+cl_int oclUtilsCheckDevice(
+    cl_device_id device,
+    bool *compatible
+);
+
+cl_int oclUtilsGetIDs(
+    cl_device_type device_type,
+    cl_uint shf_device,
+    cl_platform_id *platform,
+    cl_device_id *device
+);
+
+cl_int oclUtilsGetPlaformDeviceIDs(
+    cl_uint device_type,
+    cl_uint shf_device,
+    cl_platform_id *platform,
+    cl_device_id *device
+);
+
+void oclUtilsDebugInfo(
+    cl_platform_id platform,
+    cl_device_id device,
+    cl_program program,
+    cl_int errcode
+);
 
 #endif //__OCLUTILS_H__

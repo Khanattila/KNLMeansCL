@@ -26,7 +26,20 @@
 
 //////////////////////////////////////////
 // Functions
-void DrawDigit(uint8_t* dst, int pitch, int x, int y, int num);
-void DrawString(uint8_t* dst, int pitch, int x, int y, const char *s);
+void DrawDigit(
+    uint8_t* dst,
+    int pitch,
+    int x,
+    int y,
+    int num
+);
+
+void DrawString(
+    uint8_t* dst,
+    int pitch,
+    int x,
+    int y,
+    const char *s
+);
 
 #endif //__STARTCHAR_H__

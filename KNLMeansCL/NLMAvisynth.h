@@ -28,6 +28,7 @@
 
 #ifdef __AVISYNTH_6_H__
 struct NLMAvisynth : public GenericVideoFilter {
+
 private:
     const int d, a, s, wmode, ocl_id, ocl_x, ocl_y, ocl_r;
     const double wref, h;
@@ -46,12 +47,15 @@ private:
     size_t hrz_result, vrt_result, dst_block[2], hrz_block[2], vrt_block[2];
     bool equals(VideoInfo *v, VideoInfo *w);
     void oclErrorCheck(const char* function, cl_int errcode, IScriptEnvironment *env);
+
 public:
-    NLMAvisynth(PClip _child, const int _d, const int _a, const int _s, const double _h, const char* _channels, const int _wmode,
-        const double _wref, PClip _baby, const char* _ocl_device, const int _ocl_id, const int _ocl_x, const int _ocl_y, 
+    NLMAvisynth(PClip _child, const int _d, const int _a, const int _s, const double _h,
+        const char* _channels, const int _wmode, const double _wref, PClip _baby,
+        const char* _ocl_device, const int _ocl_id, const int _ocl_x, const int _ocl_y,
         const int _ocl_r, const bool _lsb, const bool _info, IScriptEnvironment *env);
     ~NLMAvisynth();
     PVideoFrame __stdcall GetFrame(int n, IScriptEnvironment *env);
+
 };
 #endif //__AVISYNTH_6_H__
 

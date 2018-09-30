@@ -26,7 +26,8 @@
 #include <VSHelper.h>
 
 #ifdef VAPOURSYNTH_H
-typedef struct NLMVapoursynth {
+typedef struct _NLMVapoursynth {
+
 public:
     VSNodeRef *node, *knot;
     const VSVideoInfo *vi;
@@ -45,6 +46,7 @@ public:
     size_t hrz_result, vrt_result, dst_block[2], hrz_block[2], vrt_block[2];
     bool equals(const VSVideoInfo *v, const VSVideoInfo *w);
     void oclErrorCheck(const char* function, cl_int errcode, VSMap *out, const VSAPI *vsapi);
+
 } NLMVapoursynth;
 #endif //__VAPOURSYNTH_H__
 
