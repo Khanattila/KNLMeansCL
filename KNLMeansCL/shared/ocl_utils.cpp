@@ -18,6 +18,7 @@
 
 #include "ocl_utils.h"
 #include <fstream>
+#include <cstring>
 
 #define STR(code) case code: return #code
 
