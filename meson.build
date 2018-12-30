@@ -5,7 +5,14 @@ project('KNLMeansCL',
         version : '1.1.1')
 
 vapoursynth = dependency('vapoursynth')
-opencl = meson.get_compiler('cpp').find_library('OpenCL')
+deps = [vapoursynth]
+
+opencl_dep = dependency('OpenCL', required : false)
+if not opencl_dep.found()
+    opencl_dep = meson.get_compiler('cpp').find_library('OpenCL')
+endif
+boost_dep = dependency('boost', modules : ['filesystem', 'system'])
+deps += [opencl_dep, boost_dep]
 
 src = [
     'KNLMeansCL/NLMAvisynth.h',
@@ -25,6 +32,6 @@ src = [
 library(
     'knlmeanscl',
     src,
-    dependencies : [vapoursynth, opencl],
+    dependencies : deps,
     install_dir : join_paths(get_option('prefix'), get_option('libdir'), 'vapoursynth'),
     install : true)
