@@ -20,7 +20,11 @@
 #define __OCL_UTILS_H
 
 #define CL_TARGET_OPENCL_VERSION 120
+#ifdef __APPLE__
+#include <OpenCL/opencl.h>
+#else
 #include <CL/opencl.h>
+#endif
 
 //////////////////////////////////////////
 // Type Definition

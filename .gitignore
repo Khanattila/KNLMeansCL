@@ -253,3 +253,6 @@ paket-files/
 /KNLMeansCL/KNLMeansCL.vcxproj
 /KNLMeansCL/KNLMeansCL.vcxproj.filters
 /KNLMeansCL.sln
+
+# junk
+.DS_Store
