@@ -1,6 +1,6 @@
 /*
 *    This file is part of KNLMeansCL,
-*    Copyright(C) 2015-2018  Edoardo Brunetti.
+*    Copyright(C) 2015-2020  Edoardo Brunetti.
 *
 *    KNLMeansCL is free software: you can redistribute it and/or modify
 *    it under the terms of the GNU General Public License as published by
@@ -20,10 +20,12 @@
 
 //////////////////////////////////////////
 // Functions
-size_t mrounds(const size_t number, const size_t multiple) {
+size_t mrounds(const size_t number, const size_t multiple)
+{
     return ((number + multiple - 1) / multiple) * multiple;
 }
 
-int min(const  int a, const int b) {
+int min(const  int a, const int b)
+{
     return (b < a) ? b : a;
 }

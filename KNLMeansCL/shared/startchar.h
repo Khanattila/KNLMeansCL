@@ -3,7 +3,7 @@
 *    Copyright(C) 2002		thejam79,
 *    Copyright(C) 2003		minamina,
 *    Copyright(C) 2007		Donald A. Graft,
-*    Copyright(C) 2014-2018 Edoardo Brunetti.
+*    Copyright(C) 2014-2020 Edoardo Brunetti.
 *
 *    KNLMeansCL is free software: you can redistribute it and/or modify
 *    it under the terms of the GNU General Public License as published by
