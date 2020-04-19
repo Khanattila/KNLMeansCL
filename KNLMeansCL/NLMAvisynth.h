@@ -26,10 +26,11 @@
 #    include <avisynth.h>
 #endif
 
-#ifdef __AVISYNTH_6_H__
+#ifdef __AVISYNTH_8_H__
 struct NLMAvisynth : public GenericVideoFilter {
 
 private:
+    bool has_at_least_v8; // frame property support
     const int d, a, s, wmode, ocl_id, ocl_x, ocl_y, ocl_r;
     const double wref, h;
     PClip baby;
@@ -55,8 +56,12 @@ public:
         const int _ocl_r, const bool _lsb, const bool _info, IScriptEnvironment *env);
     ~NLMAvisynth();
     PVideoFrame __stdcall GetFrame(int n, IScriptEnvironment *env);
+    int __stdcall SetCacheHints(int cachehints, int frame_range)
+    {
+      return cachehints == CACHE_GET_MTMODE ? MT_MULTI_INSTANCE : 0;
+    }
 
 };
-#endif //__AVISYNTH_6_H__
+#endif //__AVISYNTH_8_H__
 
 #endif //__NLM_AVISYNTH_H__

@@ -30,7 +30,7 @@
 #    define strcasecmp _stricmp
 #endif
 
-#ifdef __AVISYNTH_6_H__
+#ifdef __AVISYNTH_8_H__
 
 //////////////////////////////////////////
 // AviSynthFunctions
@@ -80,9 +80,13 @@ NLMAvisynth::NLMAvisynth(PClip _child, const int _d, const int _a, const int _s,
     wref(_wref), baby{ _baby }, ocl_device{ _ocl_device }, ocl_id{ _ocl_id }, ocl_x{ _ocl_x }, ocl_y{ _ocl_y },
     ocl_r{ _ocl_r }, stacked{ _stacked }, info{ _info }
 {
-
     // Check AviSynth Version
-    env->CheckVersion(5);
+    env->CheckVersion(5); // minimum req
+
+    // Check frame property support
+    has_at_least_v8 = true;
+    try { env->CheckVersion(8); } catch (const AvisynthError&) { has_at_least_v8 = false; }
+
     child->SetCacheHints(CACHE_WINDOW, d);
 
     // Check source clip
@@ -524,6 +528,9 @@ PVideoFrame __stdcall NLMAvisynth::GetFrame(int n, IScriptEnvironment* env)
     // Write image
     for (int k = k_start; k <= k_end; k++) {
         src = child->GetFrame(n + k, env);
+        if (k == k_start && has_at_least_v8) { // frame property from the first
+          env->copyFrameProps(src, dst);
+        }
         ref = (baby) ? baby->GetFrame(n + k, env) : nullptr;
         const cl_int t_pk = t + k;
         const size_t origin_in[3] = { 0, 0, (size_t)t_pk };
@@ -996,10 +1003,7 @@ extern "C" __declspec(dllexport) const char* __stdcall AvisynthPluginInit3(
     AVS_linkage = vectors;
     env->AddFunction("KNLMeansCL", "c[d]i[a]i[s]i[h]f[channels]s[wmode]i[wref]f[rclip]c[device_type]s[device_id]i\
 [ocl_x]i[ocl_y]i[ocl_r]i[stacked]b[info]b", AviSynthPluginCreate, 0);
-    if (env->FunctionExists("SetFilterMTMode")) {
-        static_cast<IScriptEnvironment2*>(env)->SetFilterMTMode("KNLMeansCL", MT_MULTI_INSTANCE, true);
-    }
     return "KNLMeansCL for AviSynth";
 }
 
-#endif //__AVISYNTH_6_H__
+#endif //__AVISYNTH_8_H__
