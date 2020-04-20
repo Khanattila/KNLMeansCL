@@ -528,7 +528,7 @@ PVideoFrame __stdcall NLMAvisynth::GetFrame(int n, IScriptEnvironment* env)
     // Write image
     for (int k = k_start; k <= k_end; k++) {
         src = child->GetFrame(n + k, env);
-        if (k == k_start && has_at_least_v8) { // frame property from the first
+        if (k == 0 && has_at_least_v8) { // frame property from the first
           env->copyFrameProps(src, dst);
         }
         ref = (baby) ? baby->GetFrame(n + k, env) : nullptr;
