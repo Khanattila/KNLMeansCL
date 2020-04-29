@@ -7,6 +7,9 @@
 *.userosscache
 *.sln.docstates
 
+# Khronos OpenCL files download separately
+OpenCL/
+
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
 
@@ -14,6 +17,7 @@
 [Dd]ebug/
 [Dd]ebugPublic/
 [Rr]elease/
+[Rr]elease_XP/
 [Rr]eleases/
 x64/
 x86/
