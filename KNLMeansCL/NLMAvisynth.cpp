@@ -25,6 +25,7 @@
 #include <clocale>
 #include <cstdio>
 #include <cstring>
+#include <vector>
 
 #ifdef _MSC_VER
 #    define strcasecmp _stricmp
@@ -491,9 +492,8 @@ NLMAvisynth::NLMAvisynth(PClip _child, const int _d, const int _a, const int _s,
 //////////////////////////////////////////
 // AviSynthGetFrame
 PVideoFrame __stdcall NLMAvisynth::GetFrame(int n, IScriptEnvironment* env)
-{
+{ 
     // Variables
-    PVideoFrame src, ref;
     PVideoFrame dst = env->NewVideoFrame(vi);
     int k_start = -min(d, n);
     int k_end = min(d, vi.num_frames - 1 - n);
@@ -526,12 +526,30 @@ PVideoFrame __stdcall NLMAvisynth::GetFrame(int n, IScriptEnvironment* env)
     ret |= clEnqueueFillBuffer(command_queue, mem_U[memU5], &pattern_u5, sizeof(cl_float), 0, size_u5, 0, NULL, NULL);
 
     // Write image
+    // Since clEnqueueWriteImage is non-blocking, we have to preserve all PVideoFrames.
+    // This ensures that pointers returned by GetReadPtr are still pointing at
+    // valid PVideoFrames when clEnqueueWriteImage is loading data from them.
+    const int num_of_frames = max(k_end - k_start + 1, 0);
+    std::vector<PVideoFrame> srcs(num_of_frames);
+    std::vector<PVideoFrame> refs;
+    if (baby)
+      refs.resize(num_of_frames);
+
     for (int k = k_start; k <= k_end; k++) {
-        src = child->GetFrame(n + k, env);
-        if (k == 0 && has_at_least_v8) { // frame property from the first
+        const int index = k - k_start;
+
+        PVideoFrame src = child->GetFrame(n + k, env);;
+        srcs[index] = src; // preserve in order not to be destroyed before the non-blocking write
+
+        if (k == 0 && has_at_least_v8) { // frame property from the nth position
           env->copyFrameProps(src, dst);
         }
-        ref = (baby) ? baby->GetFrame(n + k, env) : nullptr;
+      
+        PVideoFrame ref = (baby) ? baby->GetFrame(n + k, env) : nullptr;
+        if (baby) {
+          refs[index] = ref; // preserve in order not to be destroyed before the non-blocking write
+        }
+
         const cl_int t_pk = t + k;
         const size_t origin_in[3] = { 0, 0, (size_t)t_pk };
         switch (clip_t) {
@@ -749,7 +767,7 @@ PVideoFrame __stdcall NLMAvisynth::GetFrame(int n, IScriptEnvironment* env)
     for (int k = k_start; k <= 0; k++) {
         for (int j = -a; j <= a; j++) {
             for (int i = -a; i <= a; i++) {
-                if (k * spt_area + j * spt_side + i < 0) {
+              if (k * spt_area + j * spt_side + i < 0) {
                     const cl_int q[4] = { i, j, k, 0 };
                     ret |= clSetKernelArg(kernel[nlmDistance], 2, sizeof(cl_int), &t);
                     ret |= clSetKernelArg(kernel[nlmDistance], 3, 4 * sizeof(cl_int), &q);
@@ -865,7 +883,7 @@ PVideoFrame __stdcall NLMAvisynth::GetFrame(int n, IScriptEnvironment* env)
     ret |= clFlush(command_queue);
 
     // Copy other data
-    src = child->GetFrame(n, env);
+    PVideoFrame src = child->GetFrame(n, env);
     if (!vi.IsY8() && (clip_t & NLM_CLIP_REF_LUMA)) {
         env->BitBlt(dst->GetWritePtr(PLANAR_U), dst->GetPitch(PLANAR_U), src->GetReadPtr(PLANAR_U),
             src->GetPitch(PLANAR_U), src->GetRowSize(PLANAR_U), src->GetHeight(PLANAR_U));

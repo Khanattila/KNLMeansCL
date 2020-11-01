@@ -33,4 +33,9 @@ int min(
     const int b
 );
 
+int max(
+    const int a,
+    const int b
+);
+
 #endif //__COMMON_H__

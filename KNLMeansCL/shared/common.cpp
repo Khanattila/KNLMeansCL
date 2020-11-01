@@ -29,3 +29,8 @@ int min(const  int a, const int b)
 {
     return (b < a) ? b : a;
 }
+
+int max(const  int a, const int b)
+{
+  return (b > a) ? b : a;
+}
