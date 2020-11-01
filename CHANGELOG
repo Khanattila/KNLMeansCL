@@ -1,3 +1,11 @@
+v1.1.1c [20201028 (pinterf)]
+   - Avisynth: fixes invalid frame content / ghost frames / hangup in multithreaded environment
+
+v1.1.1b [20200429 (pinterf)]
+   - Windows build with VS2019
+   - Move AviSynth+ MT report to interface independent cache hints
+   - Add AviSynth+ frame property copy support (supports V8 interface for AviSynth+ 3.6.0)
+
 v1.1.1
    - Added more check of rclip.
    - Fixed build programm error in some circumstances. 
