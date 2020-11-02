@@ -120,7 +120,7 @@ NLMAvisynth::NLMAvisynth(PClip _child, const int _d, const int _a, const int _s,
         strcasecmp(channels, "UV") && strcasecmp(channels, "auto"))
         env->ThrowError("KNLMeansCL: 'channels' must be 'YUV', 'Y' or 'UV' with YUV color space!");
     else if (!vi.Is444() && !strcasecmp(channels, "YUV"))
-        env->ThrowError("KNLMeansCL: 'channels = YUV' require a YV24 pixel format!");
+        env->ThrowError("KNLMeansCL: 'channels = YUV' require a 4:4:4 pixel format!");
     else if (vi.IsRGB() && strcasecmp(channels, "RGB") && strcasecmp(channels, "auto"))
         env->ThrowError("KNLMeansCL: 'channels' must be 'RGB' with RGB color space!");
     if (wmode < 0 || wmode > 3)
