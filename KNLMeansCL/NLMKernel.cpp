@@ -47,7 +47,7 @@ const char* nlmClipRefToString(unsigned int clip)
         return "NLM_CLIP_REF_CHROMA";
     else if (clip & NLM_CLIP_REF_YUV)
         return "NLM_CLIP_REF_YUV";
-    else if (clip & NLM_CLIP_REF_RGB)
+    else if ((clip & NLM_CLIP_REF_RGB) || (clip & NLM_CLIP_REF_PACKEDRGB))
         return "NLM_CLIP_REF_RGB";
     else
         return "OCL_UTILS_CLIP_REF_ERROR";

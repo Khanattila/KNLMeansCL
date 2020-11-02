@@ -53,6 +53,7 @@
 #define NLM_CLIP_REF_CHROMA       (1 << 6)
 #define NLM_CLIP_REF_YUV          (1 << 7)
 #define NLM_CLIP_REF_RGB          (1 << 8)
+#define NLM_CLIP_REF_PACKEDRGB    (1 << 9)
 
 #define NLM_WMODE_WELSCH           0x0
 #define NLM_WMODE_BISQUARE_A       0x1
