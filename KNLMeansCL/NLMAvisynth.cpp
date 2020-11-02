@@ -114,8 +114,8 @@ NLMAvisynth::NLMAvisynth(PClip _child, const int _d, const int _a, const int _s,
         env->ThrowError("KNLMeansCL: 's' must be in range [0, 8]!");
     if (h <= 0.0f)
         env->ThrowError("KNLMeansCL: 'h' must be greater than 0!");
-    if (vi.IsY8() && strcasecmp(channels, "Y") && strcasecmp(channels, "auto"))
-        env->ThrowError("KNLMeansCL: 'channels' must be 'Y' with Y8 pixel format!");
+    if (vi.IsY() && strcasecmp(channels, "Y") && strcasecmp(channels, "auto"))
+        env->ThrowError("KNLMeansCL: 'channels' must be 'Y' with greyscale pixel format!");
     else if (vi.IsPlanar() && vi.IsYUV() && strcasecmp(channels, "YUV") && strcasecmp(channels, "Y") &&
         strcasecmp(channels, "UV") && strcasecmp(channels, "auto"))
         env->ThrowError("KNLMeansCL: 'channels' must be 'YUV', 'Y' or 'UV' with YUV color space!");
