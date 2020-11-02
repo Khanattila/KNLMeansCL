@@ -149,8 +149,8 @@ NLMAvisynth::NLMAvisynth(PClip _child, const int _d, const int _a, const int _s,
 
     // Set image dimensions
     if (!strcasecmp(channels, "UV")) {
-        int subSamplingW = vi.Is444() ? 0 : 1;
-        int subSamplingH = stacked ? (vi.IsYV12() ? 2 : 1) : (vi.Is420() ? 1 : 0);
+        int subSamplingW = vi.GetPlaneWidthSubsampling(PLANAR_U);
+        int subSamplingH = stacked ? (vi.IsYV12() ? 2 : 1) : vi.GetPlaneHeightSubsampling(PLANAR_U);
         idmn[0] = (cl_uint)vi.width >> subSamplingW;
         idmn[1] = (cl_uint)vi.height >> subSamplingH;
     }
