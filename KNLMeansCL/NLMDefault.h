@@ -35,6 +35,7 @@
 #define DFT_ocl_r         0
 #define DFT_lsb           false
 #define DFT_info          false
+#define DFT_mode_9_to_15bits 1
 #define VERSION           "1.1.1"
 
 #endif //__NLM_DEFAULT_H__

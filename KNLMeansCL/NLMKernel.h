@@ -44,8 +44,8 @@
 #define memU5                      0x6
 #define NLM_MEMORY                 0x7
 
-#define NLM_CLIP_EXTRA_FALSE      (1 << 0)
-#define NLM_CLIP_EXTRA_TRUE       (1 << 1)
+#define NLM_CLIP_TYPE_UNSIGNED_101010 (1 << 0)
+#define NLM_CLIP_TYPE_UNORM_IN_UNSIGNED_OUT (1 << 1)
 #define NLM_CLIP_TYPE_UNORM       (1 << 2)
 #define NLM_CLIP_TYPE_UNSIGNED    (1 << 3)
 #define NLM_CLIP_TYPE_STACKED     (1 << 4)

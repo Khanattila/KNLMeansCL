@@ -36,6 +36,8 @@ public:
     double wref, h;
     const char *channels, *ocl_device;
     bool pre_processing;
+    int mode_9_to_15bits;
+    bool use_mem_P_out;
     cl_uint clip_t, channel_num, idmn[2];
     cl_platform_id platformID;
     cl_device_id deviceID;
@@ -43,7 +45,7 @@ public:
     cl_command_queue command_queue;
     cl_program program;
     cl_kernel kernel[NLM_KERNEL];
-    cl_mem mem_U[NLM_MEMORY], mem_P[3];
+    cl_mem mem_U[NLM_MEMORY], mem_P[3], mem_P_out[3];
     size_t hrz_result, vrt_result, dst_block[2], hrz_block[2], vrt_block[2];
 
     bool equals(
