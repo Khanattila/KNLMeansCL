@@ -550,6 +550,13 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
                 vsapi->freeNode(d.knot);
                 return;
             }
+            if (!strcasecmp(d.channels, "YUV") && (d.vi->format->subSamplingW != 0 || d.vi->format->subSamplingH != 0))
+            {
+                vsapi->setError(out, "knlm.KNLMeansCL: 'channels' = 'YUV' requires 4:4:4 YUV format!");
+                vsapi->freeNode(d.node);
+                vsapi->freeNode(d.knot);
+                return;
+            }
             break;
         case VSColorFamily::cmRGB:
             if (strcasecmp(d.channels, "RGB") && strcasecmp(d.channels, "auto")) {
