@@ -150,17 +150,38 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
             const cl_int t_pk = t + k;
             const size_t origin_in[3] = { 0, 0, (size_t)t_pk };
             switch (d->clip_t) {
-                case (NLM_CLIP_EXTRA_FALSE | NLM_CLIP_TYPE_UNORM | NLM_CLIP_REF_LUMA):
-                    ret |= clEnqueueWriteImage(d->command_queue, d->mem_U[memU1a], CL_FALSE, origin_in, region,
+                case (NLM_CLIP_TYPE_UNORM | NLM_CLIP_REF_LUMA):
+                case (NLM_CLIP_TYPE_UNORM_IN_UNSIGNED_OUT | NLM_CLIP_REF_LUMA):
+                    if (!(d->vi->format->sampleType == VSSampleType::stInteger && d->vi->format->bitsPerSample >= 9 && d->vi->format->bitsPerSample <= 15))
+                    {
+                      ret |= clEnqueueWriteImage(d->command_queue, d->mem_U[memU1a], CL_FALSE, origin_in, region,
+                          (size_t)vsapi->getStride(src, 0), 0, vsapi->getReadPtr(src, 0), 0, NULL, NULL);
+                      if (d->knot) {
+                        ret |= clEnqueueWriteImage(d->command_queue, d->mem_U[memU1b], CL_FALSE, origin_in, region,
+                          (size_t)vsapi->getStride(ref, 0), 0, vsapi->getReadPtr(ref, 0), 0, NULL, NULL);
+                      }
+                      break;
+                    }
+                    // integer 9-15 bits: fallthrough intentionally
+                case (NLM_CLIP_TYPE_UNSIGNED | NLM_CLIP_REF_LUMA):
+                    ret |= clEnqueueWriteImage(d->command_queue, d->mem_P[0], CL_FALSE, origin, region,
                         (size_t)vsapi->getStride(src, 0), 0, vsapi->getReadPtr(src, 0), 0, NULL, NULL);
+                    ret |= clSetKernelArg(d->kernel[nlmPack], 6, sizeof(cl_mem), &d->mem_U[memU1a]);
+                    ret |= clSetKernelArg(d->kernel[nlmPack], 7, sizeof(cl_int), &t_pk);
+                    ret |= clEnqueueNDRangeKernel(d->command_queue, d->kernel[nlmPack],
+                        2, NULL, global_work, NULL, 0, NULL, NULL);
+                    if (d->knot) {
+                        ret |= clEnqueueWriteImage(d->command_queue, d->mem_P[0], CL_FALSE, origin, region,
+                          (size_t)vsapi->getStride(ref, 0), 0, vsapi->getReadPtr(ref, 0), 0, NULL, NULL);
+                        ret |= clSetKernelArg(d->kernel[nlmPack], 6, sizeof(cl_mem), &d->mem_U[memU1b]);
+                        ret |= clSetKernelArg(d->kernel[nlmPack], 7, sizeof(cl_int), &t_pk);
+                        ret |= clEnqueueNDRangeKernel(d->command_queue, d->kernel[nlmPack],
+                          2, NULL, global_work, NULL, 0, NULL, NULL);
+                    }
                     break;
-                case (NLM_CLIP_EXTRA_TRUE | NLM_CLIP_TYPE_UNORM | NLM_CLIP_REF_LUMA):
-                    ret |= clEnqueueWriteImage(d->command_queue, d->mem_U[memU1a], CL_FALSE, origin_in, region,
-                        (size_t)vsapi->getStride(src, 0), 0, vsapi->getReadPtr(src, 0), 0, NULL, NULL);
-                    ret |= clEnqueueWriteImage(d->command_queue, d->mem_U[memU1b], CL_FALSE, origin_in, region,
-                        (size_t)vsapi->getStride(ref, 0), 0, vsapi->getReadPtr(ref, 0), 0, NULL, NULL);
-                    break;
-                case (NLM_CLIP_EXTRA_FALSE | NLM_CLIP_TYPE_UNORM | NLM_CLIP_REF_CHROMA):
+                case (NLM_CLIP_TYPE_UNORM | NLM_CLIP_REF_CHROMA):
+                case (NLM_CLIP_TYPE_UNSIGNED | NLM_CLIP_REF_CHROMA):
+                case (NLM_CLIP_TYPE_UNORM_IN_UNSIGNED_OUT | NLM_CLIP_REF_CHROMA):
                     ret |= clEnqueueWriteImage(d->command_queue, d->mem_P[0], CL_FALSE, origin, region,
                         (size_t)vsapi->getStride(src, 1), 0, vsapi->getReadPtr(src, 1), 0, NULL, NULL);
                     ret |= clEnqueueWriteImage(d->command_queue, d->mem_P[1], CL_FALSE, origin, region,
@@ -169,29 +190,25 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
                     ret |= clSetKernelArg(d->kernel[nlmPack], 7, sizeof(cl_int), &t_pk);
                     ret |= clEnqueueNDRangeKernel(d->command_queue, d->kernel[nlmPack],
                         2, NULL, global_work, NULL, 0, NULL, NULL);
+                    if (d->knot) {
+                        ret |= clEnqueueWriteImage(d->command_queue, d->mem_P[0], CL_FALSE, origin, region,
+                          (size_t)vsapi->getStride(ref, 1), 0, vsapi->getReadPtr(ref, 1), 0, NULL, NULL);
+                        ret |= clEnqueueWriteImage(d->command_queue, d->mem_P[1], CL_FALSE, origin, region,
+                          (size_t)vsapi->getStride(ref, 2), 0, vsapi->getReadPtr(ref, 2), 0, NULL, NULL);
+                        ret |= clSetKernelArg(d->kernel[nlmPack], 6, sizeof(cl_mem), &d->mem_U[memU1b]);
+                        ret |= clSetKernelArg(d->kernel[nlmPack], 7, sizeof(cl_int), &t_pk);
+                        ret |= clEnqueueNDRangeKernel(d->command_queue, d->kernel[nlmPack],
+                          2, NULL, global_work, NULL, 0, NULL, NULL);
+                    }
                     break;
-                case (NLM_CLIP_EXTRA_TRUE | NLM_CLIP_TYPE_UNORM | NLM_CLIP_REF_CHROMA):
-                    ret |= clEnqueueWriteImage(d->command_queue, d->mem_P[0], CL_FALSE, origin, region,
-                        (size_t)vsapi->getStride(src, 1), 0, vsapi->getReadPtr(src, 1), 0, NULL, NULL);
-                    ret |= clEnqueueWriteImage(d->command_queue, d->mem_P[1], CL_FALSE, origin, region,
-                        (size_t)vsapi->getStride(src, 2), 0, vsapi->getReadPtr(src, 2), 0, NULL, NULL);
-                    ret |= clSetKernelArg(d->kernel[nlmPack], 6, sizeof(cl_mem), &d->mem_U[memU1a]);
-                    ret |= clSetKernelArg(d->kernel[nlmPack], 7, sizeof(cl_int), &t_pk);
-                    ret |= clEnqueueNDRangeKernel(d->command_queue, d->kernel[nlmPack],
-                        2, NULL, global_work, NULL, 0, NULL, NULL);
-                    ret |= clEnqueueWriteImage(d->command_queue, d->mem_P[0], CL_FALSE, origin, region,
-                        (size_t)vsapi->getStride(ref, 1), 0, vsapi->getReadPtr(ref, 1), 0, NULL, NULL);
-                    ret |= clEnqueueWriteImage(d->command_queue, d->mem_P[1], CL_FALSE, origin, region,
-                        (size_t)vsapi->getStride(ref, 2), 0, vsapi->getReadPtr(ref, 2), 0, NULL, NULL);
-                    ret |= clSetKernelArg(d->kernel[nlmPack], 6, sizeof(cl_mem), &d->mem_U[memU1b]);
-                    ret |= clSetKernelArg(d->kernel[nlmPack], 7, sizeof(cl_int), &t_pk);
-                    ret |= clEnqueueNDRangeKernel(d->command_queue, d->kernel[nlmPack],
-                        2, NULL, global_work, NULL, 0, NULL, NULL);
-                    break;
-                case (NLM_CLIP_EXTRA_FALSE | NLM_CLIP_TYPE_UNORM | NLM_CLIP_REF_YUV):
-                case (NLM_CLIP_EXTRA_FALSE | NLM_CLIP_TYPE_UNSIGNED | NLM_CLIP_REF_YUV):
-                case (NLM_CLIP_EXTRA_FALSE | NLM_CLIP_TYPE_UNORM | NLM_CLIP_REF_RGB):
-                case (NLM_CLIP_EXTRA_FALSE | NLM_CLIP_TYPE_UNSIGNED | NLM_CLIP_REF_RGB):
+                case (NLM_CLIP_TYPE_UNORM | NLM_CLIP_REF_YUV):
+                case (NLM_CLIP_TYPE_UNSIGNED | NLM_CLIP_REF_YUV):
+                case (NLM_CLIP_TYPE_UNORM_IN_UNSIGNED_OUT | NLM_CLIP_REF_YUV):
+                case (NLM_CLIP_TYPE_UNSIGNED_101010 | NLM_CLIP_REF_YUV):
+                case (NLM_CLIP_TYPE_UNORM | NLM_CLIP_REF_RGB):
+                case (NLM_CLIP_TYPE_UNSIGNED | NLM_CLIP_REF_RGB):
+                case (NLM_CLIP_TYPE_UNORM_IN_UNSIGNED_OUT | NLM_CLIP_REF_RGB):
+                case (NLM_CLIP_TYPE_UNSIGNED_101010 | NLM_CLIP_REF_RGB):
                     ret |= clEnqueueWriteImage(d->command_queue, d->mem_P[0], CL_FALSE, origin, region,
                         (size_t)vsapi->getStride(src, 0), 0, vsapi->getReadPtr(src, 0), 0, NULL, NULL);
                     ret |= clEnqueueWriteImage(d->command_queue, d->mem_P[1], CL_FALSE, origin, region,
@@ -202,31 +219,18 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
                     ret |= clSetKernelArg(d->kernel[nlmPack], 7, sizeof(cl_int), &t_pk);
                     ret |= clEnqueueNDRangeKernel(d->command_queue, d->kernel[nlmPack],
                         2, NULL, global_work, NULL, 0, NULL, NULL);
-                    break;
-                case (NLM_CLIP_EXTRA_TRUE | NLM_CLIP_TYPE_UNORM | NLM_CLIP_REF_YUV):
-                case (NLM_CLIP_EXTRA_TRUE | NLM_CLIP_TYPE_UNSIGNED | NLM_CLIP_REF_YUV):
-                case (NLM_CLIP_EXTRA_TRUE | NLM_CLIP_TYPE_UNORM | NLM_CLIP_REF_RGB):
-                case (NLM_CLIP_EXTRA_TRUE | NLM_CLIP_TYPE_UNSIGNED | NLM_CLIP_REF_RGB):
-                    ret |= clEnqueueWriteImage(d->command_queue, d->mem_P[0], CL_FALSE, origin, region,
-                        (size_t)vsapi->getStride(src, 0), 0, vsapi->getReadPtr(src, 0), 0, NULL, NULL);
-                    ret |= clEnqueueWriteImage(d->command_queue, d->mem_P[1], CL_FALSE, origin, region,
-                        (size_t)vsapi->getStride(src, 1), 0, vsapi->getReadPtr(src, 1), 0, NULL, NULL);
-                    ret |= clEnqueueWriteImage(d->command_queue, d->mem_P[2], CL_FALSE, origin, region,
-                        (size_t)vsapi->getStride(src, 2), 0, vsapi->getReadPtr(src, 2), 0, NULL, NULL);
-                    ret |= clSetKernelArg(d->kernel[nlmPack], 6, sizeof(cl_mem), &d->mem_U[memU1a]);
-                    ret |= clSetKernelArg(d->kernel[nlmPack], 7, sizeof(cl_int), &t_pk);
-                    ret |= clEnqueueNDRangeKernel(d->command_queue, d->kernel[nlmPack],
-                        2, NULL, global_work, NULL, 0, NULL, NULL);
-                    ret |= clEnqueueWriteImage(d->command_queue, d->mem_P[0], CL_FALSE, origin, region,
-                        (size_t)vsapi->getStride(ref, 0), 0, vsapi->getReadPtr(ref, 0), 0, NULL, NULL);
-                    ret |= clEnqueueWriteImage(d->command_queue, d->mem_P[1], CL_FALSE, origin, region,
-                        (size_t)vsapi->getStride(ref, 1), 0, vsapi->getReadPtr(ref, 1), 0, NULL, NULL);
-                    ret |= clEnqueueWriteImage(d->command_queue, d->mem_P[2], CL_FALSE, origin, region,
-                        (size_t)vsapi->getStride(ref, 2), 0, vsapi->getReadPtr(ref, 2), 0, NULL, NULL);
-                    ret |= clSetKernelArg(d->kernel[nlmPack], 6, sizeof(cl_mem), &d->mem_U[memU1b]);
-                    ret |= clSetKernelArg(d->kernel[nlmPack], 7, sizeof(cl_int), &t_pk);
-                    ret |= clEnqueueNDRangeKernel(d->command_queue, d->kernel[nlmPack],
-                        2, NULL, global_work, NULL, 0, NULL, NULL);
+                    if (d->knot) {
+                        ret |= clEnqueueWriteImage(d->command_queue, d->mem_P[0], CL_FALSE, origin, region,
+                          (size_t)vsapi->getStride(ref, 0), 0, vsapi->getReadPtr(ref, 0), 0, NULL, NULL);
+                        ret |= clEnqueueWriteImage(d->command_queue, d->mem_P[1], CL_FALSE, origin, region,
+                          (size_t)vsapi->getStride(ref, 1), 0, vsapi->getReadPtr(ref, 1), 0, NULL, NULL);
+                        ret |= clEnqueueWriteImage(d->command_queue, d->mem_P[2], CL_FALSE, origin, region,
+                          (size_t)vsapi->getStride(ref, 2), 0, vsapi->getReadPtr(ref, 2), 0, NULL, NULL);
+                        ret |= clSetKernelArg(d->kernel[nlmPack], 6, sizeof(cl_mem), &d->mem_U[memU1b]);
+                        ret |= clSetKernelArg(d->kernel[nlmPack], 7, sizeof(cl_int), &t_pk);
+                        ret |= clEnqueueNDRangeKernel(d->command_queue, d->kernel[nlmPack],
+                          2, NULL, global_work, NULL, 0, NULL, NULL);
+                    }
                     break;
                 default:
                     vsapi->setFilterError("knlm.KNLMeansCL: clip_t error!\n (VapourSynthGetFrame)", frameCtx);
@@ -276,37 +280,53 @@ static const VSFrameRef *VS_CC VapourSynthPluginGetFrame(int n, int activationRe
         ret |= clEnqueueNDRangeKernel(d->command_queue, d->kernel[nlmFinish],
             2, NULL, global_work, NULL, 0, NULL, NULL);
 
-        // Write image
+        // Read image from OCL, Write image
         switch (d->clip_t) {
-            case (NLM_CLIP_EXTRA_FALSE | NLM_CLIP_TYPE_UNORM | NLM_CLIP_REF_LUMA):
-            case (NLM_CLIP_EXTRA_TRUE | NLM_CLIP_TYPE_UNORM | NLM_CLIP_REF_LUMA):
-                ret |= clEnqueueReadImage(d->command_queue, d->mem_U[memU1z], CL_FALSE, origin, region,
-                    (size_t)vsapi->getStride(dst, 0), 0, vsapi->getWritePtr(dst, 0), 0, NULL, NULL);
+            case (NLM_CLIP_TYPE_UNORM | NLM_CLIP_REF_LUMA):
+                if (d->vi->format->sampleType == VSSampleType::stInteger && d->vi->format->bitsPerSample >= 9 && d->vi->format->bitsPerSample <= 15)
+                {
+                    ret |= clEnqueueNDRangeKernel(d->command_queue, d->kernel[nlmUnpack],
+                      2, NULL, global_work, NULL, 0, NULL, NULL);
+                    ret |= clEnqueueReadImage(d->command_queue, d->use_mem_P_out ? d->mem_P_out[0] : d->mem_P[0], CL_FALSE, origin, region,
+                      (size_t)vsapi->getStride(dst, 0), 0, vsapi->getWritePtr(dst, 0), 0, NULL, NULL);
+                }
+                else {
+                    ret |= clEnqueueReadImage(d->command_queue, d->mem_U[memU1z], CL_FALSE, origin, region,
+                      (size_t)vsapi->getStride(dst, 0), 0, vsapi->getWritePtr(dst, 0), 0, NULL, NULL);
+                }
                 break;
-            case (NLM_CLIP_EXTRA_FALSE | NLM_CLIP_TYPE_UNORM | NLM_CLIP_REF_CHROMA):
-            case (NLM_CLIP_EXTRA_TRUE | NLM_CLIP_TYPE_UNORM | NLM_CLIP_REF_CHROMA):
+            case (NLM_CLIP_TYPE_UNSIGNED | NLM_CLIP_REF_LUMA):
+            case (NLM_CLIP_TYPE_UNORM_IN_UNSIGNED_OUT | NLM_CLIP_REF_LUMA):
+                ret |= clEnqueueNDRangeKernel(d->command_queue, d->kernel[nlmUnpack],
+                  2, NULL, global_work, NULL, 0, NULL, NULL);
+                ret |= clEnqueueReadImage(d->command_queue, d->use_mem_P_out ? d->mem_P_out[0] : d->mem_P[0], CL_FALSE, origin, region,
+                  (size_t)vsapi->getStride(dst, 0), 0, vsapi->getWritePtr(dst, 0), 0, NULL, NULL);
+                break;
+            case (NLM_CLIP_TYPE_UNORM | NLM_CLIP_REF_CHROMA):
+            case (NLM_CLIP_TYPE_UNSIGNED | NLM_CLIP_REF_CHROMA):
+            case (NLM_CLIP_TYPE_UNORM_IN_UNSIGNED_OUT | NLM_CLIP_REF_CHROMA):
                 ret |= clEnqueueNDRangeKernel(d->command_queue, d->kernel[nlmUnpack],
                     2, NULL, global_work, NULL, 0, NULL, NULL);
-                ret |= clEnqueueReadImage(d->command_queue, d->mem_P[0], CL_FALSE, origin, region,
+                ret |= clEnqueueReadImage(d->command_queue, d->use_mem_P_out ? d->mem_P_out[0] : d->mem_P[0], CL_FALSE, origin, region,
                     (size_t)vsapi->getStride(dst, 1), 0, vsapi->getWritePtr(dst, 1), 0, NULL, NULL);
-                ret |= clEnqueueReadImage(d->command_queue, d->mem_P[1], CL_FALSE, origin, region,
+                ret |= clEnqueueReadImage(d->command_queue, d->use_mem_P_out ? d->mem_P_out[1] : d->mem_P[1], CL_FALSE, origin, region,
                     (size_t)vsapi->getStride(dst, 2), 0, vsapi->getWritePtr(dst, 2), 0, NULL, NULL);
                 break;
-            case (NLM_CLIP_EXTRA_FALSE | NLM_CLIP_TYPE_UNORM | NLM_CLIP_REF_YUV):
-            case (NLM_CLIP_EXTRA_TRUE | NLM_CLIP_TYPE_UNORM | NLM_CLIP_REF_YUV):
-            case (NLM_CLIP_EXTRA_FALSE | NLM_CLIP_TYPE_UNSIGNED | NLM_CLIP_REF_YUV):
-            case (NLM_CLIP_EXTRA_TRUE | NLM_CLIP_TYPE_UNSIGNED | NLM_CLIP_REF_YUV):
-            case (NLM_CLIP_EXTRA_FALSE | NLM_CLIP_TYPE_UNORM | NLM_CLIP_REF_RGB):
-            case (NLM_CLIP_EXTRA_TRUE | NLM_CLIP_TYPE_UNORM | NLM_CLIP_REF_RGB):
-            case (NLM_CLIP_EXTRA_FALSE | NLM_CLIP_TYPE_UNSIGNED | NLM_CLIP_REF_RGB):
-            case (NLM_CLIP_EXTRA_TRUE | NLM_CLIP_TYPE_UNSIGNED | NLM_CLIP_REF_RGB):
+            case (NLM_CLIP_TYPE_UNORM | NLM_CLIP_REF_YUV):
+            case (NLM_CLIP_TYPE_UNSIGNED | NLM_CLIP_REF_YUV):
+            case (NLM_CLIP_TYPE_UNORM_IN_UNSIGNED_OUT | NLM_CLIP_REF_YUV):
+            case (NLM_CLIP_TYPE_UNSIGNED_101010 | NLM_CLIP_REF_YUV):
+            case (NLM_CLIP_TYPE_UNORM | NLM_CLIP_REF_RGB):
+            case (NLM_CLIP_TYPE_UNSIGNED | NLM_CLIP_REF_RGB):
+            case (NLM_CLIP_TYPE_UNORM_IN_UNSIGNED_OUT | NLM_CLIP_REF_RGB):
+            case (NLM_CLIP_TYPE_UNSIGNED_101010 | NLM_CLIP_REF_RGB):
                 ret |= clEnqueueNDRangeKernel(d->command_queue, d->kernel[nlmUnpack],
                     2, NULL, global_work, NULL, 0, NULL, NULL);
-                ret |= clEnqueueReadImage(d->command_queue, d->mem_P[0], CL_FALSE, origin, region,
+                ret |= clEnqueueReadImage(d->command_queue, d->use_mem_P_out ? d->mem_P_out[0] : d->mem_P[0], CL_FALSE, origin, region,
                     (size_t)vsapi->getStride(dst, 0), 0, vsapi->getWritePtr(dst, 0), 0, NULL, NULL);
-                ret |= clEnqueueReadImage(d->command_queue, d->mem_P[1], CL_FALSE, origin, region,
+                ret |= clEnqueueReadImage(d->command_queue, d->use_mem_P_out ? d->mem_P_out[1] : d->mem_P[1], CL_FALSE, origin, region,
                     (size_t)vsapi->getStride(dst, 1), 0, vsapi->getWritePtr(dst, 1), 0, NULL, NULL);
-                ret |= clEnqueueReadImage(d->command_queue, d->mem_P[2], CL_FALSE, origin, region,
+                ret |= clEnqueueReadImage(d->command_queue, d->use_mem_P_out ? d->mem_P_out[2] : d->mem_P[2], CL_FALSE, origin, region,
                     (size_t)vsapi->getStride(dst, 2), 0, vsapi->getWritePtr(dst, 2), 0, NULL, NULL);
                 break;
             default:
@@ -382,6 +402,11 @@ static void VS_CC VapourSynthPluginFree(void *instanceData, VSCore *core, const 
     NLMVapoursynth *d = (NLMVapoursynth*)instanceData;
     clReleaseCommandQueue(d->command_queue);
     if (d->pre_processing) {
+        if (d->use_mem_P_out) {
+            clReleaseMemObject(d->mem_P_out[2]);
+            clReleaseMemObject(d->mem_P_out[1]);
+            clReleaseMemObject(d->mem_P_out[0]);
+        }
         // d->mem_P[5] is only required to AviSynth
         // d->mem_P[4] is only required to AviSynth
         // d->mem_P[3] is only required to AviSynth
@@ -428,14 +453,14 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
         return;
     }
 
+    d.clip_t = 0;
+
     // Check rclip
     int err;
     d.knot = vsapi->propGetNode(in, "rclip", 0, &err);
     if (err) {
         d.knot = nullptr;
-        d.clip_t = NLM_CLIP_EXTRA_FALSE;
     }
-    else d.clip_t = NLM_CLIP_EXTRA_TRUE;
     if (d.knot) {
         const VSVideoInfo *vi2 = vsapi->getVideoInfo(d.knot);
         if (!d.equals(d.vi, vi2)) {
@@ -473,6 +498,8 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
     if (err) d.ocl_r = DFT_ocl_r;
     d.info = vsapi->propGetInt(in, "info", 0, &err);
     if (err) d.info = DFT_info;
+    d.mode_9_to_15bits = vsapi->propGetInt(in, "mode_9_to_15bits", 0, &err);
+    if (err) d.mode_9_to_15bits = DFT_mode_9_to_15bits;
 
     // Check user value
     if (d.d < 0) {
@@ -523,6 +550,13 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
                 vsapi->freeNode(d.knot);
                 return;
             }
+            if (!strcasecmp(d.channels, "YUV") && (d.vi->format->subSamplingW != 0 || d.vi->format->subSamplingH != 0))
+            {
+                vsapi->setError(out, "knlm.KNLMeansCL: 'channels' = 'YUV' requires 4:4:4 YUV format!");
+                vsapi->freeNode(d.node);
+                vsapi->freeNode(d.knot);
+                return;
+            }
             break;
         case VSColorFamily::cmRGB:
             if (strcasecmp(d.channels, "RGB") && strcasecmp(d.channels, "auto")) {
@@ -549,6 +583,12 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
         vsapi->freeNode(d.node);
         vsapi->freeNode(d.knot);
         return;
+    }
+    if (d.mode_9_to_15bits < 0 || d.mode_9_to_15bits > 2) {
+      vsapi->setError(out, "knlm.KNLMeansCL: 'mode_9_to_15bits' must be 0, 1 or 2!");
+      vsapi->freeNode(d.node);
+      vsapi->freeNode(d.knot);
+      return;
     }
     cl_uint ocl_device_type = 0;
     if (!strcasecmp(d.ocl_device, "CPU"))
@@ -641,32 +681,51 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
     }
 
     // Set channel_type
-    cl_channel_type channel_type_u, channel_type_p;
+    cl_channel_type channel_type_u = NULL, channel_type_p = NULL;
+    cl_channel_type channel_type_p_out = NULL;
     if (d.vi->format->sampleType == VSSampleType::stInteger) {
         if (d.vi->format->bitsPerSample == 8) {
             d.clip_t |= NLM_CLIP_TYPE_UNORM;
             channel_type_u = channel_type_p = CL_UNORM_INT8;
         }
-        else if (d.vi->format->bitsPerSample == 10) {
-            if (d.clip_t & NLM_CLIP_REF_YUV || d.clip_t & NLM_CLIP_REF_RGB) {
-                d.clip_t |= NLM_CLIP_TYPE_UNSIGNED;
-                channel_order = CL_RGB;
-                channel_type_u = CL_UNORM_INT_101010;
-                channel_type_p = CL_UNSIGNED_INT16;
-            }
-            else {
-                vsapi->setError(out, "knlm.KNLMeansCL: only YUV444P10 and RGB30 are supported!");
-                vsapi->freeNode(d.node);
-                vsapi->freeNode(d.knot);
-                return;
-            }
+        else if (d.vi->format->bitsPerSample == 10 && ((d.clip_t & NLM_CLIP_REF_YUV) || (d.clip_t & NLM_CLIP_REF_RGB)))
+        {
+          d.clip_t |= NLM_CLIP_TYPE_UNSIGNED_101010;
+          channel_order = CL_RGB;
+          channel_type_u = CL_UNORM_INT_101010;
+          channel_type_p = CL_UNSIGNED_INT16;
         }
-        else if (d.vi->format->bitsPerSample == 16) {
-            d.clip_t |= NLM_CLIP_TYPE_UNORM;
-            channel_type_u = channel_type_p = CL_UNORM_INT16;
+        else if (d.vi->format->bitsPerSample > 8 && d.vi->format->bitsPerSample <= 16) {
+            if (d.vi->format->bitsPerSample < 16) {
+                // mode_9_to_15bits 0: UNORM in/out; 1:UNSIGNED in/out; 2:UNORM in UNSIGNED out
+                // to be decided, which one is the fastest
+                d.pre_processing = true;
+                switch (d.mode_9_to_15bits) {
+                case 0:
+                  d.clip_t |= NLM_CLIP_TYPE_UNORM;
+                  channel_type_u = CL_UNORM_INT16;
+                  channel_type_p = CL_UNORM_INT16;
+                  break;
+                case 1:
+                  d.clip_t |= NLM_CLIP_TYPE_UNSIGNED;
+                  channel_type_u = CL_UNORM_INT16;
+                  channel_type_p = CL_UNSIGNED_INT16;
+                  break;
+                case 2:
+                  d.clip_t |= NLM_CLIP_TYPE_UNORM_IN_UNSIGNED_OUT;
+                  channel_type_u = CL_UNORM_INT16;
+                  channel_type_p = CL_UNORM_INT16;
+                  channel_type_p_out = CL_UNSIGNED_INT16;
+                  break;
+                }
+              }
+              else {
+                d.clip_t |= NLM_CLIP_TYPE_UNORM;
+                channel_type_u = channel_type_p = CL_UNORM_INT16;
+              }
         }
         else {
-            vsapi->setError(out, "knlm.KNLMeansCL: P8, P10, P16, Half and Single are supported!");
+            vsapi->setError(out, "knlm.KNLMeansCL: P8 to P16, Half and Single are supported!");
             vsapi->freeNode(d.node);
             vsapi->freeNode(d.knot);
             return;
@@ -682,7 +741,7 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
             channel_type_u = channel_type_p = CL_FLOAT;
         }
         else {
-            vsapi->setError(out, "knlm.KNLMeansCL: P8, P10, P16, Half and Single are supported!");
+            vsapi->setError(out, "knlm.KNLMeansCL: P8 to P16, Half and Single are supported!");
             vsapi->freeNode(d.node);
             vsapi->freeNode(d.knot);
             return;
@@ -754,20 +813,68 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
     size_t size_u2 = sizeof(cl_float) * d.idmn[0] * d.idmn[1] * d.channel_num;
     size_t size_u5 = sizeof(cl_float) * d.idmn[0] * d.idmn[1];
     cl_mem_flags flags_u1ab, flags_u1z;
-    if (d.clip_t & NLM_CLIP_REF_LUMA) {
-        flags_u1ab = CL_MEM_READ_ONLY | CL_MEM_HOST_WRITE_ONLY;
-        flags_u1z = CL_MEM_READ_WRITE | CL_MEM_HOST_READ_ONLY;
+
+    if (((d.clip_t & NLM_CLIP_TYPE_UNORM) || (d.clip_t & NLM_CLIP_TYPE_UNORM_IN_UNSIGNED_OUT))
+      && (d.clip_t & NLM_CLIP_REF_LUMA)
+      && d.vi->format->sampleType == VSSampleType::stInteger && d.vi->format->bitsPerSample >= 9 && d.vi->format->bitsPerSample <= 15)
+    {
+      // Luma-only UNORM_IN 9-15 bits
+      flags_u1ab = CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS;
+      flags_u1z = CL_MEM_READ_WRITE | CL_MEM_HOST_READ_ONLY;
+    }
+    else if (!(d.clip_t & NLM_CLIP_REF_CHROMA) && !(d.clip_t & NLM_CLIP_REF_YUV) && !(d.clip_t & NLM_CLIP_REF_RGB) && !d.pre_processing)
+    {
+      // Luma only 8, 16 and 32 bits
+      flags_u1ab = CL_MEM_READ_ONLY | CL_MEM_HOST_WRITE_ONLY; // in: direct
+      flags_u1z = CL_MEM_READ_WRITE | CL_MEM_HOST_READ_ONLY; // out direct
     }
     else {
-        flags_u1ab = flags_u1z = CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS;
+      // pack and unpack
+      flags_u1ab = CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS;
+      flags_u1z = CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS;
     }
-    const cl_image_format format_u1 = { channel_order, channel_type_u };
+
+    cl_image_format format_u1 = { channel_order, channel_type_u }; // maybe overridden
     const cl_image_format format_u4 = { CL_R, CL_FLOAT };
     size_t array_size = (size_t)(2 * d.d + 1);
     const cl_image_desc desc_u = { CL_MEM_OBJECT_IMAGE2D_ARRAY, d.idmn[0], d.idmn[1], 1, array_size, 0, 0, 0, 0, NULL };
     const cl_image_desc desc_u1z = { CL_MEM_OBJECT_IMAGE2D, d.idmn[0], d.idmn[1], 1, 1, 0, 0, 0, 0, NULL };
+
     d.mem_U[memU1a] = clCreateImage(d.context, flags_u1ab, &format_u1, &desc_u, NULL, &ret);
+    // 10-10-10 may not be supported natively
+    if (ret == CL_IMAGE_FORMAT_NOT_SUPPORTED && (d.clip_t & NLM_CLIP_TYPE_UNSIGNED_101010))
+    {
+      // fallback to generic 10 bits
+      d.clip_t ^= NLM_CLIP_TYPE_UNSIGNED_101010;
+
+      d.pre_processing = true;
+      // same as above
+      switch (d.mode_9_to_15bits) {
+      case 0:
+        d.clip_t |= NLM_CLIP_TYPE_UNORM;
+        channel_type_u = CL_UNORM_INT16;
+        channel_type_p = CL_UNORM_INT16;
+        break;
+      case 1:
+        d.clip_t |= NLM_CLIP_TYPE_UNSIGNED;
+        channel_type_u = CL_UNORM_INT16;
+        channel_type_p = CL_UNSIGNED_INT16;
+        break;
+      case 2:
+        d.clip_t |= NLM_CLIP_TYPE_UNORM_IN_UNSIGNED_OUT;
+        channel_type_u = CL_UNORM_INT16;
+        channel_type_p = CL_UNORM_INT16;
+        channel_type_p_out = CL_UNSIGNED_INT16;
+        break;
+      }
+      channel_order = CL_RGBA;
+
+      format_u1 = { channel_order, channel_type_u };
+      // try again
+      d.mem_U[memU1a] = clCreateImage(d.context, flags_u1ab, &format_u1, &desc_u, NULL, &ret);
+    }
     if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateImage(d.mem_P[memU1a])", ret, out, vsapi); return; }
+    
     if (d.knot) {
         d.mem_U[memU1b] = clCreateImage(d.context, flags_u1ab, &format_u1, &desc_u, NULL, &ret);
         if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateImage(d.mem_P[memU1b])", ret, out, vsapi); return; }
@@ -783,9 +890,15 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
     d.mem_U[memU5] = clCreateBuffer(d.context, CL_MEM_READ_WRITE | CL_MEM_HOST_WRITE_ONLY, size_u5, NULL, &ret);
     if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateImage(d.mem_P[memU0])", ret, out, vsapi); return; }
 
+    // P0, P1 and P2 buffers can be shared for packing and unpacking only if 
+    // they have the same channel type.
+    d.use_mem_P_out = d.pre_processing && (channel_type_p_out != NULL) && (channel_type_p != channel_type_p_out);
+
     // Create mem_P[]
     if (d.pre_processing) {
         const cl_image_format format_p = { CL_R, channel_type_p };
+        const cl_image_format format_p_out = { CL_R, channel_type_p_out };
+
         const cl_image_desc desc_p = { CL_MEM_OBJECT_IMAGE2D, d.idmn[0], d.idmn[1], 1, 1, 0, 0, 0, 0, NULL };
         d.mem_P[0] = clCreateImage(d.context, CL_MEM_READ_WRITE, &format_p, &desc_p, NULL, &ret);
         if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateImage(d.mem_P[0])", ret, out, vsapi); return; }
@@ -796,6 +909,14 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
         // d.mem_P[3] is only required to AviSynth
         // d.mem_P[4] is only required to AviSynth
         // d.mem_P[5] is only required to AviSynth
+        if (d.use_mem_P_out) {
+            d.mem_P_out[0] = clCreateImage(d.context, CL_MEM_READ_WRITE, &format_p_out, &desc_p, NULL, &ret);
+            if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateImage(d.mem_P_out[0])", ret, out, vsapi); return; }
+            d.mem_P_out[1] = clCreateImage(d.context, CL_MEM_READ_WRITE, &format_p_out, &desc_p, NULL, &ret);
+            if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateImage(d.mem_P_out[1])", ret, out, vsapi); return; }
+            d.mem_P_out[2] = clCreateImage(d.context, CL_MEM_READ_WRITE, &format_p_out, &desc_p, NULL, &ret);
+            if (ret != CL_SUCCESS) { d.oclErrorCheck("clCreateImage(d.mem_P_out[2])", ret, out, vsapi); return; }
+        }
     }
 
     // Create and Build a program executable from the program source
@@ -807,20 +928,22 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
     snprintf(options, 2048, "-cl-denorms-are-zero -cl-fast-relaxed-math -Werror "
         "-D %s -D %s -D %s -D VI_DIM_X=%u -D VI_DIM_Y=%u -D HRZ_RESULT=%zu -D VRT_RESULT=%zu "
         "-D HRZ_BLOCK_X=%zu -D HRZ_BLOCK_Y=%zu -D VRT_BLOCK_X=%zu -D VRT_BLOCK_Y=%zu "
-        "-D NLM_D=%i -D NLM_S=%i -D NLM_H=%ff -D NLM_WREF=%ff",
+        "-D NLM_D=%i -D NLM_S=%i -D NLM_H=%ff -D NLM_WREF=%ff  -D BITDEPTH=%d",
         nlmClipTypeToString(d.clip_t), nlmClipRefToString(d.clip_t), nlmWmodeToString(int64ToIntS(d.wmode)),
         d.idmn[0], d.idmn[1], d.hrz_result, d.vrt_result,
         d.hrz_block[0], d.hrz_block[1], d.vrt_block[0], d.vrt_block[1],
-        int64ToIntS(d.d), int64ToIntS(d.s), d.h, d.wref);
+        int64ToIntS(d.d), int64ToIntS(d.s), d.h, d.wref,
+        d.vi->format->sampleType == VSSampleType::stInteger ? d.vi->format->bitsPerSample : 32);
 #else
     snprintf(options, 2048, "-cl-single-precision-constant -cl-denorms-are-zero -cl-fast-relaxed-math -Werror \
         -D %s -D %s -D %s -D VI_DIM_X=%u -D VI_DIM_Y=%u -D HRZ_RESULT=%zu -D VRT_RESULT=%zu \
         -D HRZ_BLOCK_X=%zu -D HRZ_BLOCK_Y=%zu -D VRT_BLOCK_X=%zu -D VRT_BLOCK_Y=%zu \
-        -D NLM_D=%i -D NLM_S=%i -D NLM_H=%f -D NLM_WREF=%f",
+        -D NLM_D=%i -D NLM_S=%i -D NLM_H=%f -D NLM_WREF=%f -D BITDEPTH=%d",
         nlmClipTypeToString(d.clip_t), nlmClipRefToString(d.clip_t), nlmWmodeToString(int64ToIntS(d.wmode)),
         d.idmn[0], d.idmn[1], d.hrz_result, d.vrt_result,
         d.hrz_block[0], d.hrz_block[1], d.vrt_block[0], d.vrt_block[1],
-        int64ToIntS(d.d), int64ToIntS(d.s), d.h, d.wref);
+        int64ToIntS(d.d), int64ToIntS(d.s), d.h, d.wref,
+        d.vi->format->sampleType == VSSampleType::stInteger ? d.vi->format->bitsPerSample : 32);
 #endif
     ret = clBuildProgram(d.program, 1, &d.deviceID, options, NULL, NULL);
     if (ret != CL_SUCCESS) {
@@ -930,11 +1053,11 @@ static void VS_CC VapourSynthPluginCreate(const VSMap *in, VSMap *out, void *use
 
     // nlmUnpack
     if (d.pre_processing) {
-        ret = clSetKernelArg(d.kernel[nlmUnpack], 0, sizeof(cl_mem), &d.mem_P[0]);
+        ret = clSetKernelArg(d.kernel[nlmUnpack], 0, sizeof(cl_mem), d.use_mem_P_out ? &d.mem_P_out[0] : &d.mem_P[0]);
         if (ret != CL_SUCCESS) { d.oclErrorCheck("clSetKernelArg(nlmUnpack[0])", ret, out, vsapi); return; }
-        ret = clSetKernelArg(d.kernel[nlmUnpack], 1, sizeof(cl_mem), &d.mem_P[1]);
+        ret = clSetKernelArg(d.kernel[nlmUnpack], 1, sizeof(cl_mem), d.use_mem_P_out ? &d.mem_P_out[1] : &d.mem_P[1]);
         if (ret != CL_SUCCESS) { d.oclErrorCheck("clSetKernelArg(nlmUnpack[1])", ret, out, vsapi); return; }
-        ret = clSetKernelArg(d.kernel[nlmUnpack], 2, sizeof(cl_mem), &d.mem_P[2]);
+        ret = clSetKernelArg(d.kernel[nlmUnpack], 2, sizeof(cl_mem), d.use_mem_P_out ? &d.mem_P_out[2] : &d.mem_P[2]);
         if (ret != CL_SUCCESS) { d.oclErrorCheck("clSetKernelArg(nlmUnpack[2])", ret, out, vsapi); return; }
         ret = clSetKernelArg(d.kernel[nlmUnpack], 3, sizeof(cl_mem), &d.mem_P[0]); // dummy, 3 is reserved for AviSynth
         if (ret != CL_SUCCESS) { d.oclErrorCheck("clSetKernelArg(nlmUnpack[3])", ret, out, vsapi); return; }
@@ -968,7 +1091,7 @@ VS_EXTERNAL_API(void) VapourSynthPluginInit(VSConfigPlugin configFunc, VSRegiste
     configFunc("com.Khanattila.KNLMeansCL", "knlm", "KNLMeansCL for VapourSynth", VAPOURSYNTH_API_VERSION, 1, plugin);
     registerFunc("KNLMeansCL", "clip:clip;d:int:opt;a:int:opt;s:int:opt;h:float:opt;channels:data:opt;wmode:int:opt;\
 wref:float:opt;rclip:clip:opt;device_type:data:opt;device_id:int:opt;ocl_x:int:opt;ocl_y:int:opt;ocl_r:int:opt;\
-info:int:opt", VapourSynthPluginCreate, nullptr, plugin);
+info:int:opt;mode_9_to_15bits:int:opt", VapourSynthPluginCreate, nullptr, plugin);
 }
 
 #endif //__VAPOURSYNTH_H__

@@ -1,3 +1,34 @@
+v1.1.1e [20201112 (pinterf)]
+   - Update internal VERSION with 'e' shown in 'info' pages
+   - New: Add (debug) parameter: 'mode_9_to_15bits' (integer). Values 0, 1 (default), 2
+          Affects how less-than-16-bit formats are handled internally.
+          Result is the same, speed may vary
+   - New: VapourSynth: support for all bit depth between 8 and 16
+   - Fix: VapourSynth: check if format is 4:4:4 for parameter channels="YUV" (was: crash)
+   - New: VapourSynth: If OpenCL driver does not support special 10-10-10 bit internal processing mode, 
+                       silently fallbacks to the new high bit depth normal mode instead of 
+                       "format not supported"
+
+v1.1.1d [20201102 (pinterf)]
+   - Fix: Avisynth: channels="UV" gives error on greyscale clips with bit depth > 8
+   - Fix: Avisynth: YV24 text in a parameter checking error replaced to bit depth independent 4:4:4
+   - Fix: Avisynth: channels="UV" was working only for 8 bit subsampled formats
+   - Fix: Avisynth: channels="UV" to properly support 4:1:1 subsampling
+   - New: Avisynth: add planar RGB support
+   - New: Avisynth: add general support for 9-15 bit input formats (avs: 10, 12, 14)
+   - New: Avisynth: 10 bit input processing is no longer restricted to channels="YUV"
+   - New: Avisynth: If OpenCL driver does not support special 10-10-10 bit internal processing mode, 
+                    silently fallbacks to the new high bit depth normal mode instead of 
+                    "format not supported"
+
+v1.1.1c [20201028 (pinterf)]
+   - Avisynth: fixes invalid frame content / ghost frames / hangup in multithreaded environment
+
+v1.1.1b [20200429 (pinterf)]
+   - Windows build with VS2019
+   - Move AviSynth+ MT report to interface independent cache hints
+   - Add AviSynth+ frame property copy support (supports V8 interface for AviSynth+ 3.6.0)
+
 v1.1.1
    - Added more check of rclip.
    - Fixed build programm error in some circumstances. 

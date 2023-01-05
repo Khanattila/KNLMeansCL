@@ -44,8 +44,8 @@
 #define memU5                      0x6
 #define NLM_MEMORY                 0x7
 
-#define NLM_CLIP_EXTRA_FALSE      (1 << 0)
-#define NLM_CLIP_EXTRA_TRUE       (1 << 1)
+#define NLM_CLIP_TYPE_UNSIGNED_101010 (1 << 0)
+#define NLM_CLIP_TYPE_UNORM_IN_UNSIGNED_OUT (1 << 1)
 #define NLM_CLIP_TYPE_UNORM       (1 << 2)
 #define NLM_CLIP_TYPE_UNSIGNED    (1 << 3)
 #define NLM_CLIP_TYPE_STACKED     (1 << 4)
@@ -53,6 +53,7 @@
 #define NLM_CLIP_REF_CHROMA       (1 << 6)
 #define NLM_CLIP_REF_YUV          (1 << 7)
 #define NLM_CLIP_REF_RGB          (1 << 8)
+#define NLM_CLIP_REF_PACKEDRGB    (1 << 9)
 
 #define NLM_WMODE_WELSCH           0x0
 #define NLM_WMODE_BISQUARE_A       0x1
