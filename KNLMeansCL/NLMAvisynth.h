@@ -24,6 +24,8 @@
 
 #ifdef _WIN32
 #    include <avisynth.h>
+#else
+#    include <avisynth/avisynth.h>
 #endif
 
 #ifdef __AVISYNTH_8_H__

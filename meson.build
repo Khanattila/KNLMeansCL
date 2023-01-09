@@ -4,8 +4,9 @@ project('KNLMeansCL',
         license : 'GPL-3',
         version : '1.1.1')
 
+avisynth = dependency('avisynth')
 vapoursynth = dependency('vapoursynth')
-deps = [vapoursynth]
+deps = [avisynth, vapoursynth]
 
 opencl_dep = dependency('OpenCL', required : false)
 if not opencl_dep.found()
