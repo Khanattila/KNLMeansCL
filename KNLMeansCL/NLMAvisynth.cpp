@@ -39,6 +39,10 @@
 #   define AVS_EXPORT
 #endif
 
+#ifndef _WIN32
+#define __AVISYNTH_8_H__ // force this on unconditionally in *nix
+#endif
+
 #ifdef __AVISYNTH_8_H__
 
 //////////////////////////////////////////
