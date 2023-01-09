@@ -31,6 +31,14 @@
 #    define strcasecmp _stricmp
 #endif
 
+#if defined(_WIN32)
+#   define AVS_EXPORT __declspec(dllexport)
+#elif defined(__GNUC__) && __GNUC__ >= 4
+#   define AVS_EXPORT __attribute__((visibility("default")))
+#else
+#   define AVS_EXPORT
+#endif
+
 #ifdef __AVISYNTH_8_H__
 
 //////////////////////////////////////////
@@ -1120,7 +1128,7 @@ AVSValue __cdecl AviSynthPluginCreate(AVSValue args, void* user_data, IScriptEnv
 //////////////////////////////////////////
 // AviSynthPluginInit
 const AVS_Linkage *AVS_linkage = 0;
-extern "C" __declspec(dllexport) const char* __stdcall AvisynthPluginInit3(
+extern "C" AVS_EXPORT const char* __stdcall AvisynthPluginInit3(
     IScriptEnvironment* env, const AVS_Linkage * const vectors)
 {
     AVS_linkage = vectors;
