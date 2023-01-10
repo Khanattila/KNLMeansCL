@@ -4,9 +4,12 @@ project('KNLMeansCL',
         license : 'GPL-3',
         version : '1.1.1')
 
-avisynth = dependency('avisynth')
+avisynth = dependency('avisynth', required : false)
+avisynth_src = ['KNLMeansCL/NLMAvisynth.h',
+                'KNLMeansCL/NLMAvisynth.cpp']
+
 vapoursynth = dependency('vapoursynth')
-deps = [avisynth, vapoursynth]
+deps = [vapoursynth]
 
 opencl_dep = dependency('OpenCL', required : false)
 if not opencl_dep.found()
@@ -16,8 +19,6 @@ boost_dep = dependency('boost', modules : ['filesystem', 'system'])
 deps += [opencl_dep, boost_dep]
 
 src = [
-    'KNLMeansCL/NLMAvisynth.h',
-    'KNLMeansCL/NLMAvisynth.cpp',
     'KNLMeansCL/NLMDefault.h',
     'KNLMeansCL/NLMKernel.cpp',
     'KNLMeansCL/NLMKernel.h',
@@ -29,6 +30,10 @@ src = [
     'KNLMeansCL/shared/ocl_utils.h',
     'KNLMeansCL/shared/startchar.cpp',
     'KNLMeansCL/shared/startchar.h']
+
+if avisynth.found()
+    src += [avisynth_src]
+endif
 
 library(
     'knlmeanscl',
