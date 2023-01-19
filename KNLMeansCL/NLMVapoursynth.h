@@ -22,8 +22,13 @@
 #include "NLMKernel.h"
 #include "shared/ocl_utils.h"
 
+#ifdef _WIN32
 #include <VapourSynth.h>
 #include <VSHelper.h>
+#else
+#include <vapoursynth/VapourSynth.h>
+#include <vapoursynth/VSHelper.h>
+#endif
 
 #ifdef VAPOURSYNTH_H
 

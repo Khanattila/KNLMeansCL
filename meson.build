@@ -8,8 +8,10 @@ avisynth = dependency('avisynth', required : false)
 avisynth_src = ['KNLMeansCL/NLMAvisynth.h',
                 'KNLMeansCL/NLMAvisynth.cpp']
 
-vapoursynth = dependency('vapoursynth')
-deps = [vapoursynth]
+vapoursynth = dependency('vapoursynth', required : false)
+vapoursynth_src = ['KNLMeansCL/NLMVapoursynth.cpp',
+                   'KNLMeansCL/NLMVapoursynth.h',]
+deps = []
 
 opencl_dep = dependency('OpenCL', required : false)
 if not opencl_dep.found()
@@ -22,8 +24,6 @@ src = [
     'KNLMeansCL/NLMDefault.h',
     'KNLMeansCL/NLMKernel.cpp',
     'KNLMeansCL/NLMKernel.h',
-    'KNLMeansCL/NLMVapoursynth.cpp',
-    'KNLMeansCL/NLMVapoursynth.h',
     'KNLMeansCL/shared/common.cpp',
     'KNLMeansCL/shared/common.h',
     'KNLMeansCL/shared/ocl_utils.cpp',
@@ -34,6 +34,10 @@ src = [
 if avisynth.found()
     src += [avisynth_src]
 endif
+
+if vapoursynth.found()
+    src += [vapoursynth_src]
+ endif
 
 library(
     'knlmeanscl',
