@@ -24,9 +24,13 @@
 
 #ifdef _WIN32
 #    include <avisynth.h>
+#else
+#    include <avisynth/avisynth.h>
+#    define __AVISYNTH_8_H__ // force this on unconditionally on *nix
 #endif
 
 #ifdef __AVISYNTH_8_H__
+
 struct NLMAvisynth : public GenericVideoFilter {
 
 private:

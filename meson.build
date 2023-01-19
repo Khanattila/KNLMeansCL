@@ -4,8 +4,14 @@ project('KNLMeansCL',
         license : 'GPL-3',
         version : '1.1.1')
 
-vapoursynth = dependency('vapoursynth')
-deps = [vapoursynth]
+avisynth = dependency('avisynth', required : false)
+avisynth_src = ['KNLMeansCL/NLMAvisynth.h',
+                'KNLMeansCL/NLMAvisynth.cpp']
+
+vapoursynth = dependency('vapoursynth', required : false)
+vapoursynth_src = ['KNLMeansCL/NLMVapoursynth.cpp',
+                   'KNLMeansCL/NLMVapoursynth.h',]
+deps = []
 
 opencl_dep = dependency('OpenCL', required : false)
 if not opencl_dep.found()
@@ -15,13 +21,9 @@ boost_dep = dependency('boost', modules : ['filesystem', 'system'])
 deps += [opencl_dep, boost_dep]
 
 src = [
-    'KNLMeansCL/NLMAvisynth.h',
-    'KNLMeansCL/NLMAvisynth.cpp',
     'KNLMeansCL/NLMDefault.h',
     'KNLMeansCL/NLMKernel.cpp',
     'KNLMeansCL/NLMKernel.h',
-    'KNLMeansCL/NLMVapoursynth.cpp',
-    'KNLMeansCL/NLMVapoursynth.h',
     'KNLMeansCL/shared/common.cpp',
     'KNLMeansCL/shared/common.h',
     'KNLMeansCL/shared/ocl_utils.cpp',
@@ -29,9 +31,31 @@ src = [
     'KNLMeansCL/shared/startchar.cpp',
     'KNLMeansCL/shared/startchar.h']
 
+if avisynth.found()
+    src += [avisynth_src]
+endif
+
+if vapoursynth.found()
+    src += [vapoursynth_src]
+ endif
+
 library(
     'knlmeanscl',
     src,
     dependencies : deps,
-    install_dir : join_paths(get_option('prefix'), get_option('libdir'), 'vapoursynth'),
+    install_dir : join_paths(get_option('prefix'), get_option('libdir')),
     install : true)
+
+if avisynth.found()
+install_symlink(
+    'libknlmeanscl.so',
+    install_dir : join_paths(get_option('prefix'), get_option('libdir'), 'avisynth'),
+    pointing_to : '../libknlmeanscl.so' )
+endif
+
+if vapoursynth.found()
+install_symlink(
+    'libknlmeanscl.so',
+    install_dir : join_paths(get_option('prefix'), get_option('libdir'), 'vapoursynth'),
+    pointing_to : '../libknlmeanscl.so')
+endif
