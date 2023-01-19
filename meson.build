@@ -43,5 +43,19 @@ library(
     'knlmeanscl',
     src,
     dependencies : deps,
-    install_dir : join_paths(get_option('prefix'), get_option('libdir'), 'vapoursynth'),
+    install_dir : join_paths(get_option('prefix'), get_option('libdir')),
     install : true)
+
+if avisynth.found()
+install_symlink(
+    'libknlmeanscl.so',
+    install_dir : join_paths(get_option('prefix'), get_option('libdir'), 'avisynth'),
+    pointing_to : '../libknlmeanscl.so' )
+endif
+
+if vapoursynth.found()
+install_symlink(
+    'libknlmeanscl.so',
+    install_dir : join_paths(get_option('prefix'), get_option('libdir'), 'vapoursynth'),
+    pointing_to : '../libknlmeanscl.so')
+endif
